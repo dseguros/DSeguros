@@ -67,3 +67,9 @@ void help()
 	exit(0);
 }
 
+void version()
+{
+	cout << "rlp version " << dev::Version << endl;
+	exit(0);
+}
+
