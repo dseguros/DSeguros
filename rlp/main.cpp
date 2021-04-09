@@ -111,3 +111,69 @@ enum class Encoding {
 	Binary,
 	Keccak,
 };
+
+bool isAscii(string const& _s)
+{
+	// Always hex-encode anything beginning with 0x to avoid ambiguity.
+	if (_s.size() >= 2 && _s.substr(0, 2) == "0x")
+		return false;
+
+	for (char c: _s)
+		if (c < 32)
+			return false;
+	return true;
+}
+
+class RLPStreamer
+{
+public:
+	struct Prefs
+	{
+		string indent;
+		bool hexInts = false;
+		bool stringInts = true;
+		bool hexPrefix = true;
+		bool forceString = false;
+		bool escapeAll = false;
+		bool forceHex = true;
+	};
+
+	RLPStreamer(ostream& _out, Prefs _p): m_out(_out), m_prefs(_p) {}
+
+	void output(RLP const& _d, unsigned _level = 0)
+	{
+		if (_d.isNull())
+			m_out << "null";
+		else if (_d.isInt() && !m_prefs.stringInts)
+			if (m_prefs.hexInts)
+				m_out << (m_prefs.hexPrefix ? "0x" : "") << toHex(toCompactBigEndian(_d.toInt<bigint>(RLP::LaissezFaire), 1), 1);
+			else
+				m_out << _d.toInt<bigint>(RLP::LaissezFaire);
+		else if (_d.isData() || (_d.isInt() && m_prefs.stringInts))
+			if (m_prefs.forceString || (!m_prefs.forceHex && isAscii(_d.toString())))
+				m_out << escaped(_d.toString(), m_prefs.escapeAll);
+			else
+				m_out << "\"" << (m_prefs.hexPrefix ? "0x" : "") << toHex(_d.toBytes()) << "\"";
+		else if (_d.isList())
+		{
+			m_out << "[";
+			string newline = "\n";
+			for (unsigned i = 0; i < _level + 1; ++i)
+				newline += m_prefs.indent;
+			int j = 0;
+			for (auto i: _d)
+			{
+				m_out << (j++ ?
+					(m_prefs.indent.empty() ? ", " : ("," + newline)) :
+					(m_prefs.indent.empty() ? " " : newline));
+				output(i, _level + 1);
+			}
+			newline = newline.substr(0, newline.size() - m_prefs.indent.size());
+			m_out << (m_prefs.indent.empty() ? (j ? " ]" : "]") : (j ? newline + "]" : "]"));
+		}
+	}
+
+private:
+	std::ostream& m_out;
+	Prefs m_prefs;
+};
