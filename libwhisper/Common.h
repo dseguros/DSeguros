@@ -58,6 +58,21 @@ enum WhisperPacket
 	PacketCount
 };
 
+static const unsigned TopicBloomFilterSize = 64;
+static const unsigned BitsPerBloom = 3;
+static const unsigned WhisperProtocolVersion = 3;
+
+using AbridgedTopic = FixedHash<4>;
+using Topic = h256;
+
+using AbridgedTopics = std::vector<AbridgedTopic>;
+using Topics = h256s;
+
+using TopicBloomFilterHash = FixedHash<TopicBloomFilterSize>;
+
+AbridgedTopic abridge(Topic const& _topic);
+AbridgedTopics abridge(Topics const& _topics);
+
 }
 
 }
