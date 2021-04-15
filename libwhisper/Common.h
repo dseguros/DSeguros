@@ -115,7 +115,22 @@ private:
 	TopicMasks m_topicMasks;
 };
 
+class BuildTopicMask: BuildTopic
+{
+public:
+	BuildTopicMask() {}
+	template <class T> BuildTopicMask(T const& _t) { shift(_t); }
 
+	template <class T> BuildTopicMask& shift(T const& _r) { BuildTopic::shift(_r); return *this; }
+	BuildTopicMask& shiftRaw(h256 const& _h) { BuildTopic::shiftRaw(_h); return *this; }
+
+	template <class T> BuildTopicMask& operator()(T const& _t) { shift(_t); return *this; }
+
+	operator TopicMask() const { return toTopicMask(); }
+	operator Topics() const { return toTopics(); }
+	TopicMask toTopicMask() const;
+	Topics toTopics() const { return m_parts; }
+};
 
 }
 
