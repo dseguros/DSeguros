@@ -73,6 +73,28 @@ using TopicBloomFilterHash = FixedHash<TopicBloomFilterSize>;
 AbridgedTopic abridge(Topic const& _topic);
 AbridgedTopics abridge(Topics const& _topics);
 
+class BuildTopic
+{
+public:
+	BuildTopic() {}
+	template <class T> BuildTopic(T const& _t) { shift(_t); }
+
+	template <class T> BuildTopic& shift(T const& _r) { return shiftBytes(RLPStream().append(_r).out()); }
+	template <class T> BuildTopic& operator()(T const& _t) { return shift(_t); }
+
+	BuildTopic& shiftRaw(h256 const& _part) { m_parts.push_back(_part); return *this; }
+
+	operator AbridgedTopics() const { return toAbridgedTopics(); }
+	operator Topics() const { return toTopics(); }
+	AbridgedTopics toAbridgedTopics() const;
+	Topics toTopics() const { return m_parts; }
+
+protected:
+	BuildTopic& shiftBytes(bytes const& _b);
+
+	h256s m_parts;
+};
+
 }
 
 }
