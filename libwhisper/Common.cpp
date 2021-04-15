@@ -34,6 +34,23 @@ AbridgedTopic dev::shh::abridge(Topic const& _p)
 	return AbridgedTopic(sha3(_p));
 }
 
+AbridgedTopics dev::shh::abridge(Topics const& _topics)
+{
+	AbridgedTopics ret;
+	ret.reserve(_topics.size());
+	for (auto const& t: _topics)
+		ret.push_back(abridge(t));
+	return ret;
+}
+
+AbridgedTopics BuildTopic::toAbridgedTopics() const
+{
+	AbridgedTopics ret;
+	ret.reserve(m_parts.size());
+	for (auto const& h: m_parts)
+		ret.push_back(abridge(h));
+	return ret;
+}
 
 /*
 web3.shh.watch({}).arrived(function(m) { env.note("New message:\n"+JSON.stringify(m)); })
