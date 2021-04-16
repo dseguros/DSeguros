@@ -134,4 +134,14 @@ namespace rmd160
 (c) = ROL((c), 10);\
 }
 
+void MDinit(uint32_t *MDbuf)
+{
+	MDbuf[0] = 0x67452301UL;
+	MDbuf[1] = 0xefcdab89UL;
+	MDbuf[2] = 0x98badcfeUL;
+	MDbuf[3] = 0x10325476UL;
+	MDbuf[4] = 0xc3d2e1f0UL;
+
+	return;
+}
 }
