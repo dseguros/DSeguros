@@ -378,3 +378,67 @@ void MDfinish(uint32_t *MDbuf, byte const *strptr, uint32_t lswlen, uint32_t msw
 MDfinish
 
 }
+
+#undef ROL
+#undef F
+#undef G
+#undef H
+#undef I
+#undef J
+#undef FF
+#undef GG
+#undef HH
+#undef II
+#undef JJ
+#undef FFF
+#undef GGG
+#undef HHH
+#undef III
+#undef JJJ
+
+}
+
+/*
+ * @returns RMD(_input)
+ */
+h160 ripemd160(bytesConstRef _input)
+{
+	h160 hashcode;
+	uint32_t buffer[RMDsize / 32];		// contains (A, B, C, D(, E))
+	uint32_t current[16];				// current 16-word chunk
+
+	// initialize
+	rmd160::MDinit(buffer);
+	byte const* message = _input.data();
+	uint32_t remaining = _input.size();	// # of bytes not yet processed
+
+	// process message in 16x 4-byte chunks
+	for (; remaining >= 64; remaining -= 64)
+	{
+		for (unsigned i = 0; i < 16; i++)
+		{
+			current[i] = BYTES_TO_DWORD(message);
+			message += 4;
+		}
+		rmd160::MDcompress(buffer, current);
+	}
+	// length mod 64 bytes left
+
+	// finish:
+	rmd160::MDfinish(buffer, message, _input.size(), 0);
+
+	for (unsigned i = 0; i < RMDsize / 8; i += 4)
+	{
+		hashcode[i] = buffer[i >> 2];				//  implicit cast to byte
+		hashcode[i + 1] = (buffer[i >> 2] >> 8);	//extracts the 8 least
+		hashcode[i + 2] = (buffer[i >> 2] >> 16);	// significant bits.
+		hashcode[i + 3] = (buffer[i >> 2] >> 24);
+	}
+
+	return hashcode;
+}
+
+#undef BYTES_TO_DWORD
+#undef RMDsize
+
+}
