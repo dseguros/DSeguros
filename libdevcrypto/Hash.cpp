@@ -375,10 +375,6 @@ void MDfinish(uint32_t *MDbuf, byte const *strptr, uint32_t lswlen, uint32_t msw
 	return;
 }
 
-MDfinish
-
-}
-
 #undef ROL
 #undef F
 #undef G
