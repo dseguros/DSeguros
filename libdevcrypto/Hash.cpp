@@ -344,4 +344,37 @@ void MDcompress(uint32_t *MDbuf, uint32_t *X)
 
 	return;
 }
+
+void MDfinish(uint32_t *MDbuf, byte const *strptr, uint32_t lswlen, uint32_t mswlen)
+{
+	unsigned int i;                                 /* counter       */
+	uint32_t        X[16];                             /* message words */
+
+	memset(X, 0, 16*sizeof(uint32_t));
+
+	/* put bytes from strptr into X */
+	for (i=0; i<(lswlen&63); i++) {
+		/* byte i goes into word X[i div 4] at pos.  8*(i mod 4)  */
+		X[i>>2] ^= (uint32_t) *strptr++ << (8 * (i&3));
+	}
+
+	/* append the bit m_n == 1 */
+	X[(lswlen>>2)&15] ^= (uint32_t)1 << (8*(lswlen&3) + 7);
+
+	if ((lswlen & 63) > 55) {
+		/* length goes to next block */
+		MDcompress(MDbuf, X);
+		memset(X, 0, 16*sizeof(uint32_t));
+	}
+
+	/* append length in bits*/
+	X[14] = lswlen << 3;
+	X[15] = (lswlen >> 29) | (mswlen << 3);
+	MDcompress(MDbuf, X);
+
+	return;
+}
+
+MDfinish
+
 }
