@@ -94,4 +94,12 @@ h128 importKeyContent(std::string const& _content) { auto ret = readKeyContent(_
 	bool recode(Address const& _address, std::string const& _newPass, std::function<std::string()> const& _pass, KDF _kdf = KDF::Scrypt);
 	/// Removes the key specified by @a _uuid from both memory and disk.
 	void kill(h128 const& _uuid);
-	
+/// Returns the uuids of all stored keys.
+	std::vector<h128> keys() const { return keysOf(m_keys); }
+
+	/// @returns true iff we have the given key stored.
+	bool contains(h128 const& _k) const { return m_keys.count(_k); }
+
+	/// Clears all cached decrypted keys. The passwords have to be supplied in order to retrieve
+	/// secrets again after calling this function.
+	void clearCache() const;	
