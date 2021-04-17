@@ -56,3 +56,29 @@ public:
 		Address address;
 	};
 
+
+/// Construct a new SecretStore but don't read any keys yet.
+	/// Call setPath in
+	SecretStore() = default;
+
+	/// Construct a new SecretStore and read all keys in the given directory.
+	SecretStore(std::string const& _path);
+
+	/// Set a path for finding secrets.
+	void setPath(std::string const& _path);
+
+	/// @returns the secret key stored by the given @a _uuid.
+	/// @param _pass function that returns the password for the key.
+	/// @param _useCache if true, allow previously decrypted keys to be returned directly.
+	bytesSec secret(h128 const& _uuid, std::function<std::string()> const& _pass, bool _useCache = true) const;
+	/// @returns the secret key stored by the given @a _uuid.
+	/// @param _pass function that returns the password for the key.
+	static bytesSec secret(std::string const& _content, std::string const& _pass);
+	/// @returns the secret key stored by the given @a _address.
+	/// @param _pass function that returns the password for the key.
+	bytesSec secret(Address const& _address, std::function<std::string()> const& _pass) const;
+	/// Imports the (encrypted) key stored in the file @a _file and copies it to the managed directory.
+	h128 importKey(std::string const& _file) { auto ret = readKey(_file, false); if (ret) save(); return ret; }
+	/// Imports the (encrypted) key contained in the json formatted @a _content and stores it in
+	/// the managed directory.
+	
