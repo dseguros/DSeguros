@@ -103,3 +103,13 @@ h128 importKeyContent(std::string const& _content) { auto ret = readKeyContent(_
 	/// Clears all cached decrypted keys. The passwords have to be supplied in order to retrieve
 	/// secrets again after calling this function.
 	void clearCache() const;	
+
+/// Import the key from the file @a _file, but do not copy it to the managed directory yet.
+	/// @param _takeFileOwnership if true, deletes the file if it is not the canonical file for the
+	/// key (derived from its uuid).
+	h128 readKey(std::string const& _file, bool _takeFileOwnership);
+	/// Import the key contained in the json-encoded @a _content, but do not store it in the
+	/// managed directory.
+	/// @param _file if given, assume this file contains @a _content and delete it later, if it is
+	/// not the canonical file for the key (derived from the uuid).
+	h128 readKeyContent(std::string const& _content, std::string const& _file = std::string());
