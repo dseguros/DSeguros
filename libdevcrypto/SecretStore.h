@@ -113,3 +113,16 @@ h128 importKeyContent(std::string const& _content) { auto ret = readKeyContent(_
 	/// @param _file if given, assume this file contains @a _content and delete it later, if it is
 	/// not the canonical file for the key (derived from the uuid).
 	h128 readKeyContent(std::string const& _content, std::string const& _file = std::string());
+
+/// Store all keys in the directory @a _keysPath.
+	void save(std::string const& _keysPath);
+	/// Store all keys in the managed directory.
+	void save() { save(m_path); }
+	/// @returns true if the current file @arg _uuid contains an empty address. m_keys will be updated with the given @arg _address.
+	bool noteAddress(h128 const& _uuid, Address const& _address);
+	/// @returns the address of the given key or the zero address if it is unknown.
+	Address address(h128 const& _uuid) const { return m_keys.at(_uuid).address; }
+
+	/// @returns the default path for the managed directory.
+	static std::string defaultPath() { return getDataDir("web3") + "/keys"; }
+
