@@ -125,4 +125,21 @@ h128 importKeyContent(std::string const& _content) { auto ret = readKeyContent(_
 
 	/// @returns the default path for the managed directory.
 	static std::string defaultPath() { return getDataDir("web3") + "/keys"; }
+private:
+	/// Loads all keys in the given directory.
+	void load(std::string const& _keysPath);
+	void load() { load(m_path); }
+	/// Encrypts @a _v with a key derived from @a _pass or the empty string on error.
+	static std::string encrypt(bytesConstRef _v, std::string const& _pass, KDF _kdf = KDF::Scrypt);
+	/// Decrypts @a _v with a key derived from @a _pass or the empty byte array on error.
+	static bytesSec decrypt(std::string const& _v, std::string const& _pass);
+	/// @returns the key given the @a _address.
+	std::pair<h128 const, EncryptedKey> const* key(Address const& _address) const;
+	std::pair<h128 const, EncryptedKey>* key(Address const& _address);
+	/// Stores decrypted keys by uuid.
+	mutable std::unordered_map<h128, bytesSec> m_cached;
+	/// Stores encrypted keys together with the file they were loaded from by uuid.
+	std::unordered_map<h128, EncryptedKey> m_keys;
 
+	std::string m_path;
+};
