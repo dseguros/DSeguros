@@ -38,3 +38,21 @@ enum class KDF {
 
 }
 
+/**
+ * Manages encrypted keys stored in a certain directory on disk. The keys are read into memory
+ * and changes to the keys are automatically synced to the directory.
+ * Each file stores exactly one key in a specific JSON format whose file name is derived from the
+ * UUID of the key.
+ * @note that most of the functions here affect the filesystem and throw exceptions on failure,
+ * and they also throw exceptions upon rare malfunction in the cryptographic functions.
+ */
+class SecretStore
+{
+public:
+	struct EncryptedKey
+	{
+		std::string encryptedKey;
+		std::string filename;
+		Address address;
+	};
+
