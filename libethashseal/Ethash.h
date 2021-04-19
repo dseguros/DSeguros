@@ -48,5 +48,13 @@ public:
 	void verify(Strictness _s, BlockHeader const& _bi, BlockHeader const& _parent, bytesConstRef _block) const override;
 	void verifyTransaction(ImportRequirements::value _ir, TransactionBase const& _t, EnvInfo const& _env) const override;
 	void populateFromParent(BlockHeader& _bi, BlockHeader const& _parent) const override;
+   
+       strings sealers() const override;
+	std::string sealer() const override { return m_sealer; }
+	void setSealer(std::string const& _sealer) override { m_sealer = _sealer; }
+	void cancelGeneration() override { m_farm.stop(); }
+	void generateSeal(BlockHeader const& _bi, bytes const& _block_data = bytes()) override;
+	bool shouldSeal(Interface* _i) override;
+
 }
 }
