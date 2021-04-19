@@ -173,3 +173,8 @@ u256 Ethash::childGasLimit(BlockHeader const& _bi, u256 const& _gasFloorTarget) 
 	else
 		return max<u256>(gasFloorTarget, gasLimit - gasLimit / boundDivisor + 1 + (_bi.gasUsed() * 6 / 5) / boundDivisor);
 }
+
+void Ethash::manuallySubmitWork(const h256& _mixHash, Nonce _nonce)
+{
+	m_farm.submitProof(EthashProofOfWork::Solution{_nonce, _mixHash}, nullptr);
+}
