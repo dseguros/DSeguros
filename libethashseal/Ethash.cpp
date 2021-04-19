@@ -178,3 +178,36 @@ void Ethash::manuallySubmitWork(const h256& _mixHash, Nonce _nonce)
 {
 	m_farm.submitProof(EthashProofOfWork::Solution{_nonce, _mixHash}, nullptr);
 }
+
+u256 Ethash::calculateDifficulty(BlockHeader const& _bi, BlockHeader const& _parent) const
+{
+	const unsigned c_expDiffPeriod = 100000;
+
+	if (!_bi.number())
+		throw GenesisBlockCannotBeCalculated();
+	auto minimumDifficulty = chainParams().u256Param("minimumDifficulty");
+	auto difficultyBoundDivisor = chainParams().u256Param("difficultyBoundDivisor");
+	auto durationLimit = chainParams().u256Param("durationLimit");
+
+	bigint target;	// stick to a bigint for the target. Don't want to risk going negative.
+	if (_bi.number() < chainParams().u256Param("homsteadForkBlock"))
+		// Frontier-era difficulty adjustment
+		target = _bi.timestamp() >= _parent.timestamp() + durationLimit ? _parent.difficulty() - (_parent.difficulty() / difficultyBoundDivisor) : (_parent.difficulty() + (_parent.difficulty() / difficultyBoundDivisor));
+	else
+	{
+		bigint const timestampDiff = bigint(_bi.timestamp()) - _parent.timestamp();
+		bigint const adjFactor = _bi.number() < chainParams().u256Param("metropolisForkBlock") ?
+			max<bigint>(1 - timestampDiff / 10, -99) : // Homestead-era difficulty adjustment
+			max<bigint>((_parent.hasUncles() ? 2 : 1) - timestampDiff / 9, -99); // Metropolis-era difficulty adjustment
+
+		target = _parent.difficulty() + _parent.difficulty() / 2048 * adjFactor;
+	}
+
+	bigint o = target;
+	unsigned periodCount = unsigned(_parent.number() + 1) / c_expDiffPeriod;
+	if (periodCount > 1)
+		o += (bigint(1) << (periodCount - 2));	// latter will eventually become huge, so ensure it's a bigint.
+
+	o = max<bigint>(minimumDifficulty, o);
+	return u256(min<bigint>(o, std::numeric_limits<u256>::max()));
+}
