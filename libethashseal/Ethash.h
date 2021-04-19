@@ -43,5 +43,10 @@ public:
 	unsigned sealFields() const override { return 2; }
 	bytes sealRLP() const override { return rlp(h256()) + rlp(Nonce()); }
 
+
+        StringHashMap jsInfo(BlockHeader const& _bi) const override;
+	void verify(Strictness _s, BlockHeader const& _bi, BlockHeader const& _parent, bytesConstRef _block) const override;
+	void verifyTransaction(ImportRequirements::value _ir, TransactionBase const& _t, EnvInfo const& _env) const override;
+	void populateFromParent(BlockHeader& _bi, BlockHeader const& _parent) const override;
 }
 }
