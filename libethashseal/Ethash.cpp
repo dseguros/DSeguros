@@ -143,3 +143,23 @@ void Ethash::verify(Strictness _s, BlockHeader const& _bi, BlockHeader const& _p
 		BOOST_THROW_EXCEPTION(ex);
 	}
 }
+
+
+void Ethash::verifyTransaction(ImportRequirements::value _ir, TransactionBase const& _t, EnvInfo const& _env) const
+{
+	SealEngineFace::verifyTransaction(_ir, _t, _env);
+
+	if (_ir & ImportRequirements::TransactionSignatures)
+	{
+		if (_env.number() >= chainParams().u256Param("EIP158ForkBlock"))
+		{
+			int chainID(chainParams().u256Param("chainID"));
+			_t.checkChainId(chainID);
+		}
+		else
+			_t.checkChainId(-4);
+	}
+	if (_ir & ImportRequirements::TransactionBasic && _t.baseGasRequired(evmSchedule(_env)) > _t.gas())
+		BOOST_THROW_EXCEPTION(OutOfGasIntrinsic());
+}
+
