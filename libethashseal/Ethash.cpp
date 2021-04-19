@@ -62,3 +62,8 @@ strings Ethash::sealers() const
 {
 	return {"cpu"};
 }
+
+h256 Ethash::seedHash(BlockHeader const& _bi)
+{
+	return EthashAux::seedHash((unsigned)_bi.number());
+}
