@@ -57,3 +57,8 @@ Ethash::Ethash()
 		return true;
 	});
 }
+
+strings Ethash::sealers() const
+{
+	return {"cpu"};
+}
