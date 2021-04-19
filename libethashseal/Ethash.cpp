@@ -35,4 +35,25 @@ void Ethash::init()
 	ETH_REGISTER_SEAL_ENGINE(Ethash);
 }
 
+Ethash::Ethash()
+{
+	map<string, GenericFarm<EthashProofOfWork>::SealerDescriptor> sealers;
+	sealers["cpu"] = GenericFarm<EthashProofOfWork>::SealerDescriptor{&EthashCPUMiner::instances, [](GenericMiner<EthashProofOfWork>::ConstructionInfo ci){ return new EthashCPUMiner(ci); }};
+	m_farm.setSealers(sealers);
+	m_farm.onSolutionFound([=](EthashProofOfWork::Solution const& sol)
+	{
+//		cdebug << m_farm.work().seedHash << m_farm.work().headerHash << sol.nonce << EthashAux::eval(m_farm.work().seedHash, m_farm.work().headerHash, sol.nonce).value;
+		setMixHash(m_sealing, sol.mixHash);
+		setNonce(m_sealing, sol.nonce);
+		if (!quickVerifySeal(m_sealing))
+			return false;
 
+		if (m_onSealGenerated)
+		{
+			RLPStream ret;
+			m_sealing.streamRLP(ret);
+			m_onSealGenerated(ret.out());
+		}
+		return true;
+	});
+}
