@@ -67,3 +67,8 @@ h256 Ethash::seedHash(BlockHeader const& _bi)
 {
 	return EthashAux::seedHash((unsigned)_bi.number());
 }
+
+StringHashMap Ethash::jsInfo(BlockHeader const& _bi) const
+{
+	return { { "nonce", toJS(nonce(_bi)) }, { "seedHash", toJS(seedHash(_bi)) }, { "mixHash", toJS(mixHash(_bi)) }, { "boundary", toJS(boundary(_bi)) }, { "difficulty", toJS(_bi.difficulty()) } };
+}
