@@ -72,3 +72,74 @@ StringHashMap Ethash::jsInfo(BlockHeader const& _bi) const
 {
 	return { { "nonce", toJS(nonce(_bi)) }, { "seedHash", toJS(seedHash(_bi)) }, { "mixHash", toJS(mixHash(_bi)) }, { "boundary", toJS(boundary(_bi)) }, { "difficulty", toJS(_bi.difficulty()) } };
 }
+
+void Ethash::verify(Strictness _s, BlockHeader const& _bi, BlockHeader const& _parent, bytesConstRef _block) const
+{
+	SealEngineFace::verify(_s, _bi, _parent, _block);
+
+	if (_s != CheckNothingNew)
+	{
+		if (_bi.difficulty() < chainParams().u256Param("minimumDifficulty"))
+			BOOST_THROW_EXCEPTION(InvalidDifficulty() << RequirementError(bigint(chainParams().u256Param("minimumDifficulty")), bigint(_bi.difficulty())) );
+
+		if (_bi.gasLimit() < chainParams().u256Param("minGasLimit"))
+			BOOST_THROW_EXCEPTION(InvalidGasLimit() << RequirementError(bigint(chainParams().u256Param("minGasLimit")), bigint(_bi.gasLimit())) );
+
+		if (_bi.gasLimit() > chainParams().u256Param("maxGasLimit"))
+			BOOST_THROW_EXCEPTION(InvalidGasLimit() << RequirementError(bigint(chainParams().u256Param("maxGasLimit")), bigint(_bi.gasLimit())) );
+
+		if (_bi.number() && _bi.extraData().size() > chainParams().maximumExtraDataSize)
+			BOOST_THROW_EXCEPTION(ExtraDataTooBig() << RequirementError(bigint(chainParams().maximumExtraDataSize), bigint(_bi.extraData().size())) << errinfo_extraData(_bi.extraData()));
+
+		u256 daoHardfork = chainParams().u256Param("daoHardforkBlock");
+		if (daoHardfork != 0 && daoHardfork + 9 >= daoHardfork && _bi.number() >= daoHardfork && _bi.number() <= daoHardfork + 9)
+			if (_bi.extraData() != fromHex("0x64616f2d686172642d666f726b"))
+				BOOST_THROW_EXCEPTION(ExtraDataIncorrect() << errinfo_comment("Received block from the wrong fork (invalid extradata)."));
+	}
+
+	if (_parent)
+	{
+		// Check difficulty is correct given the two timestamps.
+		auto expected = calculateDifficulty(_bi, _parent);
+		auto difficulty = _bi.difficulty();
+		if (difficulty != expected)
+			BOOST_THROW_EXCEPTION(InvalidDifficulty() << RequirementError((bigint)expected, (bigint)difficulty));
+
+		auto gasLimit = _bi.gasLimit();
+		auto parentGasLimit = _parent.gasLimit();
+		if (
+			gasLimit < chainParams().u256Param("minGasLimit") ||
+			gasLimit > chainParams().u256Param("maxGasLimit") ||
+			gasLimit <= parentGasLimit - parentGasLimit / chainParams().u256Param("gasLimitBoundDivisor") ||
+			gasLimit >= parentGasLimit + parentGasLimit / chainParams().u256Param("gasLimitBoundDivisor"))
+			BOOST_THROW_EXCEPTION(
+				InvalidGasLimit()
+				<< errinfo_min((bigint)((bigint)parentGasLimit - (bigint)(parentGasLimit / chainParams().u256Param("gasLimitBoundDivisor"))))
+				<< errinfo_got((bigint)gasLimit)
+				<< errinfo_max((bigint)((bigint)parentGasLimit + parentGasLimit / chainParams().u256Param("gasLimitBoundDivisor")))
+			);
+	}
+
+	// check it hashes according to proof of work or that it's the genesis block.
+	if (_s == CheckEverything && _bi.parentHash() && !verifySeal(_bi))
+	{
+		InvalidBlockNonce ex;
+		ex << errinfo_nonce(nonce(_bi));
+		ex << errinfo_mixHash(mixHash(_bi));
+		ex << errinfo_seedHash(seedHash(_bi));
+		EthashProofOfWork::Result er = EthashAux::eval(seedHash(_bi), _bi.hash(WithoutSeal), nonce(_bi));
+		ex << errinfo_ethashResult(make_tuple(er.value, er.mixHash));
+		ex << errinfo_hash256(_bi.hash(WithoutSeal));
+		ex << errinfo_difficulty(_bi.difficulty());
+		ex << errinfo_target(boundary(_bi));
+		BOOST_THROW_EXCEPTION(ex);
+	}
+	else if (_s == QuickNonce && _bi.parentHash() && !quickVerifySeal(_bi))
+	{
+		InvalidBlockNonce ex;
+		ex << errinfo_hash256(_bi.hash(WithoutSeal));
+		ex << errinfo_difficulty(_bi.difficulty());
+		ex << errinfo_nonce(nonce(_bi));
+		BOOST_THROW_EXCEPTION(ex);
+	}
+}
