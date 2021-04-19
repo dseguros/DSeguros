@@ -35,7 +35,13 @@ namespace eth
 
 class Ethash: public SealEngineBase
 {
+public:
+	Ethash();
 
+	std::string name() const override { return "Ethash"; }
+	unsigned revision() const override { return 1; }
+	unsigned sealFields() const override { return 2; }
+	bytes sealRLP() const override { return rlp(h256()) + rlp(Nonce()); }
 
 }
 }
