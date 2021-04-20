@@ -79,5 +79,8 @@ struct EVMSchedule
 	bool zeroValueTransferChargesNewAccountGas() const { return !eip158Mode; }
 };
 
+static const EVMSchedule DefaultSchedule = EVMSchedule();
+static const EVMSchedule FrontierSchedule = EVMSchedule(false, false, 21000);
+static const EVMSchedule HomesteadSchedule = EVMSchedule(true, true, 53000);
 }
 }
