@@ -53,4 +53,11 @@ template <> struct ABISerialiser<std::string>
 		return ret;
 	}
 };
+
+inline bytes abiInAux() { return {}; }
+template <class T, class ... U> bytes abiInAux(T const& _t, U const& ... _u)
+{
+	return ABISerialiser<T>::serialise(_t) + abiInAux(_u ...);
+}
+
 }
