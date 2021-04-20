@@ -37,4 +37,20 @@ inline string32 toString32(std::string const& _s)
 		ret[i] = i < _s.size() ? _s[i] : 0;
 	return ret;
 }
+
+template <class T> struct ABISerialiser {};
+template <unsigned N> struct ABISerialiser<FixedHash<N>> { static bytes serialise(FixedHash<N> const& _t) { static_assert(N <= 32, "Cannot serialise hash > 32 bytes."); static_assert(N > 0, "Cannot serialise zero-length hash."); return bytes(32 - N, 0) + _t.asBytes(); } };
+template <> struct ABISerialiser<u256> { static bytes serialise(u256 const& _t) { return h256(_t).asBytes(); } };
+template <> struct ABISerialiser<u160> { static bytes serialise(u160 const& _t) { return bytes(12, 0) + h160(_t).asBytes(); } };
+template <> struct ABISerialiser<string32> { static bytes serialise(string32 const& _t) { bytes ret; bytesConstRef((byte const*)_t.data(), 32).populate(bytesRef(&ret)); return ret; } };
+template <> struct ABISerialiser<std::string>
+{
+	static bytes serialise(std::string const& _t)
+	{
+		bytes ret = h256(u256(32)).asBytes() + h256(u256(_t.size())).asBytes();
+		ret.resize(ret.size() + (_t.size() + 31) / 32 * 32);
+		bytesConstRef(&_t).populate(bytesRef(&ret).cropped(64));
+		return ret;
+	}
+};
 }
