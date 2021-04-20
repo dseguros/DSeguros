@@ -30,5 +30,11 @@ namespace dev
 {
 namespace eth
 {
-
+inline string32 toString32(std::string const& _s)
+{
+	string32 ret;
+	for (unsigned i = 0; i < 32; ++i)
+		ret[i] = i < _s.size() ? _s[i] : 0;
+	return ret;
+}
 }
