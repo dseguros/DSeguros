@@ -97,5 +97,14 @@ static const EVMSchedule EIP150Schedule = []
 	schedule.maxCodeSize = 0x6000;
 	return schedule;
 }();
+
+static const EVMSchedule EIP158Schedule = []
+{
+	EVMSchedule schedule = EIP150Schedule;
+	schedule.expByteGas = 50;
+	schedule.eip158Mode = true;
+	return schedule;
+}();
+
 }
 }
