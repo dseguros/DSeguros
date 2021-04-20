@@ -82,5 +82,20 @@ struct EVMSchedule
 static const EVMSchedule DefaultSchedule = EVMSchedule();
 static const EVMSchedule FrontierSchedule = EVMSchedule(false, false, 21000);
 static const EVMSchedule HomesteadSchedule = EVMSchedule(true, true, 53000);
+
+
+static const EVMSchedule EIP150Schedule = []
+{
+	EVMSchedule schedule = HomesteadSchedule;
+	schedule.eip150Mode = true;
+	schedule.extcodesizeGas = 700;
+	schedule.extcodecopyGas = 700;
+	schedule.balanceGas = 400;
+	schedule.sloadGas = 200;
+	schedule.callGas = 700;
+	schedule.suicideGas = 5000;
+	schedule.maxCodeSize = 0x6000;
+	return schedule;
+}();
 }
 }
