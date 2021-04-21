@@ -70,6 +70,18 @@ template <unsigned N> struct ABIDeserialiser<FixedHash<N>> { static FixedHash<N>
 template <> struct ABIDeserialiser<u256> { static u256 deserialise(bytesConstRef& io_t) { u256 ret = fromBigEndian<u256>(io_t.cropped(0, 32)); io_t = io_t.cropped(32); return ret; } };
 template <> struct ABIDeserialiser<u160> { static u160 deserialise(bytesConstRef& io_t) { u160 ret = fromBigEndian<u160>(io_t.cropped(12, 20)); io_t = io_t.cropped(32); return ret; } };
 template <> struct ABIDeserialiser<string32> { static string32 deserialise(bytesConstRef& io_t) { string32 ret; io_t.cropped(0, 32).populate(bytesRef((byte*)ret.data(), 32)); io_t = io_t.cropped(32); return ret; } };
-
+template <> struct ABIDeserialiser<std::string>
+{
+	static std::string deserialise(bytesConstRef& io_t)
+	{
+		unsigned o = (uint16_t)u256(h256(io_t.cropped(0, 32)));
+		unsigned s = (uint16_t)u256(h256(io_t.cropped(o, 32)));
+		std::string ret;
+		ret.resize(s);
+		io_t.cropped(o + 32, s).populate(bytesRef((byte*)ret.data(), s));
+		io_t = io_t.cropped(32);
+		return ret;
+	}
+};
 
 }
