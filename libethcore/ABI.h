@@ -66,6 +66,7 @@ template <class ... T> bytes abiIn(std::string _id, T const& ... _t)
 }
 
 template <class T> struct ABIDeserialiser {};
+template <unsigned N> struct ABIDeserialiser<FixedHash<N>> { static FixedHash<N> deserialise(bytesConstRef& io_t) { static_assert(N <= 32, "Parameter sizes must be at most 32 bytes."); FixedHash<N> ret; io_t.cropped(32 - N, N).populate(ret.ref()); io_t = io_t.cropped(32); return ret; } };
 
 
 }
