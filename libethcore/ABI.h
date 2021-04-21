@@ -83,5 +83,9 @@ template <> struct ABIDeserialiser<std::string>
 		return ret;
 	}
 };
-
+template <class T> T abiOut(bytes const& _data)
+{
+	bytesConstRef o(&_data);
+	return ABIDeserialiser<T>::deserialise(o);
+}
 }
