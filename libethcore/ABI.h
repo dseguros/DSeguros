@@ -30,6 +30,7 @@ namespace dev
 {
 namespace eth
 {
+
 inline string32 toString32(std::string const& _s)
 {
 	string32 ret;
@@ -83,13 +84,17 @@ template <> struct ABIDeserialiser<std::string>
 		return ret;
 	}
 };
+
 template <class T> T abiOut(bytes const& _data)
 {
 	bytesConstRef o(&_data);
 	return ABIDeserialiser<T>::deserialise(o);
 }
+
 template <class T> T abiOut(bytesConstRef& _data)
 {
 	return ABIDeserialiser<T>::deserialise(_data);
+}
+
 }
 }
