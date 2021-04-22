@@ -56,3 +56,15 @@ void BasicAuthority::generateSeal(BlockHeader const& _bi, bytes const& _block_da
 	SealEngineBase::generateSeal(bi, _block_data);
 }
 
+bool BasicAuthority::onOptionChanging(std::string const& _name, bytes const& _value)
+{
+	RLP rlp(_value);
+	if (_name == "authorities")
+		m_authorities = rlp.toUnorderedSet<Address>();
+	else if (_name == "authority")
+		m_secret = Secret(rlp.toHash<h256>());
+	else
+		return false;
+	return true;
+}
+
