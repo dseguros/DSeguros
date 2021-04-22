@@ -33,3 +33,8 @@ void BasicAuthority::init()
 {
 	ETH_REGISTER_SEAL_ENGINE(BasicAuthority);
 }
+
+StringHashMap BasicAuthority::jsInfo(BlockHeader const& _bi) const
+{
+	return { { "sig", toJS(sig(_bi)) } };
+}
