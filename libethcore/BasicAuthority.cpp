@@ -37,4 +37,14 @@ void BasicAuthority::init()
 StringHashMap BasicAuthority::jsInfo(BlockHeader const& _bi) const
 {
 	return { { "sig", toJS(sig(_bi)) } };
+
 }
+
+bool BasicAuthority::shouldSeal(Interface* _i)
+{
+//	cdebug << "Comparing: " << _i->pendingInfo().timestamp() << " to " << utcTime();
+	return _i->pendingInfo().timestamp() + 5 <= utcTime() || (_i->pendingInfo().timestamp() <= utcTime() && !_i->pending().empty());
+}
+
+
+
