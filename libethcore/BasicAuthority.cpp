@@ -74,3 +74,24 @@ void BasicAuthority::populateFromParent(BlockHeader& _bi, BlockHeader const& _pa
 	// pseudo-random difficulty to facilitate fork reduction.
 	_bi.setDifficulty(fromBigEndian<uint32_t>(sha3(sha3(m_secret) ^ _bi.parentHash()).ref().cropped(0, 4)));
 }
+
+void BasicAuthority::verify(Strictness _s, BlockHeader const& _bi, BlockHeader const& _parent, bytesConstRef _block) const
+{
+	SealEngineFace::verify(_s, _bi, _parent, _block);
+	// check it hashes according to proof of work or that it's the genesis block.
+	Signature s = sig(_bi);
+	h256 h = _bi.hash(WithoutSeal);
+	Address a = toAddress(recover(s, h));
+	if (_s == CheckEverything && _bi.parentHash() && !m_authorities.count(a))
+	{
+		InvalidBlockNonce ex;
+		ex << errinfo_hash256(_bi.hash(WithoutSeal));
+		BOOST_THROW_EXCEPTION(ex);
+	}
+	else if (_s == QuickNonce && _bi.parentHash() && !SignatureStruct(sig(_bi)).isValid())
+	{
+		InvalidBlockNonce ex;
+		ex << errinfo_hash256(_bi.hash(WithoutSeal));
+		BOOST_THROW_EXCEPTION(ex);
+	}
+}
