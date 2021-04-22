@@ -37,6 +37,13 @@ public:
 	unsigned revision() const override { return 0; }
 	unsigned sealFields() const override { return 1; }
 	bytes sealRLP() const override { return rlp(Signature()); }
+   
+   	void populateFromParent(BlockHeader&, BlockHeader const&) const override;
+	StringHashMap jsInfo(BlockHeader const& _bi) const override;
+	void verify(Strictness _s, BlockHeader const& _bi, BlockHeader const& _parent, bytesConstRef _block) const override;
+	bool shouldSeal(Interface*) override;
+	void generateSeal(BlockHeader const& _bi, bytes const& _block_data = bytes()) override;
+
 
 }
 
