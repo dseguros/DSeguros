@@ -68,3 +68,9 @@ bool BasicAuthority::onOptionChanging(std::string const& _name, bytes const& _va
 	return true;
 }
 
+void BasicAuthority::populateFromParent(BlockHeader& _bi, BlockHeader const& _parent) const
+{
+	SealEngineFace::populateFromParent(_bi, _parent);
+	// pseudo-random difficulty to facilitate fork reduction.
+	_bi.setDifficulty(fromBigEndian<uint32_t>(sha3(sha3(m_secret) ^ _bi.parentHash()).ref().cropped(0, 4)));
+}
