@@ -29,4 +29,7 @@ using namespace std;
 using namespace dev;
 using namespace eth;
 
-
+void BasicAuthority::init()
+{
+	ETH_REGISTER_SEAL_ENGINE(BasicAuthority);
+}
