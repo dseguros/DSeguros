@@ -44,7 +44,10 @@ public:
 	bool shouldSeal(Interface*) override;
 	void generateSeal(BlockHeader const& _bi, bytes const& _block_data = bytes()) override;
 
-
+	static Signature sig(BlockHeader const& _bi) { return _bi.seal<Signature>(); }
+	static BlockHeader& setSig(BlockHeader& _bi, Signature const& _sig) { _bi.setSeal(_sig); return _bi; }
+	void setSecret(Secret const& _s) { m_secret = _s; }
+	static void init();
 }
 
 }
