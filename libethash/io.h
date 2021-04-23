@@ -72,4 +72,32 @@ enum ethash_io_rc {
 #define ETHASH_CRITICAL(...)          
 #endif
 
+/**
+ * Prepares io for ethash
+ *
+ * Create the DAG directory and the DAG file if they don't exist.
+ *
+ * @param[in] dirname        A null terminated c-string of the path of the ethash
+ *                           data directory. If it does not exist it's created.
+ * @param[in] seedhash       The seedhash of the current block number, used in the
+ *                           naming of the file as can be seen from the spec at:
+ *                           https://github.com/ethereum/wiki/wiki/Ethash-DAG
+ * @param[out] output_file   If there was no failure then this will point to an open
+ *                           file descriptor. User is responsible for closing it.
+ *                           In the case of memo match then the file is open on read
+ *                           mode, while on the case of mismatch a new file is created
+ *                           on write mode
+ * @param[in] file_size      The size that the DAG file should have on disk
+ * @param[out] force_create  If true then there is no check to see if the file
+ *                           already exists
+ * @return                   For possible return values @see enum ethash_io_rc
+ */
+enum ethash_io_rc ethash_io_prepare(
+	char const* dirname,
+	ethash_h256_t const seedhash,
+	FILE** output_file,
+	uint64_t file_size,
+	bool force_create
+);
+
 
