@@ -20,3 +20,13 @@
  */
 #pragma once
 
+#include <stdlib.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <stdio.h>
+#ifdef __cplusplus
+#define __STDC_FORMAT_MACROS 1
+#endif
+#include <inttypes.h>
+#include "endian.h"
+#include "ethash.h"
