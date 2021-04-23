@@ -30,3 +30,24 @@
 #include <inttypes.h>
 #include "endian.h"
 #include "ethash.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+// Maximum size for mutable part of DAG file name
+// 6 is for "full-R", the suffix of the filename
+// 10 is for maximum number of digits of a uint32_t (for REVISION)
+// 1 is for - and 16 is for the first 16 hex digits for first 8 bytes of
+// the seedhash and last 1 is for the null terminating character
+// Reference: https://github.com/ethereum/wiki/wiki/Ethash-DAG
+#define DAG_MUTABLE_NAME_MAX_SIZE (6 + 10 + 1 + 16 + 1)
+/// Possible return values of @see ethash_io_prepare
+enum ethash_io_rc {
+	ETHASH_IO_FAIL = 0,           ///< There has been an IO failure
+	ETHASH_IO_MEMO_SIZE_MISMATCH, ///< DAG with revision/hash match, but file size was wrong.
+	ETHASH_IO_MEMO_MISMATCH,      ///< The DAG file did not exist or there was revision/hash mismatch
+	ETHASH_IO_MEMO_MATCH,         ///< DAG file existed and revision/hash matched. No need to do anything
+};
+
+
+
