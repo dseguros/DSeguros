@@ -154,6 +154,15 @@ char* ethash_strncat(char* dest, size_t dest_size, char const* src, size_t count
 bool ethash_mkdir(char const* dirname);
 
 
+/**
+ * Get a file's size
+ *
+ * @param[in] f        The open file stream whose size to get
+ * @param[out] size    Pass a size_t by reference to contain the file size
+ * @return             true in success and false if there was a failure
+ */
+bool ethash_file_size(FILE* f, size_t* ret_size);
+
 
 
 
