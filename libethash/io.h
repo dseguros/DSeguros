@@ -144,6 +144,16 @@ int ethash_fseek(FILE* f, size_t offset, int origin);
  */
 char* ethash_strncat(char* dest, size_t dest_size, char const* src, size_t count);
 
+/**
+ * A cross-platform mkdir wrapper to create a directory or assert it's there
+ *
+ * @param dirname        The full path of the directory to create
+ * @return               true if the directory was created or if it already
+ *                       existed
+ */
+bool ethash_mkdir(char const* dirname);
+
+
 
 
 
