@@ -126,6 +126,24 @@ FILE* ethash_fopen(char const* file_name, char const* mode);
 int ethash_fseek(FILE* f, size_t offset, int origin);
 
 
+/**
+ * An strncat wrapper for no-warnings crossplatform strncat.
+ *
+ * Msvc compiler considers strncat to be insecure and suggests to use their
+ * alternative. This is a wrapper for this alternative. Another way is to
+ * #define _CRT_SECURE_NO_WARNINGS, but disabling all security warnings does
+ * not sound like a good idea.
+ *
+ * @param des              Destination buffer
+ * @param dest_size        Maximum size of the destination buffer. This is the
+ *                         extra argument for the MSVC secure strncat
+ * @param src              Souce buffer
+ * @param count            Number of bytes to copy from source
+ * @return                 If all is well returns the dest buffer. If there is an
+ *                         error returns NULL
+ */
+char* ethash_strncat(char* dest, size_t dest_size, char const* src, size_t count);
+
 
 
 
