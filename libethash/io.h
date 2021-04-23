@@ -100,4 +100,22 @@ enum ethash_io_rc ethash_io_prepare(
 	bool force_create
 );
 
+/**
+ * An fopen wrapper for no-warnings crossplatform fopen.
+ *
+ * Msvc compiler considers fopen to be insecure and suggests to use their
+ * alternative. This is a wrapper for this alternative. Another way is to
+ * #define _CRT_SECURE_NO_WARNINGS, but disabling all security warnings does
+ * not sound like a good idea.
+ *
+ * @param file_name        The path to the file to open
+ * @param mode             Opening mode. Check fopen()
+ * @return                 The FILE* or NULL in failure
+ */
+FILE* ethash_fopen(char const* file_name, char const* mode);
+
+
+
+
+
 
