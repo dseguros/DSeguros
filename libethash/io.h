@@ -19,7 +19,6 @@
  * @date 2015
  */
 #pragma once
-
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -114,7 +113,6 @@ enum ethash_io_rc ethash_io_prepare(
  */
 FILE* ethash_fopen(char const* file_name, char const* mode);
 
-
 /**
  * An fseek wrapper for crossplatform 64-bit seek.
  *
@@ -124,7 +122,6 @@ FILE* ethash_fopen(char const* file_name, char const* mode);
  * @return             Current offset or -1 to indicate an error
  */
 int ethash_fseek(FILE* f, size_t offset, int origin);
-
 
 /**
  * An strncat wrapper for no-warnings crossplatform strncat.
@@ -153,7 +150,6 @@ char* ethash_strncat(char* dest, size_t dest_size, char const* src, size_t count
  */
 bool ethash_mkdir(char const* dirname);
 
-
 /**
  * Get a file's size
  *
@@ -162,7 +158,6 @@ bool ethash_mkdir(char const* dirname);
  * @return             true in success and false if there was a failure
  */
 bool ethash_file_size(FILE* f, size_t* ret_size);
-
 
 /**
  * Get a file descriptor number from a FILE stream
@@ -187,7 +182,6 @@ char* ethash_io_create_filename(
 	size_t filename_length
 );
 
-
 /**
  * Gets the default directory name for the DAG depending on the system
  *
@@ -205,4 +199,14 @@ static inline bool ethash_io_mutable_name(
 	ethash_h256_t const* seed_hash,
 	char* output
 )
+{
+    uint64_t hash = *((uint64_t*)seed_hash);
+#if LITTLE_ENDIAN == BYTE_ORDER
+    hash = ethash_swap_u64(hash);
+#endif
+    return snprintf(output, DAG_MUTABLE_NAME_MAX_SIZE, "full-R%u-%016" PRIx64, revision, hash) >= 0;
+}
 
+#ifdef __cplusplus
+}
+#endif
