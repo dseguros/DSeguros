@@ -164,5 +164,13 @@ bool ethash_mkdir(char const* dirname);
 bool ethash_file_size(FILE* f, size_t* ret_size);
 
 
+/**
+ * Get a file descriptor number from a FILE stream
+ *
+ * @param f            The file stream whose fd to get
+ * @return             Platform specific fd handler
+ */
+int ethash_fileno(FILE* f);
+
 
 
