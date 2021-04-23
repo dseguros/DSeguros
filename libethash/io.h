@@ -172,5 +172,21 @@ bool ethash_file_size(FILE* f, size_t* ret_size);
  */
 int ethash_fileno(FILE* f);
 
+/**
+ * Create the filename for the DAG.
+ *
+ * @param dirname            The directory name in which the DAG file should reside
+ *                           If it does not end with a directory separator it is appended.
+ * @param filename           The actual name of the file
+ * @param filename_length    The length of the filename in bytes
+ * @return                   A char* containing the full name. User must deallocate.
+ */
+char* ethash_io_create_filename(
+	char const* dirname,
+	char const* filename,
+	size_t filename_length
+);
+
+
 
 
