@@ -197,6 +197,12 @@ inline unsigned getPushNumber(Instruction _inst)
 	return (byte)_inst - unsigned(Instruction::PUSH1) + 1;
 }
 
+/// @returns the number of DUP Instruction _inst
+inline unsigned getDupNumber(Instruction _inst)
+{
+	return (byte)_inst - unsigned(Instruction::DUP1) + 1;
+}
+
 }
 }
 	
