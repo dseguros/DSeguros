@@ -190,6 +190,13 @@ enum class Instruction: uint8_t
 	REVERT = 0xfd,      ///< stop execution and revert state changes, without consuming all provided gas
 	SUICIDE = 0xff      ///< halt execution and register account for later deletion
 };
+
+/// @returns the number of PUSH Instruction _inst
+inline unsigned getPushNumber(Instruction _inst)
+{
+	return (byte)_inst - unsigned(Instruction::PUSH1) + 1;
+}
+
 }
 }
 	
