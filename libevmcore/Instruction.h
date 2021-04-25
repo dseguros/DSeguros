@@ -216,6 +216,13 @@ inline Instruction pushInstruction(unsigned _number)
 	return Instruction(unsigned(Instruction::PUSH1) + _number - 1);
 }
 
+/// @returns the DUP<_number> instruction
+inline Instruction dupInstruction(unsigned _number)
+{
+	assertThrow(1 <= _number && _number <= 16, InvalidOpcode, "Invalid DUP instruction requested.");
+	return Instruction(unsigned(Instruction::DUP1) + _number - 1);
+}
+
 }
 }
 	
