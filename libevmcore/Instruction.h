@@ -223,6 +223,13 @@ inline Instruction dupInstruction(unsigned _number)
 	return Instruction(unsigned(Instruction::DUP1) + _number - 1);
 }
 
+/// @returns the SWAP<_number> instruction
+inline Instruction swapInstruction(unsigned _number)
+{
+	assertThrow(1 <= _number && _number <= 16, InvalidOpcode, "Invalid SWAP instruction requested.");
+	return Instruction(unsigned(Instruction::SWAP1) + _number - 1);
+}
+
 }
 }
 	
