@@ -203,6 +203,12 @@ inline unsigned getDupNumber(Instruction _inst)
 	return (byte)_inst - unsigned(Instruction::DUP1) + 1;
 }
 
+/// @returns the number of SWAP Instruction _inst
+inline unsigned getSwapNumber(Instruction _inst)
+{
+	return (byte)_inst - unsigned(Instruction::SWAP1) + 1;
+}
+
 }
 }
 	
