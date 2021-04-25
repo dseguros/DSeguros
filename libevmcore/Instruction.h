@@ -250,6 +250,17 @@ enum class Tier : unsigned
 	Invalid     // Invalid.
 };
 
+/// Information structure for a particular instruction.
+struct InstructionInfo
+{
+	std::string name;   ///< The name of the instruction.
+	int additional;     ///< Additional items required in memory for this instructions (only for PUSH).
+	int args;           ///< Number of items required on the stack for this instruction (and, for the purposes of ret, the number taken from the stack).
+	int ret;            ///< Number of items placed (back) on the stack by this instruction, assuming args items were removed.
+	bool sideEffects;   ///< false if the only effect on the execution environment (apart from gas usage) is a change to a topmost segment of the stack
+	Tier gasPriceTier;   ///< Tier for gas pricing.
+};
+
 }
 }
 	
