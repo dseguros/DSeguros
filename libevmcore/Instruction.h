@@ -209,6 +209,13 @@ inline unsigned getSwapNumber(Instruction _inst)
 	return (byte)_inst - unsigned(Instruction::SWAP1) + 1;
 }
 
+/// @returns the PUSH<_number> instruction
+inline Instruction pushInstruction(unsigned _number)
+{
+	assertThrow(1 <= _number && _number <= 32, InvalidOpcode, "Invalid PUSH instruction requested.");
+	return Instruction(unsigned(Instruction::PUSH1) + _number - 1);
+}
+
 }
 }
 	
