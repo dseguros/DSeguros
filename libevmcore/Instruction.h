@@ -230,6 +230,13 @@ inline Instruction swapInstruction(unsigned _number)
 	return Instruction(unsigned(Instruction::SWAP1) + _number - 1);
 }
 
+/// @returns the LOG<_number> instruction
+inline Instruction logInstruction(unsigned _number)
+{
+	assertThrow(_number <= 4, InvalidOpcode, "Invalid LOG instruction requested.");
+	return Instruction(unsigned(Instruction::LOG0) + _number);
+}
+
 }
 }
 	
