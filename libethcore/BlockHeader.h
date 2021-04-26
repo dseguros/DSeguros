@@ -72,5 +72,31 @@ enum BlockDataType
 DEV_SIMPLE_EXCEPTION(NoHashRecorded);
 DEV_SIMPLE_EXCEPTION(GenesisBlockCannotBeCalculated);
 
+/** @brief Encapsulation of a block header.
+ * Class to contain all of a block header's data. It is able to parse a block header and populate
+ * from some given RLP block serialisation with the static fromHeader(), through the method
+ * populate(). This will not conduct any verification above basic formating. In this case extra
+ * verification can be performed through verify().
+ *
+ * The object may also be populated from an entire block through the explicit
+ * constructor BlockHeader(bytesConstRef) and manually with the populate() method. These will
+ * conduct verification of the header against the other information in the block.
+ *
+ * The object may be populated with a template given a parent BlockHeader object with the
+ * populateFromParent() method. The genesis block info may be retrieved with genesis() and the
+ * corresponding RLP block created with createGenesisBlock().
+ *
+ * To determine the header hash without the nonce (for sealing), the method hash(WithoutNonce) is
+ * provided.
+ *
+ * The default constructor creates an empty object, which can be tested against with the boolean
+ * conversion operator.
+ */
+class BlockHeader
+{
+	friend class BlockChain;
+
+}
+
 }
 }
