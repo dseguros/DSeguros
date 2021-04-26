@@ -41,5 +41,14 @@ enum IncludeSeal
 	OnlySeal = 2
 };
 
+enum Strictness
+{
+	CheckEverything,
+	JustSeal,
+	QuickNonce,
+	IgnoreSeal,
+	CheckNothingNew
+};
+
 }
 }
