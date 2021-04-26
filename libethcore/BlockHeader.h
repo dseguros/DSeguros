@@ -172,6 +172,11 @@ explicit operator bool() const { return m_timestamp != Invalid256; }
 	u256 const& difficulty() const { return m_difficulty; }
 	template <class T> T seal(unsigned _offset = 0) const { T ret; if (_offset < m_seal.size()) ret = RLP(m_seal[_offset]).convert<T>(RLP::VeryStrict); return ret; }
 
+	void setIndex(u256 const& _idx) { m_gen_idx = _idx; noteDirty(); }
+	void setNodeList(h512s const& _list) { m_node_list = _list; noteDirty(); }
+		u256 const& genIndex() const { return m_gen_idx; }
+	h512s const& nodeList() const { return m_node_list; }
+
 }
 
 
