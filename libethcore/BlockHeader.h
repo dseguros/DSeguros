@@ -103,6 +103,11 @@ public:
 	explicit BlockHeader(bytes const& _data, BlockDataType _bdt = BlockData, h256 const& _hashWith = h256()): BlockHeader(&_data, _bdt, _hashWith) {}
 
 
+static h256 headerHashFromBlock(bytes const& _block) { return headerHashFromBlock(&_block); }
+	static h256 headerHashFromBlock(bytesConstRef _block);
+	static RLP extractHeader(bytesConstRef _block);
+
+
 }
 
 }
