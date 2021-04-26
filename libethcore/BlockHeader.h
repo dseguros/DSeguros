@@ -145,7 +145,19 @@ explicit operator bool() const { return m_timestamp != Invalid256; }
 	void setSha3Uncles(h256 const& _v) { m_sha3Uncles = _v; noteDirty(); }
 	void setTimestamp(u256 const& _v) { m_timestamp = _v; noteDirty(); }
 	void setAuthor(Address const& _v) { m_author = _v; noteDirty(); }
+
+	void setRoots(h256 const& _t, h256 const& _r, h256 const& _u, h256 const& _s) { m_transactionsRoot = _t; m_receiptsRoot = _r; m_stateRoot = _s; m_sha3Uncles = _u; noteDirty(); }
+	void setGasUsed(u256 const& _v) { m_gasUsed = _v; noteDirty(); }
+	void setNumber(u256 const& _v) { m_number = _v; noteDirty(); }
+	void setGasLimit(u256 const& _v) { m_gasLimit = _v; noteDirty(); }
+	void setExtraData(bytes const& _v) { m_extraData = _v; noteDirty(); }
+	void setLogBloom(LogBloom const& _v) { m_logBloom = _v; noteDirty(); }
+	void setDifficulty(u256 const& _v) { m_difficulty = _v; noteDirty(); }
+	template <class T> void setSeal(unsigned _offset, T const& _value) { if (m_seal.size() <= _offset) m_seal.resize(_offset + 1); m_seal[_offset] = rlp(_value); noteDirty(); }
+	template <class T> void setSeal(T const& _value) { setSeal(0, _value); }	
+
 }
+
 
 }
 }
