@@ -102,13 +102,11 @@ public:
 	explicit BlockHeader(bytesConstRef _data, BlockDataType _bdt = BlockData, h256 const& _hashWith = h256());
 	explicit BlockHeader(bytes const& _data, BlockDataType _bdt = BlockData, h256 const& _hashWith = h256()): BlockHeader(&_data, _bdt, _hashWith) {}
 
-
-static h256 headerHashFromBlock(bytes const& _block) { return headerHashFromBlock(&_block); }
+	static h256 headerHashFromBlock(bytes const& _block) { return headerHashFromBlock(&_block); }
 	static h256 headerHashFromBlock(bytesConstRef _block);
 	static RLP extractHeader(bytesConstRef _block);
 
-
-explicit operator bool() const { return m_timestamp != Invalid256; }
+	explicit operator bool() const { return m_timestamp != Invalid256; }
 
 	bool operator==(BlockHeader const& _cmp) const
 	{
@@ -126,13 +124,11 @@ explicit operator bool() const { return m_timestamp != Invalid256; }
 			m_timestamp == _cmp.timestamp() &&
 			m_extraData == _cmp.extraData();
 	}
-
 	bool operator!=(BlockHeader const& _cmp) const { return !operator==(_cmp); }
 
 	void clear();
 	void noteDirty() const { m_hashWithout = m_hash = h256(); }
 	void populateFromParent(BlockHeader const& parent);
-
 
 	// TODO: pull out into abstract class Verifier.
 	void verify(Strictness _s = CheckEverything, BlockHeader const& _parent = BlockHeader(), bytesConstRef _block = bytesConstRef()) const;
@@ -145,7 +141,6 @@ explicit operator bool() const { return m_timestamp != Invalid256; }
 	void setSha3Uncles(h256 const& _v) { m_sha3Uncles = _v; noteDirty(); }
 	void setTimestamp(u256 const& _v) { m_timestamp = _v; noteDirty(); }
 	void setAuthor(Address const& _v) { m_author = _v; noteDirty(); }
-
 	void setRoots(h256 const& _t, h256 const& _r, h256 const& _u, h256 const& _s) { m_transactionsRoot = _t; m_receiptsRoot = _r; m_stateRoot = _s; m_sha3Uncles = _u; noteDirty(); }
 	void setGasUsed(u256 const& _v) { m_gasUsed = _v; noteDirty(); }
 	void setNumber(u256 const& _v) { m_number = _v; noteDirty(); }
@@ -154,7 +149,7 @@ explicit operator bool() const { return m_timestamp != Invalid256; }
 	void setLogBloom(LogBloom const& _v) { m_logBloom = _v; noteDirty(); }
 	void setDifficulty(u256 const& _v) { m_difficulty = _v; noteDirty(); }
 	template <class T> void setSeal(unsigned _offset, T const& _value) { if (m_seal.size() <= _offset) m_seal.resize(_offset + 1); m_seal[_offset] = rlp(_value); noteDirty(); }
-	template <class T> void setSeal(T const& _value) { setSeal(0, _value); }	
+	template <class T> void setSeal(T const& _value) { setSeal(0, _value); }
 
 	h256 const& parentHash() const { return m_parentHash; }
 	h256 const& sha3Uncles() const { return m_sha3Uncles; }
@@ -177,7 +172,7 @@ explicit operator bool() const { return m_timestamp != Invalid256; }
 		u256 const& genIndex() const { return m_gen_idx; }
 	h512s const& nodeList() const { return m_node_list; }
 
-	private:
+private:
 	void populate(RLP const& _header);
 	void streamRLPFields(RLPStream& _s) const;
 
@@ -212,9 +207,6 @@ inline std::ostream& operator<<(std::ostream& _out, BlockHeader const& _bi)
 			_bi.gasUsed() << " " << _bi.timestamp();
 	return _out;
 }
-
-}
-
 
 }
 }
