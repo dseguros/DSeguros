@@ -205,6 +205,14 @@ explicit operator bool() const { return m_timestamp != Invalid256; }
 	h512s m_node_list;
 };
 
+inline std::ostream& operator<<(std::ostream& _out, BlockHeader const& _bi)
+{
+	_out << _bi.hash(WithoutSeal) << " " << _bi.parentHash() << " " << _bi.sha3Uncles() << " " << _bi.author() << " " << _bi.stateRoot() << " " << _bi.transactionsRoot() << " " <<
+			_bi.receiptsRoot() << " " << _bi.logBloom() << " " << _bi.difficulty() << " " << _bi.number() << " " << _bi.gasLimit() << " " <<
+			_bi.gasUsed() << " " << _bi.timestamp();
+	return _out;
+}
+
 }
 
 
