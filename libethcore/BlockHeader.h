@@ -108,6 +108,25 @@ static h256 headerHashFromBlock(bytes const& _block) { return headerHashFromBloc
 	static RLP extractHeader(bytesConstRef _block);
 
 
+explicit operator bool() const { return m_timestamp != Invalid256; }
+
+	bool operator==(BlockHeader const& _cmp) const
+	{
+		return m_parentHash == _cmp.parentHash() &&
+			m_sha3Uncles == _cmp.sha3Uncles() &&
+			m_author == _cmp.author() &&
+			m_stateRoot == _cmp.stateRoot() &&
+			m_transactionsRoot == _cmp.transactionsRoot() &&
+			m_receiptsRoot == _cmp.receiptsRoot() &&
+			m_logBloom == _cmp.logBloom() &&
+			m_difficulty == _cmp.difficulty() &&
+			m_number == _cmp.number() &&
+			m_gasLimit == _cmp.gasLimit() &&
+			m_gasUsed == _cmp.gasUsed() &&
+			m_timestamp == _cmp.timestamp() &&
+			m_extraData == _cmp.extraData();
+	}
+
 }
 
 }
