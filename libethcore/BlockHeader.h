@@ -156,6 +156,22 @@ explicit operator bool() const { return m_timestamp != Invalid256; }
 	template <class T> void setSeal(unsigned _offset, T const& _value) { if (m_seal.size() <= _offset) m_seal.resize(_offset + 1); m_seal[_offset] = rlp(_value); noteDirty(); }
 	template <class T> void setSeal(T const& _value) { setSeal(0, _value); }	
 
+	h256 const& parentHash() const { return m_parentHash; }
+	h256 const& sha3Uncles() const { return m_sha3Uncles; }
+	bool hasUncles() const { return m_sha3Uncles != EmptyListSHA3; }
+	u256 const& timestamp() const { return m_timestamp; }
+	Address const& author() const { return m_author; }
+	h256 const& stateRoot() const { return m_stateRoot; }
+	h256 const& transactionsRoot() const { return m_transactionsRoot; }
+	h256 const& receiptsRoot() const { return m_receiptsRoot; }
+	u256 const& gasUsed() const { return m_gasUsed; }
+	u256 const& number() const { return m_number; }
+	u256 const& gasLimit() const { return m_gasLimit; }
+	bytes const& extraData() const { return m_extraData; }
+	LogBloom const& logBloom() const { return m_logBloom; }
+	u256 const& difficulty() const { return m_difficulty; }
+	template <class T> T seal(unsigned _offset = 0) const { T ret; if (_offset < m_seal.size()) ret = RLP(m_seal[_offset]).convert<T>(RLP::VeryStrict); return ret; }
+
 }
 
 
