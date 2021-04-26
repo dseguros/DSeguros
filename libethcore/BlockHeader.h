@@ -95,6 +95,13 @@ DEV_SIMPLE_EXCEPTION(GenesisBlockCannotBeCalculated);
 class BlockHeader
 {
 	friend class BlockChain;
+public:
+	static const unsigned BasicFields = 13;
+
+	BlockHeader();
+	explicit BlockHeader(bytesConstRef _data, BlockDataType _bdt = BlockData, h256 const& _hashWith = h256());
+	explicit BlockHeader(bytes const& _data, BlockDataType _bdt = BlockData, h256 const& _hashWith = h256()): BlockHeader(&_data, _bdt, _hashWith) {}
+
 
 }
 
