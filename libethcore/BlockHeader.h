@@ -132,6 +132,19 @@ explicit operator bool() const { return m_timestamp != Invalid256; }
 	void clear();
 	void noteDirty() const { m_hashWithout = m_hash = h256(); }
 	void populateFromParent(BlockHeader const& parent);
+
+
+	// TODO: pull out into abstract class Verifier.
+	void verify(Strictness _s = CheckEverything, BlockHeader const& _parent = BlockHeader(), bytesConstRef _block = bytesConstRef()) const;
+	void verify(Strictness _s, bytesConstRef _block) const { verify(_s, BlockHeader(), _block); }
+
+	h256 hash(IncludeSeal _i = WithSeal) const;
+	void streamRLP(RLPStream& _s, IncludeSeal _i = WithSeal) const;
+
+	void setParentHash(h256 const& _v) { m_parentHash = _v; noteDirty(); }
+	void setSha3Uncles(h256 const& _v) { m_sha3Uncles = _v; noteDirty(); }
+	void setTimestamp(u256 const& _v) { m_timestamp = _v; noteDirty(); }
+	void setAuthor(Address const& _v) { m_author = _v; noteDirty(); }
 }
 
 }
