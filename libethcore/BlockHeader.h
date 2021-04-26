@@ -69,5 +69,8 @@ enum BlockDataType
 	BlockData
 };
 
+DEV_SIMPLE_EXCEPTION(NoHashRecorded);
+DEV_SIMPLE_EXCEPTION(GenesisBlockCannotBeCalculated);
+
 }
 }
