@@ -127,6 +127,11 @@ explicit operator bool() const { return m_timestamp != Invalid256; }
 			m_extraData == _cmp.extraData();
 	}
 
+	bool operator!=(BlockHeader const& _cmp) const { return !operator==(_cmp); }
+
+	void clear();
+	void noteDirty() const { m_hashWithout = m_hash = h256(); }
+	void populateFromParent(BlockHeader const& parent);
 }
 
 }
