@@ -177,6 +177,34 @@ explicit operator bool() const { return m_timestamp != Invalid256; }
 		u256 const& genIndex() const { return m_gen_idx; }
 	h512s const& nodeList() const { return m_node_list; }
 
+	private:
+	void populate(RLP const& _header);
+	void streamRLPFields(RLPStream& _s) const;
+
+	h256 m_parentHash;
+	h256 m_sha3Uncles;
+	h256 m_stateRoot;
+	h256 m_transactionsRoot;
+	h256 m_receiptsRoot;
+	LogBloom m_logBloom;
+	u256 m_number;
+	u256 m_gasLimit;
+	u256 m_gasUsed;
+	bytes m_extraData;
+	u256 m_timestamp = Invalid256;
+
+	Address m_author;
+	u256 m_difficulty;
+
+	std::vector<bytes> m_seal;		///< Additional (RLP-encoded) header fields.
+
+	mutable h256 m_hash;			///< (Memoised) SHA3 hash of the block header with seal.
+	mutable h256 m_hashWithout;		///< (Memoised) SHA3 hash of the block header without seal.
+
+	u256 m_gen_idx; 		
+	h512s m_node_list;
+};
+
 }
 
 
