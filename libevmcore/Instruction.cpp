@@ -305,3 +305,8 @@ static const std::map<Instruction,  InstructionInfo> c_instructionInfo =
 	{ Instruction::JUMPCI,       { "JUMPCI",         0,     1,     0,   true,      Tier::High } },
 	{ Instruction::STOP,         { "BAD",            0,     0,     0,   true,      Tier::Zero } },
 }; 
+
+void dev::eth::eachInstruction( 
+	bytes const& _mem, 
+	function<void(Instruction,u256 const&)> const& _onInstruction
+)
