@@ -353,3 +353,7 @@ InstructionInfo dev::eth::instructionInfo(Instruction _inst)
 	return InstructionInfo({{}, 0, 0, 0, false, Tier::Invalid});
 }
 
+bool dev::eth::isValidInstruction(Instruction _inst)
+{
+	return !!c_instructionInfo.count(_inst);
+}
