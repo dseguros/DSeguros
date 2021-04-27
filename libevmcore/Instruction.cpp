@@ -310,3 +310,20 @@ void dev::eth::eachInstruction(
 	bytes const& _mem, 
 	function<void(Instruction,u256 const&)> const& _onInstruction
 )
+{
+	for (auto it = _mem.begin(); it < _mem.end(); ++it)
+	{
+		Instruction instr = Instruction(*it);
+		size_t additional = 0;
+		if (isValidInstruction(instr))
+		additional = instructionInfo(instr).additional;
+		u256 data;
+		for (size_t i = 0; i < additional; ++i)
+		{
+			data <<= 8;
+			if (++it < _mem.end())
+				data |= *it;
+		}
+		_onInstruction(instr, data);
+	}
+}
