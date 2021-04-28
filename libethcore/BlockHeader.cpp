@@ -56,3 +56,15 @@ void BlockHeader::streamRLPFields(RLPStream& _s) const
 	_s	<< m_parentHash << m_sha3Uncles << m_author << m_stateRoot << m_transactionsRoot << m_receiptsRoot << m_logBloom
 		<< m_difficulty << m_number << m_gasLimit << m_gasUsed << m_timestamp << m_extraData;
 }
+
+void BlockHeader::streamRLP(RLPStream& _s, IncludeSeal _i) const
+{
+	if (_i != OnlySeal)
+	{
+		_s.appendList(BlockHeader::BasicFields + (_i == WithoutSeal ? 0 : m_seal.size()));
+		BlockHeader::streamRLPFields(_s);
+	}
+	if (_i != WithoutSeal)
+		for (unsigned i = 0; i < m_seal.size(); ++i)
+			_s.appendRaw(m_seal[i]);
+}
