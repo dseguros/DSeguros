@@ -117,3 +117,6 @@ void BlockHeader::populate(RLP const& _header)
 		throw;
 	}
 }
+
+struct BlockInfoDiagnosticsChannel: public LogChannel { static const char* name() { return EthBlue "▧" EthWhite " ◌"; } static const int verbosity = 9; };
+
