@@ -120,3 +120,13 @@ void BlockHeader::populate(RLP const& _header)
 
 struct BlockInfoDiagnosticsChannel: public LogChannel { static const char* name() { return EthBlue "▧" EthWhite " ◌"; } static const int verbosity = 9; };
 
+
+void BlockHeader::populateFromParent(BlockHeader const& _parent)
+{
+	m_stateRoot = _parent.stateRoot();
+	m_number = _parent.m_number + 1;
+	m_parentHash = _parent.m_hash;
+	m_gasLimit = _parent.m_gasLimit;
+	m_difficulty = 1;
+	m_gasUsed = 0;
+}
