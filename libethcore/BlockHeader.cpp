@@ -68,3 +68,8 @@ void BlockHeader::streamRLP(RLPStream& _s, IncludeSeal _i) const
 		for (unsigned i = 0; i < m_seal.size(); ++i)
 			_s.appendRaw(m_seal[i]);
 }
+
+h256 BlockHeader::headerHashFromBlock(bytesConstRef _block)
+{
+	return sha3(RLP(_block)[0].data());
+}
