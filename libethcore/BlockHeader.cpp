@@ -37,3 +37,16 @@ void BlockHeader::clear()
 	m_seal.clear();
 	noteDirty();
 }
+
+h256 BlockHeader::hash(IncludeSeal _i) const
+{
+	h256 dummy;
+	h256& memo = _i == WithSeal ? m_hash : _i == WithoutSeal ? m_hashWithout : dummy;
+	if (!memo)
+	{
+		RLPStream s;
+		streamRLP(s, _i);
+		memo = sha3(s.out());
+	}
+	return memo;
+}
