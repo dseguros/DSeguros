@@ -18,3 +18,22 @@ BlockHeader::BlockHeader(bytesConstRef _block, BlockDataType _bdt, h256 const& _
 	m_hash = _hashWith ? _hashWith : sha3(header.data());
 	populate(header);
 }
+
+void BlockHeader::clear()
+{
+	m_parentHash = h256();
+	m_sha3Uncles = EmptyListSHA3;
+	m_author = Address();
+	m_stateRoot = EmptyTrie;
+	m_transactionsRoot = EmptyTrie;
+	m_receiptsRoot = EmptyTrie;
+	m_logBloom = LogBloom();
+	m_difficulty = 0;
+	m_number = 0;
+	m_gasLimit = 0;
+	m_gasUsed = 0;
+	m_timestamp = Invalid256;
+	m_extraData.clear();
+	m_seal.clear();
+	noteDirty();
+}
