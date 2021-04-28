@@ -88,3 +88,32 @@ RLP BlockHeader::extractHeader(bytesConstRef _block)
 		BOOST_THROW_EXCEPTION(InvalidBlockFormat() << errinfo_comment("Block uncles must be a list") << BadFieldError(2, root[2].data().toString()));
 	return header;
 }
+
+void BlockHeader::populate(RLP const& _header)
+{
+	int field = 0;
+	try
+	{
+		m_parentHash = _header[field = 0].toHash<h256>(RLP::VeryStrict);
+		m_sha3Uncles = _header[field = 1].toHash<h256>(RLP::VeryStrict);
+		m_author = _header[field = 2].toHash<Address>(RLP::VeryStrict);
+		m_stateRoot = _header[field = 3].toHash<h256>(RLP::VeryStrict);
+		m_transactionsRoot = _header[field = 4].toHash<h256>(RLP::VeryStrict);
+		m_receiptsRoot = _header[field = 5].toHash<h256>(RLP::VeryStrict);
+		m_logBloom = _header[field = 6].toHash<LogBloom>(RLP::VeryStrict);
+		m_difficulty = _header[field = 7].toInt<u256>();
+		m_number = _header[field = 8].toInt<u256>();
+		m_gasLimit = _header[field = 9].toInt<u256>();
+		m_gasUsed = _header[field = 10].toInt<u256>();
+		m_timestamp = _header[field = 11].toInt<u256>();
+		m_extraData = _header[field = 12].toBytes();
+		m_seal.clear();
+		for (unsigned i = 13; i < _header.itemCount(); ++i)
+			m_seal.push_back(_header[i].data().toBytes());
+	}
+	catch (Exception const& _e)
+	{
+		_e << errinfo_name("invalid block header format") << BadFieldError(field, toHex(_header[field].data().toBytes()));
+		throw;
+	}
+}
