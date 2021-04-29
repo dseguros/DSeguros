@@ -231,3 +231,14 @@ void VM::optimize()
 	TRACE_STR(1, "Finished optimizations")
 #endif	
 }
+
+//
+// Init interpreter on entry.
+//
+void VM::initEntry()
+{
+	m_bounce = &VM::interpretCases; 	
+	interpretCases(); // first call initializes jump table
+	initMetrics();
+	optimize();
+}
