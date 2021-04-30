@@ -44,5 +44,12 @@ private:
 	u256 m_startingBlock = 0;
 };
 
+struct ChainOperationParams
+{
+	ChainOperationParams();
+
+	explicit operator bool() const { return accountStartNonce != Invalid256; }
+}
+
 }
 }
