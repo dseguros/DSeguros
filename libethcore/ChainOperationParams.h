@@ -49,6 +49,16 @@ struct ChainOperationParams
 	ChainOperationParams();
 
 	explicit operator bool() const { return accountStartNonce != Invalid256; }
+
+	/// The chain sealer name: e.g. Ethash, NoProof, BasicAuthority
+	std::string sealEngineName = "NoProof";
+
+	/// General chain params.
+	u256 blockReward = 0;
+	u256 maximumExtraDataSize = 1024;
+	u256 accountStartNonce = 0;
+	bool tieBreakingGas = true;
+	std::string dataDir;
 }
 
 }
