@@ -24,6 +24,13 @@ public:
 		m_execute(_exec),
 		m_startingBlock(_startingBlock)
 	{}
+
+	PrecompiledContract(
+		unsigned _base,
+		unsigned _word,
+		PrecompiledExecutor const& _exec,
+		u256 const& _startingBlock = 0
+	);
 }
 
 
