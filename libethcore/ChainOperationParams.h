@@ -38,6 +38,11 @@ public:
 	u256 const& startingBlock() const { return m_startingBlock; }
 }
 
+private:
+	PrecompiledPricer m_cost;
+	PrecompiledExecutor m_execute;
+	u256 m_startingBlock = 0;
+};
 
 }
 }
