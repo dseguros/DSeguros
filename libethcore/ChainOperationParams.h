@@ -62,6 +62,23 @@ struct ChainOperationParams
 
 	/// Precompiled contracts as specified in the chain params.
 	std::unordered_map<Address, PrecompiledContract> precompiled;
+
+	/**
+	 * @brief Additional parameters.
+	 *
+	 * e.g. Ethash specific:
+	 * - minGasLimit
+	 * - maxGasLimit
+	 * - gasLimitBoundDivisor
+	 * - minimumDifficulty
+	 * - difficultyBoundDivisor
+	 * - durationLimit
+	 */
+	std::unordered_map<std::string, std::string> otherParams;
+	
+	bool broadcastToNormalNode = false; 
+	/// Convenience method to get an otherParam as a u256 int.
+	u256 u256Param(std::string const& _name) const;
 };
 
 }
