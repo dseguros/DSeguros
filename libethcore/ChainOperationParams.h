@@ -59,7 +59,10 @@ struct ChainOperationParams
 	u256 accountStartNonce = 0;
 	bool tieBreakingGas = true;
 	std::string dataDir;
-}
+
+	/// Precompiled contracts as specified in the chain params.
+	std::unordered_map<Address, PrecompiledContract> precompiled;
+};
 
 }
 }
