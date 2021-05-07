@@ -44,4 +44,12 @@ inline bool assertEqualAux(A const& _a, B const& _b, char const* _aStr, char con
 	}
 	return !ret;
 }
+
+/// Assertion that throws an exception containing the given description if it is not met.
+/// Use it as assertThrow(1 == 1, ExceptionType, "Mathematics is wrong.");
+/// Do NOT supply an exception object as the second parameter.
+#define assertThrow(_condition, _ExceptionType, _description) \
+	::dev::assertThrowAux<_ExceptionType>(_condition, _description, __LINE__, __FILE__, ETH_FUNC)
+
+using errinfo_comment = boost::error_info<struct tag_comment, std::string>;
 }
