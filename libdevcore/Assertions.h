@@ -71,4 +71,17 @@ inline void assertThrowAux(
 			::boost::throw_line(_line)
 		);
 }
+
+template <class _ExceptionType>
+inline void assertThrowAux(
+	void const* _pointer,
+	::std::string const& _errorDescription,
+	unsigned _line,
+	char const* _file,
+	char const* _function
+)
+{
+	assertThrowAux<_ExceptionType>(_pointer != nullptr, _errorDescription, _line, _file, _function);
+}
+
 }
