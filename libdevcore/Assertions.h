@@ -29,4 +29,19 @@ inline bool assertAux(bool _a, char const* _aStr, unsigned _line, char const* _f
 	}
 	return !ret;
 }
+
+template<class A, class B>
+inline bool assertEqualAux(A const& _a, B const& _b, char const* _aStr, char const* _bStr, unsigned _line, char const* _file, char const* _func)
+{
+	bool ret = _a == _b;
+	if (!ret)
+	{
+		std::cerr << "Assertion failed: " << _aStr << " == " << _bStr << " [func=" << _func << ", line=" << _line << ", file=" << _file << "]" << std::endl;
+		std::cerr << "   Fail equality: " << _a << "==" << _b << std::endl;
+#if ETH_DEBUG
+		debug_break();
+#endif
+	}
+	return !ret;
+}
 }
