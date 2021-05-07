@@ -52,4 +52,23 @@ inline bool assertEqualAux(A const& _a, B const& _b, char const* _aStr, char con
 	::dev::assertThrowAux<_ExceptionType>(_condition, _description, __LINE__, __FILE__, ETH_FUNC)
 
 using errinfo_comment = boost::error_info<struct tag_comment, std::string>;
+
+template <class _ExceptionType>
+inline void assertThrowAux(
+	bool _condition,
+	::std::string const& _errorDescription,
+	unsigned _line,
+	char const* _file,
+	char const* _function
+)
+{
+	if (!_condition)
+		::boost::throw_exception(
+			_ExceptionType() <<
+			::dev::errinfo_comment(_errorDescription) <<
+			::boost::throw_function(_function) <<
+			::boost::throw_file(_file) <<
+			::boost::throw_line(_line)
+		);
+}
 }
