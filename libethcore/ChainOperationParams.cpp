@@ -34,3 +34,14 @@ ChainOperationParams::ChainOperationParams()
 	};
 	blockReward = u256("0x4563918244F40000");
 }
+
+u256 ChainOperationParams::u256Param(string const& _name) const
+{
+	std::string at("");
+
+	auto it = otherParams.find(_name);
+	if (it != otherParams.end())
+		at = it->second;
+
+	return u256(fromBigEndian<u256>(fromHex(at)));
+}
