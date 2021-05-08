@@ -32,6 +32,5 @@ ChainOperationParams::ChainOperationParams()
 		{"registrar", "5e70c0bbcd5636e0f9f9316e9f8633feb64d4050"},
 		{"networkID", "0x0"}
 	};
-	blockReward = u256("0x4563918244F40000");
 }
 
