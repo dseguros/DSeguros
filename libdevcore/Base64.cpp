@@ -30,3 +30,9 @@
 
 using namespace std;
 using namespace dev;
+
+static inline bool is_base64(byte c)
+{
+	return (isalnum(c) || (c == '+') || (c == '/'));
+}
+
