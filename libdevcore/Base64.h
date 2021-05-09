@@ -51,4 +51,11 @@ template <size_t N> inline std::string toBase36(FixedHash<N> const& _h)
 	return ret;
 }
 
+template <size_t N> inline FixedHash<N> fromBase36(std::string const& _h)
+{
+	typename FixedHash<N>::Arith ret = 0;
+	for (char c: _h)
+		ret = ret * 36 + (c < 'A' ? c - '0' : (c - 'A' + 10));
+	return ret;
+}
 }
