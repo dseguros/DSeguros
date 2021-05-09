@@ -36,3 +36,13 @@ static inline bool is_base64(byte c)
 	return (isalnum(c) || (c == '+') || (c == '/'));
 }
 
+
+static inline byte find_base64_char_index(byte c)
+{
+	if ('A' <= c && c <= 'Z') return c - 'A';
+	else if ('a' <= c && c <= 'z') return c - 'a' + 1 + find_base64_char_index('Z');
+	else if ('0' <= c && c <= '9') return c - '0' + 1 + find_base64_char_index('z');
+	else if (c == '+') return 1 + find_base64_char_index('9');
+	else if (c == '/') return 1 + find_base64_char_index('+');
+	else return 1 + find_base64_char_index('/');
+}
