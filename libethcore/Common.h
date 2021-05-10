@@ -45,6 +45,16 @@ static const u256 szabo = exp10<12>();
 static const u256 shannon = exp10<9>();
 static const u256 wei = exp10<0>();
 
+using Nonce = h64;
+
+using BlockNumber = unsigned;
+
+static const BlockNumber LatestBlock = (BlockNumber)-2;
+static const BlockNumber PendingBlock = (BlockNumber)-1;
+static const h256 LatestBlockHash = h256(2);
+static const h256 EarliestBlockHash = h256(1);
+static const h256 PendingBlockHash = h256(0);
+
 }
 
 
