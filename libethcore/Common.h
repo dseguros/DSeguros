@@ -72,6 +72,21 @@ struct ImportRoute
 	std::vector<Transaction> goodTranactions;
 };
 
+
+enum class ImportResult
+{
+	Success = 0,
+	UnknownParent,
+	FutureTimeKnown,
+	FutureTimeUnknown,
+	AlreadyInChain,
+	AlreadyKnown,
+	Malformed,
+	OverbidGasPrice,
+	BadChain,
+	ZeroSignature
+};
+
 }
 
 
