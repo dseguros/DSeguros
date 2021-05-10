@@ -63,6 +63,15 @@ enum class RelativeBlock: BlockNumber
 	Pending = PendingBlock
 };
 
+class Transaction;
+
+struct ImportRoute
+{
+	h256s deadBlocks;
+	h256s liveBlocks;
+	std::vector<Transaction> goodTranactions;
+};
+
 }
 
 
