@@ -110,6 +110,55 @@ struct ImportRequirements
 };
 
 
+/// Super-duper signal mechanism. TODO: replace with somthing a bit heavier weight.
+template<typename... Args> class Signal
+{
+public:
+	using Callback = std::function<void(Args...)>;
+
+	class HandlerAux
+	{
+		friend class Signal;
+
+	public:
+		~HandlerAux() { if (m_s) m_s->m_fire.erase(m_i); }
+		void reset() { m_s = nullptr; }
+		void fire(Args const&... _args) { m_h(_args...); }
+
+	private:
+		HandlerAux(unsigned _i, Signal* _s, Callback const& _h): m_i(_i), m_s(_s), m_h(_h) {}
+
+		unsigned m_i = 0;
+		Signal* m_s = nullptr;
+		Callback m_h;
+	};
+
+	~Signal()
+	{
+		for (auto const& h : m_fire)
+			if (auto l = h.second.lock())
+				l->reset();
+	}
+
+	std::shared_ptr<HandlerAux> add(Callback const& _h)
+	{
+		auto n = m_fire.empty() ? 0 : (m_fire.rbegin()->first + 1);
+		auto h =  std::shared_ptr<HandlerAux>(new HandlerAux(n, this, _h));
+		m_fire[n] = h;
+		return h;
+	}
+
+	void operator()(Args const&... _args)
+	{
+		for (auto const& f: valuesOf(m_fire))
+			if (auto h = f.lock())
+				h->fire(_args...);
+	}
+
+private:
+	std::map<unsigned, std::weak_ptr<typename Signal::HandlerAux>> m_fire;
+};
+
 }
 
 
