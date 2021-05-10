@@ -159,6 +159,22 @@ private:
 	std::map<unsigned, std::weak_ptr<typename Signal::HandlerAux>> m_fire;
 };
 
+template<class... Args> using Handler = std::shared_ptr<typename Signal<Args...>::HandlerAux>;
+
+struct TransactionSkeleton
+{
+	bool creation = false;
+	Address from;
+	Address to;
+	u256 value;
+	bytes data;
+	u256 nonce = Invalid256;
+	u256 gas = Invalid256;
+	u256 gasPrice = Invalid256;
+
+	std::string userReadable(bool _toProxy, std::function<std::pair<bool, std::string>(TransactionSkeleton const&)> const& _getNatSpec, std::function<std::string(Address const&)> const& _formatAddress) const;
+};
+
 }
 
 
