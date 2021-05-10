@@ -175,6 +175,9 @@ struct TransactionSkeleton
 	std::string userReadable(bool _toProxy, std::function<std::pair<bool, std::string>(TransactionSkeleton const&)> const& _getNatSpec, std::function<std::string(Address const&)> const& _formatAddress) const;
 };
 
+void badBlock(bytesConstRef _header, std::string const& _err);
+inline void badBlock(bytes const& _header, std::string const& _err) { badBlock(&_header, _err); }
+
 }
 
 
