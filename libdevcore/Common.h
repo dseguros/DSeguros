@@ -190,4 +190,27 @@ private:
 	std::function<void(void)> m_f;
 };
 
+/// Inheritable for classes that have invariants.
+class HasInvariants
+{
+public:
+	/// Reimplement to specify the invariants.
+	virtual bool invariants() const = 0;
+};
+
+/// RAII checker for invariant assertions.
+class InvariantChecker
+{
+public:
+	InvariantChecker(HasInvariants* _this, char const* _fn, char const* _file, int _line): m_this(_this), m_function(_fn), m_file(_file), m_line(_line) { checkInvariants(_this, _fn , _file, _line, true); }
+	~InvariantChecker() { checkInvariants(m_this, m_function, m_file, m_line, false); }
+	/// Check invariants are met, throw if not.
+	static void checkInvariants(HasInvariants const* _this, char const* _fn, char const* _file, int line, bool _pre);
+
+private:
+	HasInvariants const* m_this;
+	char const* m_function;
+	char const* m_file;
+	int m_line;
+};
 }
