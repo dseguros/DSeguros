@@ -131,5 +131,14 @@ static const bytes NullBytes;
 static const std::map<u256, u256> EmptyMapU256U256;
 extern const u256 Invalid256;
 
+/// Interprets @a _u as a two's complement signed number and returns the resulting s256.
+inline s256 u2s(u256 _u)
+{
+	static const bigint c_end = bigint(1) << 256;
+	if (boost::multiprecision::bit_test(_u, 255))
+		return s256(-(c_end - _u));
+	else
+		return s256(_u);
+}
 
 }
