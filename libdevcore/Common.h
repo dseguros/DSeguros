@@ -222,4 +222,17 @@ private:
 #define DEV_INVARIANT_CHECK (void)0;
 #define DEV_INVARIANT_CHECK_HERE (void)0;
 #endif
+
+/// Simple scope-based timer helper.
+class TimerHelper
+{
+public:
+	TimerHelper(std::string const& _id, unsigned _msReportWhenGreater = 0): m_t(std::chrono::high_resolution_clock::now()), m_id(_id), m_ms(_msReportWhenGreater) {}
+	~TimerHelper();
+
+private:
+	std::chrono::high_resolution_clock::time_point m_t;
+	std::string m_id;
+	unsigned m_ms;
+};
 }
