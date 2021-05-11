@@ -248,4 +248,107 @@ public:
 private:
 	std::chrono::high_resolution_clock::time_point m_t;
 };
+
+#define DEV_TIMED(S) for (::std::pair<::dev::TimerHelper, bool> __eth_t(S, true); __eth_t.second; __eth_t.second = false)
+#define DEV_TIMED_SCOPE(S) ::dev::TimerHelper __eth_t(S)
+#if defined(_WIN32)
+#define DEV_TIMED_FUNCTION DEV_TIMED_SCOPE(__FUNCSIG__)
+#else
+#define DEV_TIMED_FUNCTION DEV_TIMED_SCOPE(__PRETTY_FUNCTION__)
+#endif
+
+#define DEV_TIMED_ABOVE(S, MS) for (::std::pair<::dev::TimerHelper, bool> __eth_t(::dev::TimerHelper(S, MS), true); __eth_t.second; __eth_t.second = false)
+#define DEV_TIMED_SCOPE_ABOVE(S, MS) ::dev::TimerHelper __eth_t(S, MS)
+#if defined(_WIN32)
+#define DEV_TIMED_FUNCTION_ABOVE(MS) DEV_TIMED_SCOPE_ABOVE(__FUNCSIG__, MS)
+#else
+#define DEV_TIMED_FUNCTION_ABOVE(MS) DEV_TIMED_SCOPE_ABOVE(__PRETTY_FUNCTION__, MS)
+#endif
+
+#ifdef _MSC_VER
+// TODO.
+#define DEV_UNUSED
+#else
+#define DEV_UNUSED __attribute__((unused))
+#endif
+
+enum class WithExisting: int
+{
+	Trust = 0,
+	Verify,
+	Rescue,
+	Kill
+};
+
+/// Get the current time in seconds since the epoch in UTC
+uint64_t utcTime();
+
+template<class T>
+class QueueSet {
+public:
+	bool push(T const& _t) {
+		if (m_set.count(_t) == 0) {
+			m_set.insert(_t);
+			m_queue.push(_t);
+			return true;
+		}
+		return false;
+	}
+
+	bool pop() {
+		if (m_queue.size() == 0) {
+			return false;
+		}
+		auto t = m_queue.front();
+		m_queue.pop();
+		m_set.erase(t);
+		return true;
+	}
+
+	void insert(T const & _t) {
+		push(_t);
+	}
+
+	size_t count(T const& _t) const {
+		return exist(_t) ? 1 : 0;
+	}
+
+	bool exist(T const& _t) const {
+		return m_set.count(_t) > 0;
+	}
+
+	size_t size() const {
+		return m_set.size();
+	}
+
+	void clear() {
+		m_set.clear();
+		while (!m_queue.empty()) m_queue.pop();
+	}
+
+private:
+	std::unordered_set<T> m_set;
+	std::queue<T> m_queue;
+};
+
+}
+
+namespace std
+{
+
+inline dev::WithExisting max(dev::WithExisting _a, dev::WithExisting _b)
+{
+	return static_cast<dev::WithExisting>(max(static_cast<int>(_a), static_cast<int>(_b)));
+}
+
+template <> struct hash<dev::u256>
+{
+	size_t operator()(dev::u256 const& _a) const
+	{
+		unsigned size = _a.backend().size();
+		auto limbs = _a.backend().limbs();
+		return boost::hash_range(limbs, limbs + size);
+	}
+};
+
 }
