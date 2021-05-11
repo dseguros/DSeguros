@@ -41,3 +41,16 @@ using byte = uint8_t;
 
 #define DEV_IF_THROWS(X) try{X;}catch(...)
 
+namespace dev
+{
+
+extern char const* Version;
+
+static const std::string EmptyString;
+
+// Binary data types.
+using bytes = std::vector<byte>;
+using bytesRef = vector_ref<byte>;
+using bytesConstRef = vector_ref<byte const>;
+
+}
