@@ -171,4 +171,23 @@ template <> inline u256 exp10<0>()
 {
 	return u256(1);
 }
+
+/// @returns the absolute distance between _a and _b.
+template <class N>
+inline N diff(N const& _a, N const& _b)
+{
+	return std::max(_a, _b) - std::min(_a, _b);
+}
+
+/// RAII utility class whose destructor calls a given function.
+class ScopeGuard
+{
+public:
+	ScopeGuard(std::function<void(void)> _f): m_f(_f) {}
+	~ScopeGuard() { m_f(); }
+
+private:
+	std::function<void(void)> m_f;
+};
+
 }
