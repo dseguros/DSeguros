@@ -213,4 +213,13 @@ private:
 	char const* m_file;
 	int m_line;
 };
+
+/// Scope guard for invariant check in a class derived from HasInvariants.
+#if ETH_DEBUG
+#define DEV_INVARIANT_CHECK ::dev::InvariantChecker __dev_invariantCheck(this, BOOST_CURRENT_FUNCTION, __FILE__, __LINE__)
+#define DEV_INVARIANT_CHECK_HERE ::dev::InvariantChecker::checkInvariants(this, BOOST_CURRENT_FUNCTION, __FILE__, __LINE__, true)
+#else
+#define DEV_INVARIANT_CHECK (void)0;
+#define DEV_INVARIANT_CHECK_HERE (void)0;
+#endif
 }
