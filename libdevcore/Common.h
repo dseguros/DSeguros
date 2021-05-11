@@ -141,4 +141,13 @@ inline s256 u2s(u256 _u)
 		return s256(_u);
 }
 
+/// @returns the two's complement signed representation of the signed number _u.
+inline u256 s2u(s256 _u)
+{
+	static const bigint c_end = bigint(1) << 256;
+    if (_u >= 0)
+		return u256(_u);
+    else
+		return u256(c_end + _u);
+}
 }
