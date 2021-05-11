@@ -161,4 +161,14 @@ inline unsigned int toLog2(u256 _x)
 	for (ret = 0; _x >>= 1; ++ret) {}
 	return ret;
 }
+
+template <size_t n> inline u256 exp10()
+{
+	return exp10<n - 1>() * u256(10);
+}
+
+template <> inline u256 exp10<0>()
+{
+	return u256(1);
+}
 }
