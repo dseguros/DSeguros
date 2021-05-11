@@ -109,5 +109,27 @@ using u160s = std::vector<u160>;
 using u256Set = std::set<u256>;
 using u160Set = std::set<u160>;
 
+// Map types.
+using StringMap = std::map<std::string, std::string>;
+using BytesMap = std::map<bytes, bytes>;
+using u256Map = std::map<u256, u256>;
+using HexMap = std::map<bytes, bytes>;
+
+// Hash types.
+using StringHashMap = std::unordered_map<std::string, std::string>;
+using u256HashMap = std::unordered_map<u256, u256>;
+
+// String types.
+using strings = std::vector<std::string>;
+
+// Fixed-length string types.
+using string32 = std::array<char, 32>;
+static const string32 ZeroString32 = {{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }};
+
+// Null/Invalid values for convenience.
+static const bytes NullBytes;
+static const std::map<u256, u256> EmptyMapU256U256;
+extern const u256 Invalid256;
+
 
 }
