@@ -235,4 +235,17 @@ private:
 	std::string m_id;
 	unsigned m_ms;
 };
+
+class Timer
+{
+public:
+	Timer() { restart(); }
+
+	std::chrono::high_resolution_clock::duration duration() const { return std::chrono::high_resolution_clock::now() - m_t; }
+	double elapsed() const { return std::chrono::duration_cast<std::chrono::microseconds>(duration()).count() / 1000000.0; }
+	void restart() { m_t = std::chrono::high_resolution_clock::now(); }
+
+private:
+	std::chrono::high_resolution_clock::time_point m_t;
+};
 }
