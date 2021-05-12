@@ -10,4 +10,6 @@
 #include "Exceptions.h"
 #include "BlockHeader.h"
 
-
+using namespace std;
+using namespace dev;
+using namespace dev::eth;
