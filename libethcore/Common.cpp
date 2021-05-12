@@ -123,6 +123,13 @@ static void badBlockInfo(BlockHeader const& _bi, string const& _err)
 	cwarn << "\n" + ss.str();
 }
 
+void badBlock(bytesConstRef _block, string const& _err)
+{
+	BlockHeader bi;
+	DEV_IGNORE_EXCEPTIONS(bi = BlockHeader(_block));
+	badBlockInfo(bi, _err);
+}
+
 }
 }
 
