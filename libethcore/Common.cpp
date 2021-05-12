@@ -30,6 +30,7 @@ const unsigned c_databaseBaseVersion = 9;
 const unsigned c_databaseVersionModifier = 0;
 #endif
 
+const unsigned c_databaseVersion = c_databaseBaseVersion + (c_databaseVersionModifier << 8) + (23 << 9);
 
 }
 }
