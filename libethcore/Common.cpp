@@ -13,3 +13,24 @@
 using namespace std;
 using namespace dev;
 using namespace dev::eth;
+
+namespace dev
+{
+namespace eth
+{
+
+const unsigned c_protocolVersion = 63;
+#if ETH_FATDB
+const unsigned c_minorProtocolVersion = 3;
+const unsigned c_databaseBaseVersion = 9;
+const unsigned c_databaseVersionModifier = 1;
+#else
+const unsigned c_minorProtocolVersion = 2;
+const unsigned c_databaseBaseVersion = 9;
+const unsigned c_databaseVersionModifier = 0;
+#endif
+
+
+}
+}
+
