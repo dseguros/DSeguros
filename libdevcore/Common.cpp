@@ -12,5 +12,14 @@ char const* Version = ETH_PROJECT_VERSION;
 
 const u256 Invalid256 = ~(u256)0;
 
+void InvariantChecker::checkInvariants(HasInvariants const* _this, char const* _fn, char const* _file, int _line, bool _pre)
+{
+	if (!_this->invariants())
+	{
+		cwarn << (_pre ? "Pre" : "Post") << "invariant failed in" << _fn << "at" << _file << ":" << _line;
+		::boost::exception_detail::throw_exception_(FailedInvariant(), _fn, _file, _line);
+	}
+}
+
 }
 
