@@ -29,5 +29,12 @@ const char* TimerChannel::name() { return EthRed " ! "; }
 const char* TimerChannel::name() { return EthRed " ⚡ "; }
 #endif
 
+TimerHelper::~TimerHelper()
+{
+	auto e = std::chrono::high_resolution_clock::now() - m_t;
+	if (!m_ms || e > chrono::milliseconds(m_ms))
+		clog(TimerChannel) << m_id << chrono::duration_cast<chrono::milliseconds>(e).count() << "ms";
+}
+
 }
 
