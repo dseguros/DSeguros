@@ -21,3 +21,15 @@ inline Address jsToAddress(std::string const& _s) { return eth::toAddress(_s); }
 std::string prettyU256(u256 _n, bool _abridged = true);
 }
 
+// ethcore
+namespace dev
+{
+namespace eth
+{
+
+/// Convert to a block number, a bit like jsToInt, except that it correctly recognises "pending" and "latest".
+BlockNumber jsToBlockNumber(std::string const& _js);
+
+}
+}
+
