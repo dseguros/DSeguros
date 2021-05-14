@@ -14,5 +14,8 @@ inline Public jsToPublic(std::string const& _s) { return jsToFixed<sizeof(dev::P
 /// Leniently convert string to Secret (h256). Accepts integers, "0x" prefixing, non-exact length.
 inline Secret jsToSecret(std::string const& _s) { h256 d = jsToFixed<sizeof(dev::Secret)>(_s); Secret ret(d); d.ref().cleanse(); return ret; }
 
+/// Leniently convert string to Address (h160). Accepts integers, "0x" prefixing, non-exact length.
+inline Address jsToAddress(std::string const& _s) { return eth::toAddress(_s); }
+
 }
 
