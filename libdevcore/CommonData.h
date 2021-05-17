@@ -8,3 +8,17 @@
 #include <string>
 #include "Common.h"
 
+namespace dev
+{
+
+// String conversion functions, mainly to/from hex/nibble/byte representations.
+
+enum class WhenError
+{
+	DontThrow = 0,
+	Throw = 1,
+};
+
+}
+
+
