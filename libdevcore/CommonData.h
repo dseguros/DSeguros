@@ -312,6 +312,54 @@ std::unordered_map<A, B> operator+(std::unordered_map<A, B> const& _x, std::unor
 	std::unordered_map<A, B> ret(_x);
 	return ret += _y;
 }
+
+/// Make normal string from fixed-length string.
+std::string toString(string32 const& _s);
+
+template<class T, class U>
+std::vector<T> keysOf(std::map<T, U> const& _m)
+{
+	std::vector<T> ret;
+	for (auto const& i: _m)
+		ret.push_back(i.first);
+	return ret;
+}
+
+template<class T, class U>
+std::vector<T> keysOf(std::unordered_map<T, U> const& _m)
+{
+	std::vector<T> ret;
+	for (auto const& i: _m)
+		ret.push_back(i.first);
+	return ret;
+}
+
+template<class T, class U>
+std::vector<U> valuesOf(std::map<T, U> const& _m)
+{
+	std::vector<U> ret;
+	ret.reserve(_m.size());
+	for (auto const& i: _m)
+		ret.push_back(i.second);
+	return ret;
+}
+
+template<class T, class U>
+std::vector<U> valuesOf(std::unordered_map<T, U> const& _m)
+{
+	std::vector<U> ret;
+	ret.reserve(_m.size());
+	for (auto const& i: _m)
+		ret.push_back(i.second);
+	return ret;
+}
+
+template <class T, class V>
+bool contains(T const& _t, V const& _v)
+{
+	return std::end(_t) != std::find(std::begin(_t), std::end(_t), _v);
+}
+
 }
 
 
