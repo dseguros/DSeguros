@@ -38,6 +38,10 @@ std::string toHex(T const& _data, int _w = 2, HexPrefix _prefix = HexPrefix::Don
 	return (_prefix == HexPrefix::Add) ? "0x" + ret.str() : ret.str();
 }
 
+/// Converts a (printable) ASCII hex string into the corresponding byte stream.
+/// @example fromHex("41626261") == asBytes("Abba")
+/// If _throw = ThrowType::DontThrow, it replaces bad hex characters with 0's, otherwise it will throw an exception.
+bytes fromHex(std::string const& _s, WhenError _throw = WhenError::DontThrow);
 }
 
 
