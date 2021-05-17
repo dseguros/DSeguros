@@ -19,6 +19,12 @@ enum class WhenError
 	Throw = 1,
 };
 
+enum class HexPrefix
+{
+	DontAdd = 0,
+	Add = 1,
+};
+
 }
 
 
