@@ -189,6 +189,16 @@ inline unsigned bytesRequired(T _i)
 	return i;
 }
 
+/// Trims a given number of elements from the front of a collection.
+/// Only works for POD element types.
+template <class T>
+void trimFront(T& _t, unsigned _elements)
+{
+	static_assert(std::is_pod<typename T::value_type>::value, "");
+	memmove(_t.data(), _t.data() + _elements, (_t.size() - _elements) * sizeof(_t[0]));
+	_t.resize(_t.size() - _elements);
+}
+
 }
 
 
