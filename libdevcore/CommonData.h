@@ -143,6 +143,39 @@ inline std::string toCompactBigEndianString(T _val, unsigned _min = 0)
 	return ret;
 }
 
+
+/// Convenience function for conversion of a u256 to hex
+inline std::string toHex(u256 val, HexPrefix prefix = HexPrefix::DontAdd)
+{
+	std::string str = toHex(toBigEndian(val));
+	return (prefix == HexPrefix::Add) ? "0x" + str : str;
+}
+
+inline std::string toCompactHex(u256 val, HexPrefix prefix = HexPrefix::DontAdd, unsigned _min = 0)
+{
+	std::string str = toHex(toCompactBigEndian(val, _min));
+	return (prefix == HexPrefix::Add) ? "0x" + str : str;
+}
+
+// Algorithms for string and string-like collections.
+
+/// Escapes a string into the C-string representation.
+/// @p _all if true will escape all characters, not just the unprintable ones.
+std::string escaped(std::string const& _s, bool _all = true);
+
+/// Determines the length of the common prefix of the two collections given.
+/// @returns the number of elements both @a _t and @a _u share, in order, at the beginning.
+/// @example commonPrefix("Hello world!", "Hello, world!") == 5
+template <class T, class _U>
+unsigned commonPrefix(T const& _t, _U const& _u)
+{
+	unsigned s = std::min<unsigned>(_t.size(), _u.size());
+	for (unsigned i = 0;; ++i)
+		if (i == s || _t[i] != _u[i])
+			return i;
+	return s;
+}
+
 }
 
 
