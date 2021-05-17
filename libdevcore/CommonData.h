@@ -231,6 +231,87 @@ inline std::vector<T>& operator+=(std::vector<typename std::enable_if<!std::is_p
 	return _a;
 }
 
+/// Insert the contents of a container into a set
+template <class T, class U> std::set<T>& operator+=(std::set<T>& _a, U const& _b)
+{
+	for (auto const& i: _b)
+		_a.insert(i);
+	return _a;
+}
+
+/// Insert the contents of a container into an unordered_set
+template <class T, class U> std::unordered_set<T>& operator+=(std::unordered_set<T>& _a, U const& _b)
+{
+	for (auto const& i: _b)
+		_a.insert(i);
+	return _a;
+}
+
+/// Concatenate the contents of a container onto a vector
+template <class T, class U> std::vector<T>& operator+=(std::vector<T>& _a, U const& _b)
+{
+	for (auto const& i: _b)
+		_a.push_back(i);
+	return _a;
+}
+
+/// Insert the contents of a container into a set
+template <class T, class U> std::set<T> operator+(std::set<T> _a, U const& _b)
+{
+	return _a += _b;
+}
+
+/// Insert the contents of a container into an unordered_set
+template <class T, class U> std::unordered_set<T> operator+(std::unordered_set<T> _a, U const& _b)
+{
+	return _a += _b;
+}
+
+/// Concatenate the contents of a container onto a vector
+template <class T, class U> std::vector<T> operator+(std::vector<T> _a, U const& _b)
+{
+	return _a += _b;
+}
+
+/// Concatenate two vectors of elements.
+template <class T>
+inline std::vector<T> operator+(std::vector<T> const& _a, std::vector<T> const& _b)
+{
+	std::vector<T> ret(_a);
+	return ret += _b;
+}
+
+/// Merge two sets of elements.
+template <class T>
+inline std::set<T>& operator+=(std::set<T>& _a, std::set<T> const& _b)
+{
+	for (auto& i: _b)
+		_a.insert(i);
+	return _a;
+}
+
+/// Merge two sets of elements.
+template <class T>
+inline std::set<T> operator+(std::set<T> const& _a, std::set<T> const& _b)
+{
+	std::set<T> ret(_a);
+	return ret += _b;
+}
+
+template <class A, class B>
+std::unordered_map<A, B>& operator+=(std::unordered_map<A, B>& _x, std::unordered_map<A, B> const& _y)
+{
+	for (auto const& i: _y)
+		_x.insert(i);
+	return _x;
+}
+
+template <class A, class B>
+std::unordered_map<A, B> operator+(std::unordered_map<A, B> const& _x, std::unordered_map<A, B> const& _y)
+{
+	std::unordered_map<A, B> ret(_x);
+	return ret += _y;
+}
 }
 
 
