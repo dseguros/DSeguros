@@ -199,6 +199,38 @@ void trimFront(T& _t, unsigned _elements)
 	_t.resize(_t.size() - _elements);
 }
 
+/// Pushes an element on to the front of a collection.
+/// Only works for POD element types.
+template <class T, class _U>
+void pushFront(T& _t, _U _e)
+{
+	static_assert(std::is_pod<typename T::value_type>::value, "");
+	_t.push_back(_e);
+	memmove(_t.data() + 1, _t.data(), (_t.size() - 1) * sizeof(_e));
+	_t[0] = _e;
+}
+
+/// Concatenate two vectors of elements of POD types.
+template <class T>
+inline std::vector<T>& operator+=(std::vector<typename std::enable_if<std::is_pod<T>::value, T>::type>& _a, std::vector<T> const& _b)
+{
+	auto s = _a.size();
+	_a.resize(_a.size() + _b.size());
+	memcpy(_a.data() + s, _b.data(), _b.size() * sizeof(T));
+	return _a;
+
+}
+
+/// Concatenate two vectors of elements.
+template <class T>
+inline std::vector<T>& operator+=(std::vector<typename std::enable_if<!std::is_pod<T>::value, T>::type>& _a, std::vector<T> const& _b)
+{
+	_a.reserve(_a.size() + _b.size());
+	for (auto& i: _b)
+		_a.push_back(i);
+	return _a;
+}
+
 }
 
 
