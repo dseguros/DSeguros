@@ -95,6 +95,24 @@ inline void toBigEndian(T _val, Out& o_out)
 	}
 }
 
+/// Converts a big-endian byte-stream represented on a templated collection to a templated integer value.
+/// @a _In will typically be either std::string or bytes.
+/// @a T will typically by unsigned, u160, u256 or bigint.
+template <class T, class _In>
+inline T fromBigEndian(_In const& _bytes)
+{
+	T ret = (T)0;
+	for (auto i: _bytes)
+		ret = (T)((ret << 8) | (byte)(typename std::make_unsigned<decltype(i)>::type)i);
+	return ret;
+}
+
+/// Convenience functions for toBigEndian
+inline std::string toBigEndianString(u256 _val) { std::string ret(32, '\0'); toBigEndian(_val, ret); return ret; }
+inline std::string toBigEndianString(u160 _val) { std::string ret(20, '\0'); toBigEndian(_val, ret); return ret; }
+inline bytes toBigEndian(u256 _val) { bytes ret(32); toBigEndian(_val, ret); return ret; }
+inline bytes toBigEndian(u160 _val) { bytes ret(20); toBigEndian(_val, ret); return ret; }
+
 }
 
 
