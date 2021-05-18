@@ -70,7 +70,14 @@ public:
 
 	/// @returns target address. Looks up through the given Registry and call function. Only valid when type() == Indirect.
 	std::pair<Address, bytes> lookup(std::function<bytes(Address, bytes)> const& _call, Address const& _reg) const;
-}
+
+private:
+	Type m_type = Invalid;
+	Address m_direct;
+	std::string m_client;
+	std::string m_institution;
+	std::string m_asset;
+};
 
 }
 
