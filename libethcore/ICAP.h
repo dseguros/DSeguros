@@ -39,6 +39,17 @@ public:
 		Direct,
 		Indirect
 	};
+
+  	/// Create a direct address for ICAP.
+	static Secret createDirect();
+
+	/// @returns IBAN encoding of client and data.
+	static std::string iban(std::string _c, std::string _d);
+	/// @returns Client and data from given IBAN address.
+	static std::pair<std::string, std::string> fromIBAN(std::string _iban);
+
+	/// @returns the ICAP object for the ICAP address given.
+	static ICAP decoded(std::string const& _encoded);
 }
 
 }
