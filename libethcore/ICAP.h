@@ -50,6 +50,26 @@ public:
 
 	/// @returns the ICAP object for the ICAP address given.
 	static ICAP decoded(std::string const& _encoded);
+
+	/// @returns the encoded ICAP address.
+	std::string encoded() const;
+	/// @returns type of ICAP.
+	Type type() const { return m_type; }
+	/// @returns target address. Only valid when type() == Direct.
+	Address const& direct() const { return m_type == Direct ? m_direct : ZeroAddress; }
+	/// @returns asset. Only valid when type() == Indirect.
+	std::string const& asset() const { return m_type == Indirect ? m_asset : EmptyString; }
+	/// @returns target name. Only valid when type() == Indirect and asset() == "ETH".
+	std::string const& target() const { return m_type == Indirect && m_asset == "ETH" ? m_client : EmptyString; }
+	/// @returns institution name. Only valid when type() == Indirect and asset() == "XET".
+	std::string const& institution() const { return m_type == Indirect && m_asset == "XET" ? m_institution : EmptyString; }
+	/// @returns client name. Only valid when type() == Indirect and asset() == "XET".
+	std::string const& client() const { return m_type == Indirect && m_asset == "XET" ? m_client : EmptyString; }
+	/// @returns target address. Always valid, but requires the Registry address and a function to make calls.
+	std::pair<Address, bytes> address(std::function<bytes(Address, bytes)> const& _call, Address const& _reg) const { return m_type == Direct ? make_pair(direct(), bytes()) : m_type == Indirect ? lookup(_call, _reg) : make_pair(Address(), bytes()); }
+
+	/// @returns target address. Looks up through the given Registry and call function. Only valid when type() == Indirect.
+	std::pair<Address, bytes> lookup(std::function<bytes(Address, bytes)> const& _call, Address const& _reg) const;
 }
 
 }
