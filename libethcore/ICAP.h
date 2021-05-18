@@ -29,7 +29,16 @@ public:
 	/// Construct an indirect ICAP object for given client and institution names.
 	ICAP(std::string const& _client, std::string const& _inst): m_type(Indirect), m_client(boost::algorithm::to_upper_copy(_client)), m_institution(boost::algorithm::to_upper_copy(_inst)), m_asset("XET") {}
 
+        /// Construct an indirect ICAP object for given client, institution and asset names. You generally don't want to use this.
+	ICAP(std::string const& _c, std::string const& _i, std::string const& _a): m_type(Indirect), m_client(boost::algorithm::to_upper_copy(_c)), m_institution(boost::algorithm::to_upper_copy(_i)), m_asset(boost::algorithm::to_upper_copy(_a)) {}
 
+	/// Type of ICAP address.
+	enum Type
+	{
+		Invalid,
+		Direct,
+		Indirect
+	};
 }
 
 }
