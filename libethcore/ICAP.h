@@ -8,3 +8,14 @@
 #include <libdevcore/FixedHash.h>
 #include "Common.h"
 
+namespace dev
+{
+namespace eth
+{
+
+
+}
+
+}
+
+
