@@ -65,4 +65,13 @@ std::string dev::escaped(std::string const& _s, bool _all)
 	return ret;
 }
 
-
+std::string dev::randomWord()
+{
+	static std::mt19937_64 s_eng(0);
+	std::string ret(boost::random::uniform_int_distribution<int>(1, 5)(s_eng), ' ');
+	char const n[] = "qwertyuiop";//asdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890";
+	boost::random::uniform_int_distribution<int> d(0, sizeof(n) - 2);
+	for (char& c: ret)
+		c = n[d(s_eng)];
+	return ret;
+}
