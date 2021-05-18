@@ -9,7 +9,7 @@ fdef _M_IX86
 #endif
 
 #ifdef __INTEL_COMPILER
-#pragma warning(disable:3682) //call through incomplete class
+#pragma warning(disable:3682) //call through
 #endif
 
 #include <map>
