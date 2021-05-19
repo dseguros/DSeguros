@@ -14,3 +14,20 @@
 using namespace std;
 using namespace dev;
 
+
+namespace
+{
+int fromHexChar(char _i) noexcept
+{
+	if (_i >= '0' && _i <= '9')
+		return _i - '0';
+	if (_i >= 'a' && _i <= 'f')
+		return _i - 'a' + 10;
+	if (_i >= 'A' && _i <= 'F')
+		return _i - 'A' + 10;
+	return -1;
+}
+}
+
+}
+
