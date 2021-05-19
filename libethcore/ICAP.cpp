@@ -86,5 +86,31 @@ ICAP ICAP::decoded(std::string const& _encoded)
 	return ret;
 }
 
+std::string ICAP::encoded() const
+{
+	if (m_type == Direct)
+	{
+		std::string d = toBase36<Address::size>(m_direct);
+		while (d.size() < 30)		// always 34, sometimes 35.
+			d = "0" + d;
+		return iban("XE", d);
+	}
+	else if (m_type == Indirect)
+	{
+		if (
+			m_asset.find_first_not_of("qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890") != string::npos ||
+			m_institution.find_first_not_of("qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890") != string::npos ||
+			m_client.find_first_not_of("qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890") != string::npos ||
+			m_asset.size() != 3 ||
+			(boost::to_upper_copy(m_asset) != "XET" && boost::to_upper_copy(m_asset) != "ETH") ||
+			m_institution.size() != 4 ||
+			m_client.size() != 9
+		)
+			BOOST_THROW_EXCEPTION(InvalidICAP());
+		return iban("XE", m_asset + m_institution + m_client);
+	}
+	else
+		BOOST_THROW_EXCEPTION(InvalidICAP());
+}
 }
 }
