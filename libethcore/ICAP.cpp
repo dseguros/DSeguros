@@ -43,5 +43,16 @@ std::pair<string, string> ICAP::fromIBAN(std::string _iban)
 	return make_pair(c, d);
 }
 
+Secret ICAP::createDirect()
+{
+	Secret ret;
+	while (true)
+	{
+		ret = Secret::random();
+		if (!toAddress(ret)[0])
+			return ret;
+	}
+}
+
 }
 }
