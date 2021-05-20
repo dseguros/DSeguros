@@ -67,5 +67,30 @@ template <class T, class U> inline std::ostream& operator<<(std::ostream& _out, 
 template <class T, class U> inline std::ostream& operator<<(std::ostream& _out, std::multimap<T, U> const& _e);
 template <class _S, class _T> _S& operator<<(_S& _out, std::shared_ptr<_T> const& _p);
 
+#if defined(_WIN32)
+template <class T> inline std::string toString(std::chrono::time_point<T> const& _e, std::string _format = "%Y-%m-%d %H:%M:%S")
+#else
+template <class T> inline std::string toString(std::chrono::time_point<T> const& _e, std::string _format = "%F %T")
+#endif
+{
+	unsigned long milliSecondsSinceEpoch = std::chrono::duration_cast<std::chrono::milliseconds>(_e.time_since_epoch()).count();
+	auto const durationSinceEpoch = std::chrono::milliseconds(milliSecondsSinceEpoch);
+	std::chrono::time_point<std::chrono::system_clock> const tpAfterDuration(durationSinceEpoch);
+
+	tm timeValue;
+	auto time = std::chrono::system_clock::to_time_t(tpAfterDuration);
+#if defined(_WIN32)
+	gmtime_s(&timeValue, &time);
+#else
+	gmtime_r(&time, &timeValue);
+#endif
+
+	unsigned const millisRemainder = milliSecondsSinceEpoch % 1000;
+	char buffer[1024];
+	if (strftime(buffer, sizeof(buffer), _format.c_str(), &timeValue))
+		return std::string(buffer) + "." + (millisRemainder < 1 ? "000" : millisRemainder < 10 ? "00" : millisRemainder < 100 ? "0" : "") + std::to_string(millisRemainder) + "Z";
+	return std::string();
+}
+
 }
 
