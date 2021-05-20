@@ -54,5 +54,37 @@ Secret ICAP::createDirect()
 	}
 }
 
+ICAP ICAP::decoded(std::string const& _encoded)
+{
+	ICAP ret;
+	std::string country;
+	std::string data;
+	std::tie(country, data) = fromIBAN(_encoded);
+	if (country != "XE")
+		BOOST_THROW_EXCEPTION(InvalidICAP());
+	if (data.size() == 30 || data.size() == 31)
+	{
+		ret.m_type = Direct;
+		// Direct ICAP
+		ret.m_direct = fromBase36<Address::size>(data);
+	}
+	else if (data.size() == 16)
+	{
+		ret.m_type = Indirect;
+		ret.m_asset = data.substr(0, 3);
+		if (ret.m_asset == "XET" || ret.m_asset == "ETH")
+		{
+			ret.m_institution = data.substr(3, 4);
+			ret.m_client = data.substr(7);
+		}
+		else
+			BOOST_THROW_EXCEPTION(InvalidICAP());
+	}
+	else
+		BOOST_THROW_EXCEPTION(InvalidICAP());
+
+	return ret;
+}
+
 }
 }
