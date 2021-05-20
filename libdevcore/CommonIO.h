@@ -48,5 +48,24 @@ inline void writeFile(std::string const& _file, std::string const& _data, bool _
 /// @a _bytes: bytes array to be rendered as string. @a _width of a bytes line.
 std::string memDump(bytes const& _bytes, unsigned _width = 8, bool _html = false);
 
+// Stream I/O functions.
+// Provides templated stream I/O for all STL collections so they can be shifted on to any iostream-like interface.
+
+template <class S, class T> struct StreamOut { static S& bypass(S& _out, T const& _t) { _out << _t; return _out; } };
+template <class S> struct StreamOut<S, uint8_t> { static S& bypass(S& _out, uint8_t const& _t) { _out << (int)_t; return _out; } };
+
+inline std::ostream& operator<<(std::ostream& _out, bytes const& _e) { _out << toHex(_e, 2, HexPrefix::Add); return _out; }
+template <class T> inline std::ostream& operator<<(std::ostream& _out, std::vector<T> const& _e);
+template <class T, std::size_t Z> inline std::ostream& operator<<(std::ostream& _out, std::array<T, Z> const& _e);
+template <class T, class U> inline std::ostream& operator<<(std::ostream& _out, std::pair<T, U> const& _e);
+template <class T> inline std::ostream& operator<<(std::ostream& _out, std::list<T> const& _e);
+template <class T1, class T2, class T3> inline std::ostream& operator<<(std::ostream& _out, std::tuple<T1, T2, T3> const& _e);
+template <class T, class U> inline std::ostream& operator<<(std::ostream& _out, std::map<T, U> const& _e);
+template <class T, class U> inline std::ostream& operator<<(std::ostream& _out, std::unordered_map<T, U> const& _e);
+template <class T, class U> inline std::ostream& operator<<(std::ostream& _out, std::set<T, U> const& _e);
+template <class T, class U> inline std::ostream& operator<<(std::ostream& _out, std::unordered_set<T, U> const& _e);
+template <class T, class U> inline std::ostream& operator<<(std::ostream& _out, std::multimap<T, U> const& _e);
+template <class _S, class _T> _S& operator<<(_S& _out, std::shared_ptr<_T> const& _p);
+
 }
 
