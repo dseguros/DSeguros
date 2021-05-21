@@ -66,6 +66,22 @@ public:
 	bool load(std::string const& _pass);
 	void save(std::string const& _pass) const { write(_pass, m_keysFile); }
 
+
+	void notePassword(std::string const& _pass) { m_cachedPasswords[hashPassword(_pass)] = _pass; }
+	void noteHint(std::string const& _pass, std::string const& _hint) { if (!_hint.empty()) m_passwordHint[hashPassword(_pass)] = _hint; }
+	bool haveHint(std::string const& _pass) const { auto h = hashPassword(_pass); return m_cachedPasswords.count(h) && !m_cachedPasswords.at(h).empty(); }
+
+	/// @returns the list of account addresses.
+	Addresses accounts() const;
+	/// @returns a hashset of all account addresses.
+	AddressHash accountsHash() const { return AddressHash() + accounts(); }
+	bool hasAccount(Address const& _address) const;
+	/// @returns the human-readable name or json-encoded info of the account for the given address.
+	std::string const& accountName(Address const& _address) const;
+	/// @returns the password hint for the account for the given address;
+	std::string const& passwordHint(Address const& _address) const;
+	/// Should be called to change password
+	void changeName(Address const& _address, std::string const& _name);
 }
 
 
