@@ -105,5 +105,25 @@ inline S& streamout(S& _out, std::vector<T> const& _e)
 	_out << "]";
 	return _out;
 }
+
+template <class T> inline std::ostream& operator<<(std::ostream& _out, std::vector<T> const& _e) { streamout(_out, _e); return _out; }
+
+template <class S, class T, std::size_t Z>
+inline S& streamout(S& _out, std::array<T, Z> const& _e)
+{
+	_out << "[";
+	if (!_e.empty())
+	{
+		StreamOut<S, T>::bypass(_out, _e.front());
+		auto i = _e.begin();
+		for (++i; i != _e.end(); ++i)
+			StreamOut<S, T>::bypass(_out << ",", *i);
+	}
+	_out << "]";
+	return _out;
+}
+template <class T, std::size_t Z> inline std::ostream& operator<<(std::ostream& _out, std::array<T, Z> const& _e) { streamout(_out, _e); return _out; }
+
+
 }
 
