@@ -36,5 +36,38 @@ enum class SemanticPassword
 	Master
 };
 
+// TODO: This one is specifically for Ethereum, but we can make it generic in due course.
+// TODO: hidden-partition style key-store.
+/**
+ * @brief High-level manager of password-encrypted keys for Ethereum.
+ * Usage:
+ *
+ * Call exists() to check whether there is already a database. If so, get the master password from
+ * the user and call load() with it. If not, get a new master password from the user (get them to type
+ * it twice and keep some hint around!) and call create() with it.
+ *
+ * Uses a "key file" (and a corresponding .salt file) that contains encrypted information about the keys and
+ * a directory called "secrets path" that contains a file for each key.
+ */
+class KeyManager
+{
+public:
+	enum class NewKeyType { DirectICAP = 0, NoVanity, FirstTwo, FirstTwoNextTwo, FirstThree, FirstFour };
+
+	KeyManager(std::string const& _keysFile = defaultPath(), std::string const& _secretsPath = SecretStore::defaultPath());
+	~KeyManager();
+
+	void setSecretsPath(std::string const& _secretsPath) { m_store.setPath(_secretsPath); }
+	void setKeysFile(std::string const& _keysFile) { m_keysFile = _keysFile; }
+	std::string const& keysFile() const { return m_keysFile; }
+
+	bool exists() const;
+	void create(std::string const& _pass);
+	bool load(std::string const& _pass);
+	void save(std::string const& _pass) const { write(_pass, m_keysFile); }
+
+}
+
+
 }
 }
