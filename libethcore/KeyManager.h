@@ -26,5 +26,15 @@ struct KeyInfo
 	std::string passwordHint;
 };
 
+static h256 const UnknownPassword;
+/// Password query function that never returns a password.
+static auto const DontKnowThrow = [](){ throw PasswordUnknown(); return std::string(); };
+
+enum class SemanticPassword
+{
+	Existing,
+	Master
+};
+
 }
 }
