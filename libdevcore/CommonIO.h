@@ -92,5 +92,18 @@ template <class T> inline std::string toString(std::chrono::time_point<T> const&
 	return std::string();
 }
 
+template <class S, class T>
+inline S& streamout(S& _out, std::vector<T> const& _e)
+{
+	_out << "[";
+	if (!_e.empty())
+	{
+		StreamOut<S, T>::bypass(_out, _e.front());
+		for (auto i = ++_e.begin(); i != _e.end(); ++i)
+			StreamOut<S, T>::bypass(_out << ",", *i);
+	}
+	_out << "]";
+	return _out;
+}
 }
 
