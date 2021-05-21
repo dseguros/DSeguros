@@ -6,4 +6,11 @@
 #include <libdevcore/CommonData.h>
 #include <libdevcrypto/SecretStore.h>
 
+namespace dev
+{
+namespace eth
+{
 
+
+}
+}
