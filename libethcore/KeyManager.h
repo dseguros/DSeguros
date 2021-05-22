@@ -100,6 +100,33 @@ public:
 	void importExisting(h128 const& _uuid, std::string const& _accountName, std::string const& _pass, std::string const& _passwordHint);
 	void importExisting(h128 const& _uuid, std::string const& _accountName) { importExisting(_uuid, _accountName, defaultPassword(), std::string()); }
 	void importExisting(h128 const& _uuid, std::string const& _accountName, Address const& _addr, h256 const& _passHash = h256(), std::string const& _passwordHint = std::string());
+
+	/// @returns the secret key associated with an address provided the password query
+	/// function @a _pass or the zero-secret key on error.
+	Secret secret(Address const& _address, std::function<std::string()> const& _pass = DontKnowThrow, bool _usePasswordCache = true) const;
+	/// @returns the secret key associated with the uuid of a key provided the password query
+	/// function @a _pass or the zero-secret key on error.
+	Secret secret(h128 const& _uuid, std::function<std::string()> const& _pass = DontKnowThrow, bool _usePasswordCache = true) const;
+
+	bool recode(Address const& _address, SemanticPassword _newPass, std::function<std::string()> const& _pass = DontKnowThrow, KDF _kdf = KDF::Scrypt);
+	bool recode(Address const& _address, std::string const& _newPass, std::string const& _hint, std::function<std::string()> const& _pass = DontKnowThrow, KDF _kdf = KDF::Scrypt);
+
+	void kill(h128 const& _id) { kill(address(_id)); }
+	void kill(Address const& _a);
+
+	static std::string defaultPath() { return getDataDir("ethereum") + "/keys.info"; }
+
+	/// Extracts the secret key from the presale wallet.
+	static KeyPair presaleSecret(std::string const& _json, std::function<std::string(bool)> const& _password);
+
+	/// @returns the brainwallet secret for the given seed.
+	static Secret brain(std::string const& _seed);
+
+	/// @returns the HD subkey for a given key.
+	static Secret subkey(Secret const& _s, unsigned _index);
+
+	/// @returns new random keypair with given vanity
+	static  KeyPair newKeyPair(NewKeyType _type);
 }
 
 
