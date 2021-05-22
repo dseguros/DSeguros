@@ -127,7 +127,49 @@ public:
 
 	/// @returns new random keypair with given vanity
 	static  KeyPair newKeyPair(NewKeyType _type);
-}
+
+private:
+	std::string getPassword(h128 const& _uuid, std::function<std::string()> const& _pass = DontKnowThrow) const;
+	std::string getPassword(h256 const& _passHash, std::function<std::string()> const& _pass = DontKnowThrow) const;
+	std::string defaultPassword(std::function<std::string()> const& _pass = DontKnowThrow) const { return getPassword(m_master, _pass); }
+	h256 hashPassword(std::string const& _pass) const;
+
+	/// Stores the password by its hash in the password cache.
+	void cachePassword(std::string const& _password) const;
+
+	// Only use if previously loaded ok.
+	// @returns false if wasn't previously loaded ok.
+	bool write() const { return write(m_keysFile); }
+	bool write(std::string const& _keysFile) const;
+	void write(std::string const& _pass, std::string const& _keysFile) const;	// TODO: all passwords should be a secure string.
+	void write(SecureFixedHash<16> const& _key, std::string const& _keysFile) const;
+
+	// Ethereum keys.
+
+	/// Mapping key uuid -> address.
+	std::unordered_map<h128, Address> m_uuidLookup;
+	/// Mapping address -> key uuid.
+	std::unordered_map<Address, h128> m_addrLookup;
+	/// Mapping address -> key info.
+	std::unordered_map<Address, KeyInfo> m_keyInfo;
+	/// Mapping password hash -> password hint.
+	std::unordered_map<h256, std::string> m_passwordHint;
+
+	// Passwords that we're storing. Mapping password hash -> password.
+	mutable std::unordered_map<h256, std::string> m_cachedPasswords;
+
+	// DEPRECATED.
+	// Used to be the default password for keys in the keystore, stored in the keys file.
+	// Now the default password is based off the key of the keys file directly, so this is redundant
+	// except for the fact that people have existing keys stored with it. Leave for now until/unless
+	// we have an upgrade strategy.
+	std::string m_defaultPasswordDeprecated;
+
+	mutable std::string m_keysFile;
+	mutable SecureFixedHash<16> m_keysFileKey;
+	mutable h256 m_master;
+	SecretStore m_store;
+};
 
 
 }
