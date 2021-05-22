@@ -82,6 +82,24 @@ public:
 	std::string const& passwordHint(Address const& _address) const;
 	/// Should be called to change password
 	void changeName(Address const& _address, std::string const& _name);
+
+	/// @returns true if the given address has a key (UUID) associated with it. Equivalent to !!uuid(_a)
+	/// If the address has no key, it could be a brain wallet.
+	bool haveKey(Address const& _a) const { return m_addrLookup.count(_a); }
+	/// @returns the uuid of the key for the address @a _a or the empty hash on error.
+	h128 uuid(Address const& _a) const;
+	/// @returns the address corresponding to the key with uuid @a _uuid or the zero address on error.
+	Address address(h128 const& _uuid) const;
+
+	h128 import(Secret const& _s, std::string const& _accountName, std::string const& _pass, std::string const& _passwordHint);
+	h128 import(Secret const& _s, std::string const& _accountName) { return import(_s, _accountName, defaultPassword(), std::string()); }
+	Address importBrain(std::string const& _seed, std::string const& _accountName, std::string const& _seedHint);
+	void importExistingBrain(Address const& _a, std::string const& _accountName, std::string const& _seedHint);
+
+	SecretStore& store() { return m_store; }
+	void importExisting(h128 const& _uuid, std::string const& _accountName, std::string const& _pass, std::string const& _passwordHint);
+	void importExisting(h128 const& _uuid, std::string const& _accountName) { importExisting(_uuid, _accountName, defaultPassword(), std::string()); }
+	void importExisting(h128 const& _uuid, std::string const& _accountName, Address const& _addr, h256 const& _passHash = h256(), std::string const& _passwordHint = std::string());
 }
 
 
