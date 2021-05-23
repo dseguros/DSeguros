@@ -44,3 +44,24 @@ string dev::memDump(bytes const& _bytes, unsigned _width, bool _html)
 		ret << "</pre>";
 	return ret.str();
 }
+
+template <typename _T>
+inline _T contentsGeneric(std::string const& _file)
+{
+	_T ret;
+	size_t const c_elementSize = sizeof(typename _T::value_type);
+	std::ifstream is(_file, std::ifstream::binary);
+	if (!is)
+		return ret;
+
+	// get length of file:
+	is.seekg(0, is.end);
+	streamoff length = is.tellg();
+	if (length == 0)
+		return ret; // do not read empty file (MSVC does not like it)
+	is.seekg(0, is.beg);
+
+	ret.resize((length + c_elementSize - 1) / c_elementSize);
+	is.read(const_cast<char*>(reinterpret_cast<char const*>(ret.data())), length);
+	return ret;
+}
