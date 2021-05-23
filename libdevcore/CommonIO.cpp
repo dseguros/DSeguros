@@ -65,3 +65,8 @@ inline _T contentsGeneric(std::string const& _file)
 	is.read(const_cast<char*>(reinterpret_cast<char const*>(ret.data())), length);
 	return ret;
 }
+
+bytes dev::contents(string const& _file)
+{
+	return contentsGeneric<bytes>(_file);
+}
