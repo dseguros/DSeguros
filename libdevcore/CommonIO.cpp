@@ -78,3 +78,8 @@ bytesSec dev::contentsSec(string const& _file)
 	bytesRef(&b).cleanse();
 	return ret;
 }
+
+string dev::contentsString(string const& _file)
+{
+	return contentsGeneric<string>(_file);
+}
