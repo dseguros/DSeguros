@@ -50,3 +50,17 @@ bool KeyManager::recode(Address const& _address, string const& _newPass, string 
 	write();
 	return true;
 }
+
+bool KeyManager::recode(Address const& _address, SemanticPassword _newPass, function<string()> const& _pass, KDF _kdf)
+{
+	h128 u = uuid(_address);
+	string p;
+	if (_newPass == SemanticPassword::Existing)
+		p = getPassword(u, _pass);
+	else if (_newPass == SemanticPassword::Master)
+		p = defaultPassword();
+	else
+		return false;
+
+	return recode(_address, p, string(), _pass, _kdf);
+}
