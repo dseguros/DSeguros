@@ -8,3 +8,20 @@
 #include <libdevcore/RLP.h>
 #include <libdevcore/SHA3.h>
 
+using namespace std;
+using namespace dev;
+using namespace eth;
+namespace js = json_spirit;
+namespace fs = boost::filesystem;
+
+KeyManager::KeyManager(string const& _keysFile, string const& _secretsPath):
+	m_keysFile(_keysFile), m_store(_secretsPath)
+{
+	for (auto const& uuid: m_store.keys())
+	{
+		auto addr = m_store.address(uuid);
+		m_addrLookup[addr] = uuid;
+		m_uuidLookup[uuid] = addr;
+	}
+}
+
