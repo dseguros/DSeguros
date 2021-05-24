@@ -32,3 +32,21 @@ bool KeyManager::exists() const
 {
 	return !contents(m_keysFile + ".salt").empty() && !contents(m_keysFile).empty();
 }
+
+void KeyManager::create(string const& _pass)
+{
+	m_defaultPasswordDeprecated = asString(h256::random().asBytes());
+	write(_pass, m_keysFile);
+}
+
+bool KeyManager::recode(Address const& _address, string const& _newPass, string const& _hint, function<string()> const& _pass, KDF _kdf)
+{
+	noteHint(_newPass, _hint);
+	h128 u = uuid(_address);
+	if (!store().recode(u, _newPass, [&](){ return getPassword(u, _pass); }, _kdf))
+		return false;
+
+	m_keyInfo[_address].passHash = hashPassword(_newPass);
+	write();
+	return true;
+}
