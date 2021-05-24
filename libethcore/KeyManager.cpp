@@ -25,3 +25,10 @@ KeyManager::KeyManager(string const& _keysFile, string const& _secretsPath):
 	}
 }
 
+KeyManager::~KeyManager()
+{}
+
+bool KeyManager::exists() const
+{
+	return !contents(m_keysFile + ".salt").empty() && !contents(m_keysFile).empty();
+}
