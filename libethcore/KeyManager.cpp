@@ -125,3 +125,51 @@ bool KeyManager::load(string const& _pass)
 		return false;
 	}
 }
+
+Secret KeyManager::secret(Address const& _address, function<string()> const& _pass, bool _usePasswordCache) const
+{
+	if (m_addrLookup.count(_address))
+		return secret(m_addrLookup.at(_address), _pass, _usePasswordCache);
+	else
+		return brain(_pass());
+}
+
+Secret KeyManager::secret(h128 const& _uuid, function<string()> const& _pass, bool _usePasswordCache) const
+{
+	if (_usePasswordCache)
+		return Secret(m_store.secret(_uuid, [&](){ return getPassword(_uuid, _pass); }, _usePasswordCache));
+	else
+		return Secret(m_store.secret(_uuid, _pass, _usePasswordCache));
+}
+
+string KeyManager::getPassword(h128 const& _uuid, function<string()> const& _pass) const
+{
+	h256 ph;
+	auto ait = m_uuidLookup.find(_uuid);
+	if (ait != m_uuidLookup.end())
+	{
+		auto kit = m_keyInfo.find(ait->second);
+		if (kit != m_keyInfo.end())
+			ph = kit->second.passHash;
+	}
+	return getPassword(ph, _pass);
+}
+
+string KeyManager::getPassword(h256 const& _passHash, function<string()> const& _pass) const
+{
+	auto it = m_cachedPasswords.find(_passHash);
+	if (it != m_cachedPasswords.end())
+		return it->second;
+	for (unsigned i = 0; i < 10; ++i)
+	{
+		string p = _pass();
+		if (p.empty())
+			break;
+		if (_passHash == UnknownPassword || hashPassword(p) == _passHash)
+		{
+			cachePassword(p);
+			return p;
+		}
+	}
+	return string();
+}
