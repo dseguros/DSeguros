@@ -21,5 +21,11 @@ template <unsigned N> std::string toJS(boost::multiprecision::number<boost::mult
 	return "0x" + res;
 }
 
+inline std::string toJS(bytes const& _n, std::size_t _padding = 0)
+{
+	bytes n = _n;
+	n.resize(std::max<unsigned>(n.size(), _padding));
+	return "0x" + toHex(n);
+}
 }
 
