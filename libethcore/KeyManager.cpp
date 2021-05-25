@@ -225,3 +225,82 @@ Secret KeyManager::subkey(Secret const& _s, unsigned _index)
 	out.swapOut(r.writable());
 	return sha3(r);
 }
+
+Address KeyManager::importBrain(string const& _seed, string const& _accountName, string const& _passwordHint)
+{
+	Address addr = toAddress(brain(_seed));
+	m_keyInfo[addr].accountName = _accountName;
+	m_keyInfo[addr].passwordHint = _passwordHint;
+	write();
+	return addr;
+}
+
+void KeyManager::importExistingBrain(Address const& _a, string const& _accountName, string const& _passwordHint)
+{
+	m_keyInfo[_a].accountName = _accountName;
+	m_keyInfo[_a].passwordHint = _passwordHint;
+	write();
+}
+
+void KeyManager::importExisting(h128 const& _uuid, string const& _info, string const& _pass, string const& _passwordHint)
+{
+	bytesSec key = m_store.secret(_uuid, [&](){ return _pass; });
+	if (key.empty())
+		return;
+	Address a = KeyPair(Secret(key)).address();
+	auto passHash = hashPassword(_pass);
+	if (!m_cachedPasswords.count(passHash))
+		cachePassword(_pass);
+	importExisting(_uuid, _info, a, passHash, _passwordHint);
+}
+
+void KeyManager::importExisting(h128 const& _uuid, string const& _accountName, Address const& _address, h256 const& _passHash, string const& _passwordHint)
+{
+	if (!m_passwordHint.count(_passHash))
+		m_passwordHint[_passHash] = _passwordHint;
+	m_uuidLookup[_uuid] = _address;
+	m_addrLookup[_address] = _uuid;
+	m_keyInfo[_address].passHash = _passHash;
+	m_keyInfo[_address].accountName = _accountName;
+	write(m_keysFile);
+}
+
+void KeyManager::kill(Address const& _a)
+{
+	auto id = m_addrLookup[_a];
+	m_uuidLookup.erase(id);
+	m_addrLookup.erase(_a);
+	m_keyInfo.erase(_a);
+	m_store.kill(id);
+	write(m_keysFile);
+}
+
+KeyPair KeyManager::presaleSecret(std::string const& _json, function<string(bool)> const& _password)
+{
+	js::mValue val;
+	json_spirit::read_string(_json, val);
+	auto obj = val.get_obj();
+	string p = _password(true);
+	if (obj["encseed"].type() == js::str_type)
+	{
+		auto encseed = fromHex(obj["encseed"].get_str());
+		while (true)
+		{
+			KeyPair k = KeyPair::fromEncryptedSeed(&encseed, p);
+			if (obj["ethaddr"].type() == js::str_type)
+			{
+				Address a(obj["ethaddr"].get_str());
+				Address b = k.address();
+				if (a != b)
+				{
+					if ((p = _password(false)).empty())
+						BOOST_THROW_EXCEPTION(PasswordUnknown());
+					continue;
+				}
+			}
+			return k;
+		}
+	}
+	else
+		BOOST_THROW_EXCEPTION(Exception() << errinfo_comment("encseed type is not js::str_type"));
+}
