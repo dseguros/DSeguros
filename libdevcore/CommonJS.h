@@ -27,5 +27,13 @@ inline std::string toJS(bytes const& _n, std::size_t _padding = 0)
 	n.resize(std::max<unsigned>(n.size(), _padding));
 	return "0x" + toHex(n);
 }
+
+template<unsigned T> std::string toJS(SecureFixedHash<T> const& _i)
+{
+	std::stringstream stream;
+	stream << "0x" << _i.makeInsecure().hex();
+	return stream.str();
+}
+
 }
 
