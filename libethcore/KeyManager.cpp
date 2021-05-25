@@ -173,3 +173,55 @@ string KeyManager::getPassword(h256 const& _passHash, function<string()> const& 
 	}
 	return string();
 }
+
+h128 KeyManager::uuid(Address const& _a) const
+{
+	auto it = m_addrLookup.find(_a);
+	if (it == m_addrLookup.end())
+		return h128();
+	return it->second;
+}
+
+Address KeyManager::address(h128 const& _uuid) const
+{
+	auto it = m_uuidLookup.find(_uuid);
+	if (it == m_uuidLookup.end())
+		return Address();
+	return it->second;
+}
+
+h128 KeyManager::import(Secret const& _s, string const& _accountName, string const& _pass, string const& _passwordHint)
+{
+	Address addr = KeyPair(_s).address();
+	auto passHash = hashPassword(_pass);
+	cachePassword(_pass);
+	m_passwordHint[passHash] = _passwordHint;
+	auto uuid = m_store.importSecret(_s.asBytesSec(), _pass);
+	m_keyInfo[addr] = KeyInfo{passHash, _accountName, ""};
+	m_addrLookup[addr] = uuid;
+	m_uuidLookup[uuid] = addr;
+	write(m_keysFile);
+	return uuid;
+}
+
+Secret KeyManager::brain(string const& _seed)
+{
+	h256 r = sha3(_seed);
+	for (auto i = 0; i < 16384; ++i)
+		r = sha3(r);
+	Secret ret(r);
+	r.ref().cleanse();
+	while (toAddress(ret)[0])
+		ret = sha3(ret);
+	return ret;
+}
+
+Secret KeyManager::subkey(Secret const& _s, unsigned _index)
+{
+	RLPStream out(2);
+	out << _s.ref();
+	out << _index;
+	bytesSec r;
+	out.swapOut(r.writable());
+	return sha3(r);
+}
