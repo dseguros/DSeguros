@@ -304,3 +304,157 @@ KeyPair KeyManager::presaleSecret(std::string const& _json, function<string(bool
 	else
 		BOOST_THROW_EXCEPTION(Exception() << errinfo_comment("encseed type is not js::str_type"));
 }
+
+Addresses KeyManager::accounts() const
+{
+	set<Address> addresses;
+	for (auto const& i: m_keyInfo)
+		addresses.insert(i.first);
+	for (auto const& key: m_store.keys())
+		addresses.insert(m_store.address(key));
+	// Remove the zero address if present
+	return Addresses{addresses.upper_bound(Address()), addresses.end()};
+}
+
+bool KeyManager::hasAccount(Address const& _address) const
+{
+	if (!_address)
+		return false;
+	if (m_keyInfo.count(_address))
+		return true;
+	for (auto const& key: m_store.keys())
+		if (m_store.address(key) == _address)
+			return true;
+	return false;
+}
+
+string const& KeyManager::accountName(Address const& _address) const
+{
+	try
+	{
+		return m_keyInfo.at(_address).accountName;
+	}
+	catch (...)
+	{
+		return EmptyString;
+	}
+}
+
+void KeyManager::changeName(Address const& _address, std::string const& _name)
+{
+	auto it = m_keyInfo.find(_address);
+	if (it != m_keyInfo.end())
+	{
+		it->second.accountName = _name;
+		write(m_keysFile);
+	}
+}
+
+string const& KeyManager::passwordHint(Address const& _address) const
+{
+	try
+	{
+		auto& info = m_keyInfo.at(_address);
+		if (info.passwordHint.size())
+			return info.passwordHint;
+		return m_passwordHint.at(info.passHash);
+	}
+	catch (...)
+	{
+		return EmptyString;
+	}
+}
+
+h256 KeyManager::hashPassword(string const& _pass) const
+{
+	// TODO SECURITY: store this a bit more securely; Scrypt perhaps?
+	return h256(pbkdf2(_pass, asBytes(m_defaultPasswordDeprecated), 262144, 32).makeInsecure());
+}
+
+void KeyManager::cachePassword(string const& _password) const
+{
+	m_cachedPasswords[hashPassword(_password)] = _password;
+}
+
+bool KeyManager::write(string const& _keysFile) const
+{
+	if (!m_keysFileKey)
+		return false;
+	write(m_keysFileKey, _keysFile);
+	return true;
+}
+
+void KeyManager::write(string const& _pass, string const& _keysFile) const
+{
+	bytes salt = h256::random().asBytes();
+	writeFile(_keysFile + ".salt", salt, true);
+	auto key = SecureFixedHash<16>(pbkdf2(_pass, salt, 262144, 16));
+
+	cachePassword(_pass);
+	m_master = hashPassword(_pass);
+	write(key, _keysFile);
+}
+
+void KeyManager::write(SecureFixedHash<16> const& _key, string const& _keysFile) const
+{
+	RLPStream s(4);
+	s << 1; // version
+
+	s.appendList(m_keyInfo.size());
+	for (auto const& info: m_keyInfo)
+	{
+		h128 id = uuid(info.first);
+		auto const& ki = info.second;
+		s.appendList(5) << info.first << id << ki.passHash << ki.accountName << ki.passwordHint;
+	}
+
+	s.appendList(m_passwordHint.size());
+	for (auto const& i: m_passwordHint)
+		s.appendList(2) << i.first << i.second;
+	s.append(m_defaultPasswordDeprecated);
+
+	writeFile(_keysFile, encryptSymNoAuth(_key, h128(), &s.out()), true);
+	m_keysFileKey = _key;
+	cachePassword(defaultPassword());
+}
+
+KeyPair KeyManager::newKeyPair(KeyManager::NewKeyType _type)
+{
+	KeyPair p;
+	bool keepGoing = true;
+	unsigned done = 0;
+	function<void()> f = [&]() {
+		KeyPair lp;
+		while (keepGoing)
+		{
+			done++;
+			if (done % 1000 == 0)
+				cnote << "Tried" << done << "keys";
+			lp = KeyPair::create();
+			auto a = lp.address();
+			if (_type == NewKeyType::NoVanity ||
+				(_type == NewKeyType::DirectICAP && !a[0]) ||
+				(_type == NewKeyType::FirstTwo && a[0] == a[1]) ||
+				(_type == NewKeyType::FirstTwoNextTwo && a[0] == a[1] && a[2] == a[3]) ||
+				(_type == NewKeyType::FirstThree && a[0] == a[1] && a[1] == a[2]) ||
+				(_type == NewKeyType::FirstFour && a[0] == a[1] && a[1] == a[2] && a[2] == a[3])
+			)
+				break;
+		}
+		if (keepGoing)
+			p = lp;
+		keepGoing = false;
+	};
+
+	vector<std::thread*> ts;
+	for (unsigned t = 0; t < std::thread::hardware_concurrency() - 1; ++t)
+		ts.push_back(new std::thread(f));
+	f();
+
+	for (std::thread* t: ts)
+	{
+		t->join();
+		delete t;
+	}
+	return p;
+}
