@@ -35,5 +35,12 @@ template<unsigned T> std::string toJS(SecureFixedHash<T> const& _i)
 	return stream.str();
 }
 
+template<typename T> std::string toJS(T const& _i)
+{
+	std::stringstream stream;
+	stream << "0x" << std::hex << _i;
+	return stream.str();
+}
+
 }
 
