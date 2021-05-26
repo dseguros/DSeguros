@@ -35,6 +35,12 @@ public:
 	/// Unregister a pricer. Shouldn't generally be necessary.
 	static void unregisterPricer(std::string const& _name) { get()->m_pricers.erase(_name); }
 
+private:
+	static PrecompiledRegistrar* get() { if (!s_this) s_this = new PrecompiledRegistrar; return s_this; }
+
+	std::unordered_map<std::string, PrecompiledExecutor> m_execs;
+	std::unordered_map<std::string, PrecompiledPricer> m_pricers;
+	static PrecompiledRegistrar* s_this;
 };
 }
 
