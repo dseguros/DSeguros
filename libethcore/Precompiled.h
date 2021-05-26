@@ -13,6 +13,9 @@ namespace eth
 using PrecompiledExecutor = std::function<std::pair<bool, bytes>(bytesConstRef _in)>;
 using PrecompiledPricer = std::function<bigint(bytesConstRef _in)>;
 
+DEV_SIMPLE_EXCEPTION(ExecutorNotFound);
+DEV_SIMPLE_EXCEPTION(PricerNotFound);
+
 }
 
 }
