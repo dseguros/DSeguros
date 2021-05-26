@@ -58,5 +58,19 @@ bytes unpadLeft(bytes _s);
 /// Convert h256 into user-readable string (by directly using std::string constructor). If it can't be interpreted as an ASCII string, empty string is returned.
 std::string fromRaw(h256 _n);
 
+template <unsigned N> FixedHash<N> jsToFixed(std::string const& _s)
+{
+	if (_s.substr(0, 2) == "0x")
+		// Hex
+		return FixedHash<N>(_s.substr(2 + std::max<unsigned>(N * 2, _s.size() - 2) - N * 2));
+	else if (_s.find_first_not_of("0123456789") == std::string::npos)
+		// Decimal
+		return (typename FixedHash<N>::Arith)(_s);
+	else
+		// Binary
+		return FixedHash<N>();	// FAIL
+}
+
+
 }
 
