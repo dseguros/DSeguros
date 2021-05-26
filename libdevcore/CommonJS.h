@@ -71,6 +71,17 @@ template <unsigned N> FixedHash<N> jsToFixed(std::string const& _s)
 		return FixedHash<N>();	// FAIL
 }
 
-
+template <unsigned N> boost::multiprecision::number<boost::multiprecision::cpp_int_backend<N * 8, N * 8, boost::multiprecision::unsigned_magnitude, boost::multiprecision::unchecked, void>> jsToInt(std::string const& _s)
+{
+	if (_s.substr(0, 2) == "0x")
+		// Hex
+		return fromBigEndian<boost::multiprecision::number<boost::multiprecision::cpp_int_backend<N * 8, N * 8, boost::multiprecision::unsigned_magnitude, boost::multiprecision::unchecked, void>>>(fromHex(_s.substr(2)));
+	else if (_s.find_first_not_of("0123456789") == std::string::npos)
+		// Decimal
+		return boost::multiprecision::number<boost::multiprecision::cpp_int_backend<N * 8, N * 8, boost::multiprecision::unsigned_magnitude, boost::multiprecision::unchecked, void>>(_s);
+	else
+		// Binary
+		return 0;			// FAIL
+}
 }
 
