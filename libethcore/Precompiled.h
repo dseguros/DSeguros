@@ -42,6 +42,11 @@ private:
 	std::unordered_map<std::string, PrecompiledPricer> m_pricers;
 	static PrecompiledRegistrar* s_this;
 };
+
+// TODO: unregister on unload with a static object.
+#define ETH_REGISTER_PRECOMPILED(Name) static std::pair<bool, bytes> __eth_registerPrecompiledFunction ## Name(bytesConstRef _in); static PrecompiledExecutor __eth_registerPrecompiledFactory ## Name = ::dev::eth::PrecompiledRegistrar::registerExecutor(#Name, &__eth_registerPrecompiledFunction ## Name); static std::pair<bool, bytes> __eth_registerPrecompiledFunction ## Name
+#define ETH_REGISTER_PRECOMPILED_PRICER(Name) static bigint __eth_registerPricerFunction ## Name(bytesConstRef _in); static PrecompiledPricer __eth_registerPricerFactory ## Name = ::dev::eth::PrecompiledRegistrar::registerPricer(#Name, &__eth_registerPricerFunction ## Name); static bigint __eth_registerPricerFunction ## Name
+
 }
 
 }
