@@ -33,5 +33,16 @@ public:
 		m_queue.pop();
 		return item;
 	}
+	
+	std::pair<bool, _T> tryPop(int milliseconds) {
+		std::unique_lock<std::mutex> lock{x_mutex};
+		auto ret = m_cv.wait_for(lock, std::chrono::milliseconds(milliseconds), [this] { return !m_queue.empty(); });
+		if (!ret) {
+			return std::make_pair(ret, _T());
+		}
+		auto item = std::move(m_queue.front());
+		m_queue.pop();
+		return std::make_pair(ret, item);
+	}
 };
 }
