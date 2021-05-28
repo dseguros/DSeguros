@@ -25,6 +25,13 @@ public:
 		}
 		m_cv.notify_one();
 	}
-
+	_T pop()
+	{
+		std::unique_lock<std::mutex> lock{x_mutex};
+		m_cv.wait(lock, [this]{ return !m_queue.empty(); });
+		auto item = std::move(m_queue.front());
+		m_queue.pop();
+		return item;
+	}
 };
 }
