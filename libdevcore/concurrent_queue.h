@@ -44,5 +44,10 @@ public:
 		m_queue.pop();
 		return std::make_pair(ret, item);
 	}
+
+private:
+	_QueueT m_queue;
+	std::mutex x_mutex;
+	std::condition_variable m_cv;
 };
 }
