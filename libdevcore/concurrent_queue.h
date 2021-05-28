@@ -15,5 +15,16 @@ template<typename _T, typename _QueueT = std::queue<_T>>
 class concurrent_queue
 {
 
+public:
+	template<typename _U>
+	void push(_U&& _elem)
+	{
+		{
+			std::lock_guard<decltype(x_mutex)> guard{x_mutex};
+			m_queue.push(std::forward<_U>(_elem));
+		}
+		m_cv.notify_one();
+	}
+
 };
 }
