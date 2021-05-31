@@ -75,5 +75,22 @@ ETH_REGISTER_PRECOMPILED(identity)(bytesConstRef _in)
 {
 	return {true, _in.toBytes()};
 }
+
+// Parse _count bytes of _in starting with _begin offset as big endian int.
+// If there's not enough bytes in _in, consider it infinitely right-padded with zeroes.
+bigint parseBigEndianRightPadded(bytesConstRef _in, size_t _begin, size_t _count)
+{
+	if (_begin > _in.count())
+		return 0;
+
+	// crop _in, not going beyond its size
+	bytesConstRef cropped = _in.cropped(_begin, min(_count, _in.count() - _begin));
+
+	bigint ret = fromBigEndian<bigint>(cropped);
+	// shift as if we had right-padding zeroes
+	ret <<= 8 * (_count - cropped.count());
+	
+	return ret;
+}
 }
 
