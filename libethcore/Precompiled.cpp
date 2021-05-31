@@ -92,5 +92,34 @@ bigint parseBigEndianRightPadded(bytesConstRef _in, size_t _begin, size_t _count
 	
 	return ret;
 }
+
+ETH_REGISTER_PRECOMPILED(modexp)(bytesConstRef _in)
+{
+	size_t const baseLength(parseBigEndianRightPadded(_in, 0, 32));
+	size_t const expLength(parseBigEndianRightPadded(_in, 32, 32));
+	size_t const modLength(parseBigEndianRightPadded(_in, 64, 32));
+
+	bigint const base(parseBigEndianRightPadded(_in, 96, baseLength));
+	bigint const exp(parseBigEndianRightPadded(_in, 96 + baseLength, expLength));
+	bigint const mod(parseBigEndianRightPadded(_in, 96 + baseLength + expLength, modLength));
+
+	bigint const result = mod != 0 ? boost::multiprecision::powm(base, exp, mod) : bigint{0};
+	
+	bytes ret(modLength); 
+	toBigEndian(result, ret);
+
+	return {true, ret};
+}
+
+ETH_REGISTER_PRECOMPILED_PRICER(modexp)(bytesConstRef _in)
+{
+	bigint const baseLength(parseBigEndianRightPadded(_in, 0, 32));
+	bigint const expLength(parseBigEndianRightPadded(_in, 32, 32));
+	bigint const modLength(parseBigEndianRightPadded(_in, 64, 32));
+
+	bigint const maxLength = max(modLength, baseLength);
+
+	return maxLength * maxLength * max<bigint>(expLength, 1) / 20;
+}
 }
 
