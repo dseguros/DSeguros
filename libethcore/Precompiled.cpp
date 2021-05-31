@@ -61,5 +61,19 @@ ETH_REGISTER_PRECOMPILED(ecrecover)(bytesConstRef _in)
 	return {true, {}};
 }
 
+ETH_REGISTER_PRECOMPILED(sha256)(bytesConstRef _in)
+{
+	return {true, dev::sha256(_in).asBytes()};
+}
+
+ETH_REGISTER_PRECOMPILED(ripemd160)(bytesConstRef _in)
+{
+	return {true, h256(dev::ripemd160(_in), h256::AlignRight).asBytes()};
+}
+
+ETH_REGISTER_PRECOMPILED(identity)(bytesConstRef _in)
+{
+	return {true, _in.toBytes()};
+}
 }
 
