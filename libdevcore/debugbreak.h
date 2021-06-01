@@ -11,3 +11,12 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+enum {
+	/* gcc optimizers consider code after __builtin_trap() dead.
+	 * Making __builtin_trap() unsuitable for breaking into the debugger */
+	DEBUG_BREAK_PREFER_BUILTIN_TRAP_TO_SIGTRAP = 0,
+};
