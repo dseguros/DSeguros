@@ -19,6 +19,19 @@ class PrecompiledFace;
 class TransactionBase;
 class EnvInfo;
 
+class SealEngineFace
+{
+public:
+	virtual ~SealEngineFace() {}
+
+	virtual std::string name() const = 0;
+	virtual unsigned revision() const { return 0; }
+	virtual unsigned sealFields() const { return 0; }
+	virtual bytes sealRLP() const { return bytes(); }
+	virtual StringHashMap jsInfo(BlockHeader const&) const { return StringHashMap(); }
+
+};
+
 }
 }
 
