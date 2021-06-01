@@ -44,6 +44,12 @@ public:
 	virtual strings sealers() const { return { "default" }; }
 	virtual std::string sealer() const { return "default"; }
 	virtual void setSealer(std::string const&) {}
+
+	virtual bool shouldSeal(Interface*) { return true; }
+	//virtual void generateSeal(BlockHeader const& _bi) = 0;
+	virtual void generateSeal(BlockHeader const& _bi, bytes const& _block_data = bytes()) = 0;
+	virtual void onSealGenerated(std::function<void(bytes const& s)> const& _f) = 0;
+	virtual void cancelGeneration() {}
 };
 
 }
