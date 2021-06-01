@@ -50,6 +50,20 @@ public:
 	virtual void generateSeal(BlockHeader const& _bi, bytes const& _block_data = bytes()) = 0;
 	virtual void onSealGenerated(std::function<void(bytes const& s)> const& _f) = 0;
 	virtual void cancelGeneration() {}
+
+	virtual void setIntervalBlockTime(u256 _time) { m_intervalBlockTime = _time;}
+	virtual u256 getIntervalBlockTime() {return m_intervalBlockTime;}
+	ChainOperationParams const& chainParams() const { return m_params; }
+	void setChainParams(ChainOperationParams const& _params) { m_params = _params; }
+	SealEngineFace* withChainParams(ChainOperationParams const& _params) { setChainParams(_params); return this; }
+	//virtual EVMSchedule const& evmSchedule(EnvInfo const&) const = 0;
+	virtual EVMSchedule const& evmSchedule(EnvInfo const&) const { return DefaultSchedule; }
+	virtual bool isPrecompiled(Address const& _a, u256 const& _blockNumber) const
+	{
+		return m_params.precompiled.count(_a) != 0 && _blockNumber >= m_params.precompiled.at(_a).startingBlock();
+	}
+	virtual bigint costOfPrecompiled(Address const& _a, bytesConstRef _in, u256 const&) const { return m_params.precompiled.at(_a).cost(_in); }
+	virtual std::pair<bool, bytes> executePrecompiled(Address const& _a, bytesConstRef _in, u256 const&) const { return m_params.precompiled.at(_a).execute(_in); }
 };
 
 }
