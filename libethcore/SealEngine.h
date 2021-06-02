@@ -77,6 +77,23 @@ private:
 	ChainOperationParams m_params;
 };
 
+class SealEngineBase: public SealEngineFace
+{
+public:
+	void generateSeal(BlockHeader const& _bi, bytes const&) override
+	{
+		RLPStream ret;
+		_bi.streamRLP(ret);
+		if (m_onSealGenerated)
+			m_onSealGenerated(ret.out());
+	}
+	void onSealGenerated(std::function<void(bytes const&)> const& _f) override { m_onSealGenerated = _f; }
+	EVMSchedule const& evmSchedule(EnvInfo const&) const override;
+
+protected:
+	std::function<void(bytes const& s)> m_onSealGenerated;
+};
+
 }
 }
 
