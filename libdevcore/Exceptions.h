@@ -24,4 +24,10 @@ private:
 	std::string m_message;
 };
 
+#define DEV_SIMPLE_EXCEPTION(X) struct X: virtual Exception { const char* what() const noexcept override { return #X; } }
+
+/// Base class for all RLP exceptions.
+struct RLPException: virtual Exception { RLPException(std::string _message = std::string()): Exception(_message) {} };
+#define DEV_SIMPLE_EXCEPTION_RLP(X) struct X: virtual RLPException { const char* what() const noexcept override { return #X; } }
+
 }
