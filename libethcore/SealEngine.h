@@ -70,6 +70,11 @@ protected:
 	u256  m_intervalBlockTime = 1000;
 
 
+private:
+	mutable Mutex x_options;
+	std::unordered_map<std::string, bytes> m_options;
+
+	ChainOperationParams m_params;
 };
 
 }
