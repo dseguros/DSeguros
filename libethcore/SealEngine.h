@@ -94,6 +94,34 @@ protected:
 	std::function<void(bytes const& s)> m_onSealGenerated;
 };
 
+using SealEngineFactory = std::function<SealEngineFace*()>;
+
+class SealEngineRegistrar
+{
+public:
+	/// Creates the seal engine and uses it to "polish" the params (i.e. fill in implicit values) as necessary. Use this rather than the other two
+	/// unless you *know* that the params contain all information regarding the seal on the Genesis block.
+	static SealEngineFace* create(ChainOperationParams const& _params);
+	static SealEngineFace* create(std::string const& _name) { if (!get()->m_sealEngines.count(_name)) return nullptr; return get()->m_sealEngines[_name](); }
+
+	template <class SealEngine> static SealEngineFactory registerSealEngine(std::string const& _name) { return (get()->m_sealEngines[_name] = [](){return new SealEngine;}); }
+	static void unregisterSealEngine(std::string const& _name) { get()->m_sealEngines.erase(_name); }
+
+private:
+	static SealEngineRegistrar* get() { if (!s_this) s_this = new SealEngineRegistrar; return s_this; }
+
+	std::unordered_map<std::string, SealEngineFactory> m_sealEngines;
+	static SealEngineRegistrar* s_this;
+};
+
+#define ETH_REGISTER_SEAL_ENGINE(Name) static SealEngineFactory __eth_registerSealEngineFactory ## Name = SealEngineRegistrar::registerSealEngine<Name>(#Name)
+
+class NoProof: public eth::SealEngineBase
+{
+public:
+	std::string name() const override { return "NoProof"; }
+	static void init();
+};
 }
 }
 
