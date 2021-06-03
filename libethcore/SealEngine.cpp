@@ -8,3 +8,8 @@ using namespace eth;
 
 SealEngineRegistrar* SealEngineRegistrar::s_this = nullptr;
 
+void NoProof::init()
+{
+	ETH_REGISTER_SEAL_ENGINE(NoProof);
+}
+
