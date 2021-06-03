@@ -13,3 +13,8 @@ void NoProof::init()
 	ETH_REGISTER_SEAL_ENGINE(NoProof);
 }
 
+void SealEngineFace::verify(Strictness _s, BlockHeader const& _bi, BlockHeader const& _parent, bytesConstRef _block) const
+{
+	_bi.verify(_s, _parent, _block);
+}
+
