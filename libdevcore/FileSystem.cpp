@@ -20,3 +20,7 @@ static_assert(BOOST_VERSION == 106300, "Wrong boost headers version");
 static string s_ethereumDatadir;
 static string s_ethereumIpcPath;
 
+void dev::setDataDir(string const& _dataDir)
+{
+	s_ethereumDatadir = _dataDir;
+}
