@@ -37,3 +37,12 @@ void SealEngineFace::verifyTransaction(ImportRequirements::value _ir, Transactio
 	if (_env.number() >= chainParams().u256Param("homsteadForkBlock") && (_ir & ImportRequirements::TransactionSignatures))
 		_t.checkLowS();
 }
+
+SealEngineFace* SealEngineRegistrar::create(ChainOperationParams const& _params)
+{
+	SealEngineFace* ret = create(_params.sealEngineName);
+	assert(ret && "Seal engine not found.");
+	if (ret)
+		ret->setChainParams(_params);
+	return ret;
+}
