@@ -46,3 +46,17 @@ SealEngineFace* SealEngineRegistrar::create(ChainOperationParams const& _params)
 		ret->setChainParams(_params);
 	return ret;
 }
+
+EVMSchedule const& SealEngineBase::evmSchedule(EnvInfo const& _envInfo) const
+{
+	if (_envInfo.number() >= chainParams().u256Param("metropolisForkBlock"))
+		return MetropolisSchedule;
+	if (_envInfo.number() >= chainParams().u256Param("EIP158ForkBlock"))
+		return EIP158Schedule;
+	else if (_envInfo.number() >= chainParams().u256Param("EIP150ForkBlock"))
+		return EIP150Schedule;
+	else if (_envInfo.number() >= chainParams().u256Param("homsteadForkBlock"))
+		return HomesteadSchedule;
+	else
+		return FrontierSchedule;
+}
