@@ -51,3 +51,39 @@ string dev::getDataDir(string _prefix)
 		return s_ethereumDatadir;
 	return getDefaultDataDir(_prefix);
 }
+
+string dev::getDefaultDataDir(string _prefix)
+{
+	if (_prefix.empty())
+		_prefix = "ethereum";
+
+#if defined(_WIN32)
+	_prefix[0] = toupper(_prefix[0]);
+	char path[1024] = "";
+	if (SHGetSpecialFolderPathA(NULL, path, CSIDL_APPDATA, true))
+		return (boost::filesystem::path(path) / _prefix).string();
+	else
+	{
+	#ifndef _MSC_VER // todo?
+		cwarn << "getDataDir(): SHGetSpecialFolderPathA() failed.";
+	#endif
+		BOOST_THROW_EXCEPTION(std::runtime_error("getDataDir() - SHGetSpecialFolderPathA() failed."));
+	}
+#else
+	boost::filesystem::path dataDirPath;
+	char const* homeDir = getenv("HOME");
+	if (!homeDir || strlen(homeDir) == 0)
+	{
+		struct passwd* pwd = getpwuid(getuid());
+		if (pwd)
+			homeDir = pwd->pw_dir;
+	}
+	
+	if (!homeDir || strlen(homeDir) == 0)
+		dataDirPath = boost::filesystem::path("/");
+	else
+		dataDirPath = boost::filesystem::path(homeDir);
+	
+	return (dataDirPath / ("." + _prefix)).string();
+#endif
+}
