@@ -24,3 +24,9 @@ void dev::setDataDir(string const& _dataDir)
 {
 	s_ethereumDatadir = _dataDir;
 }
+
+void dev::setIpcPath(string const& _ipcDir)
+{
+	s_ethereumIpcPath = _ipcDir;
+}
+
