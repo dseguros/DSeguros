@@ -42,3 +42,12 @@ string dev::getIpcPath()
 		return s_ethereumIpcPath;
 	}
 }
+
+string dev::getDataDir(string _prefix)
+{
+	if (_prefix.empty())
+		_prefix = "ethereum";
+	if (_prefix == "ethereum" && !s_ethereumDatadir.empty())
+		return s_ethereumDatadir;
+	return getDefaultDataDir(_prefix);
+}
