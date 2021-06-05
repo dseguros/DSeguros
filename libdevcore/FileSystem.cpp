@@ -30,3 +30,15 @@ void dev::setIpcPath(string const& _ipcDir)
 	s_ethereumIpcPath = _ipcDir;
 }
 
+string dev::getIpcPath()
+{
+	if (s_ethereumIpcPath.empty())
+		return string(getDataDir());
+	else
+	{
+		size_t socketPos = s_ethereumIpcPath.rfind("geth.ipc");
+		if (socketPos != string::npos)
+			return s_ethereumIpcPath.substr(0, socketPos);
+		return s_ethereumIpcPath;
+	}
+}
