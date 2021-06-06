@@ -18,6 +18,13 @@ enum IncludeSignature
 	WithSignature = 1,		///< Do include a signature.
 };
 
+enum class CheckTransaction
+{
+	None,
+	Cheap,
+	Everything
+};
+
 }
 }
 
