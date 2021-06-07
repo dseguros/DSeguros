@@ -153,7 +153,24 @@ protected:
 	mutable h256 m_hashWith;			///< Cached hash of transaction with signature.
 	mutable Address m_sender;			///< Cached sender, determined from signature.
 };
-};
+
+/// Nice name for vector of Transaction.
+using TransactionBases = std::vector<TransactionBase>;
+
+/// Simple human-readable stream-shift operator.
+inline std::ostream& operator<<(std::ostream& _out, TransactionBase const& _t)
+{
+	_out << _t.sha3().abridged() << "{";
+	if (_t.receiveAddress())
+		_out << _t.receiveAddress().abridged();
+	else
+		_out << "[CREATE]";
+
+	_out << "/" << _t.data().size() << "$" << _t.value() << "+" << _t.gas() << "@" << _t.gasPrice();
+	_out << "<-" << _t.safeSender().abridged() << " #" << _t.nonce() << "}";
+	return _out;
+}
+}
 }
 }
 
