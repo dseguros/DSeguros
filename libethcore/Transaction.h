@@ -172,5 +172,4 @@ inline std::ostream& operator<<(std::ostream& _out, TransactionBase const& _t)
 }
 }
 }
-}
 
