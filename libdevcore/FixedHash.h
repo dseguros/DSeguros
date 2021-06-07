@@ -87,6 +87,47 @@ public:
 	FixedHash& operator&=(FixedHash const& _c) { for (unsigned i = 0; i < N; ++i) m_data[i] &= _c.m_data[i]; return *this; }
 	FixedHash operator&(FixedHash const& _c) const { return FixedHash(*this) &= _c; }
 	FixedHash operator~() const { FixedHash ret; for (unsigned i = 0; i < N; ++i) ret[i] = ~m_data[i]; return ret; }
+
+	// Big-endian increment.
+	FixedHash& operator++() { for (unsigned i = size; i > 0 && !++m_data[--i]; ) {} return *this; }
+
+	/// @returns true if all one-bits in @a _c are set in this object.
+	bool contains(FixedHash const& _c) const { return (*this & _c) == _c; }
+
+	/// @returns a particular byte from the hash.
+	byte& operator[](unsigned _i) { return m_data[_i]; }
+	/// @returns a particular byte from the hash.
+	byte operator[](unsigned _i) const { return m_data[_i]; }
+
+	/// @returns an abridged version of the hash as a user-readable hex string.
+	std::string abridged() const { return toHex(ref().cropped(0, 4)) + "\342\200\246"; }
+
+	/// @returns a version of the hash as a user-readable hex string that leaves out the middle part.
+	std::string abridgedMiddle() const { return toHex(ref().cropped(0, 4)) + "\342\200\246" + toHex(ref().cropped(N - 4)); }
+
+	/// @returns the hash as a user-readable hex string.
+	std::string hex() const { return toHex(ref()); }
+
+	/// @returns a mutable byte vector_ref to the object's data.
+	bytesRef ref() { return bytesRef(m_data.data(), N); }
+
+	/// @returns a constant byte vector_ref to the object's data.
+	bytesConstRef ref() const { return bytesConstRef(m_data.data(), N); }
+
+	/// @returns a mutable byte pointer to the object's data.
+	byte* data() { return m_data.data(); }
+
+	/// @returns a constant byte pointer to the object's data.
+	byte const* data() const { return m_data.data(); }
+
+	/// @returns a copy of the object's data as a byte vector.
+	bytes asBytes() const { return bytes(data(), data() + N); }
+
+	/// @returns a mutable reference to the object's data as an STL array.
+	std::array<byte, N>& asArray() { return m_data; }
+
+	/// @returns a constant reference to the object's data as an STL array.
+	std::array<byte, N> const& asArray() const { return m_data; }
 };
 
 }
