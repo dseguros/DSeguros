@@ -65,6 +65,71 @@ public:
 	/// Force the sender to a particular value. This will result in an invalid transaction RLP.
 	void forceSender(Address const& _a) { m_sender = _a; }
 
+	/// @throws InvalidSValue if the signature has an invalid S value.
+	void checkLowS() const;
+
+	/// @throws InvalidSValue if the chain id is neither -4 nor equal to @a chainId
+	/// Note that "-4" is the chain ID of the pre-155 rules, which should also be considered valid
+	/// after EIP155
+	void checkChainId(int chainId = -4) const;
+
+	/// @returns true if transaction is non-null.
+	explicit operator bool() const { return m_type != NullTransaction; }
+
+	/// @returns true if transaction is contract-creation.
+	bool isCreation() const { return m_type == ContractCreation; }
+
+	/// Serialises this transaction to an RLPStream.
+	void streamRLP(RLPStream& _s, IncludeSignature _sig = WithSignature, bool _forEip155hash = false) const;
+
+	/// @returns the RLP serialisation of this transaction.
+	bytes rlp(IncludeSignature _sig = WithSignature) const { RLPStream s; streamRLP(s, _sig); return s.out(); }
+
+	/// @returns the SHA3 hash of the RLP serialisation of this transaction.
+	h256 sha3(IncludeSignature _sig = WithSignature) const;
+
+	/// @returns the amount of ETH to be transferred by this (message-call) transaction, in Wei. Synonym for endowment().
+	u256 value() const { return m_value; }
+
+	/// @returns the base fee and thus the implied exchange rate of ETH to GAS.
+	u256 gasPrice() const { return m_gasPrice; }
+
+	/// @returns the total gas to convert, paid for from sender's account. Any unused gas gets refunded once the contract is ended.
+	u256 gas() const { return m_gas; }
+
+	/// @returns the receiving address of the message-call transaction (undefined for contract-creation transactions).
+	Address receiveAddress() const { return m_receiveAddress; }
+
+	/// Synonym for receiveAddress().
+	Address to() const { return m_receiveAddress; }
+
+	/// Synonym for safeSender().
+	Address from() const { return safeSender(); }
+
+	/// @returns the data associated with this (message-call) transaction. Synonym for initCode().
+	bytes const& data() const { return m_data; }
+
+	/// @returns the transaction-count of the sender.
+	u256 nonce() const { return m_nonce; }
+
+	/// Sets the nonce to the given value. Clears any signature.
+	void setNonce(u256 const& _n) { clearSignature(); m_nonce = _n; }
+
+	/// Clears the signature.
+	void clearSignature() { m_vrs = SignatureStruct(); }
+
+	/// @returns the signature of the transaction. Encodes the sender.
+	SignatureStruct const& signature() const { return m_vrs; }
+
+	bool hasZeroSignature() const { return !m_vrs.s && !m_vrs.r; }
+
+	void sign(Secret const& _priv);			///< Sign the transaction.
+
+	/// @returns amount of gas required for the basic payment.
+	int64_t baseGasRequired(EVMSchedule const& _es) const { return baseGasRequired(isCreation(), &m_data, _es); }
+
+	/// Get the fee associated for a transaction with the given data.
+	static int64_t baseGasRequired(bool _contractCreation, bytesConstRef _data, EVMSchedule const& _es);
 };
 }
 }
