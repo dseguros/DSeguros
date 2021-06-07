@@ -53,6 +53,40 @@ public:
 	explicit FixedHash(unsigned _u) { toBigEndian(_u, m_data); }
 
 
+	/// Explicitly construct, copying from a byte array.
+	explicit FixedHash(bytes const& _b, ConstructFromHashType _t = FailIfDifferent) { if (_b.size() == N) memcpy(m_data.data(), _b.data(), std::min<unsigned>(_b.size(), N)); else { m_data.fill(0); if (_t != FailIfDifferent) { auto c = std::min<unsigned>(_b.size(), N); for (unsigned i = 0; i < c; ++i) m_data[_t == AlignRight ? N - 1 - i : i] = _b[_t == AlignRight ? _b.size() - 1 - i : i]; } } }
+
+	/// Explicitly construct, copying from a byte array.
+	explicit FixedHash(bytesConstRef _b, ConstructFromHashType _t = FailIfDifferent) { if (_b.size() == N) memcpy(m_data.data(), _b.data(), std::min<unsigned>(_b.size(), N)); else { m_data.fill(0); if (_t != FailIfDifferent) { auto c = std::min<unsigned>(_b.size(), N); for (unsigned i = 0; i < c; ++i) m_data[_t == AlignRight ? N - 1 - i : i] = _b[_t == AlignRight ? _b.size() - 1 - i : i]; } } }
+
+	/// Explicitly construct, copying from a bytes in memory with given pointer.
+	explicit FixedHash(byte const* _bs, ConstructFromPointerType) { memcpy(m_data.data(), _bs, N); }
+
+	/// Explicitly construct, copying from a  string.
+	explicit FixedHash(std::string const& _s, ConstructFromStringType _t = FromHex, ConstructFromHashType _ht = FailIfDifferent): FixedHash(_t == FromHex ? fromHex(_s, WhenError::Throw) : dev::asBytes(_s), _ht) {}
+
+	/// Convert to arithmetic type.
+	operator Arith() const { return fromBigEndian<Arith>(m_data); }
+
+	/// @returns true iff this is the empty hash.
+	explicit operator bool() const { return std::any_of(m_data.begin(), m_data.end(), [](byte _b) { return _b != 0; }); }
+
+	// The obvious comparison operators.
+	bool operator==(FixedHash const& _c) const { return m_data == _c.m_data; }
+	bool operator!=(FixedHash const& _c) const { return m_data != _c.m_data; }
+	bool operator<(FixedHash const& _c) const { for (unsigned i = 0; i < N; ++i) if (m_data[i] < _c.m_data[i]) return true; else if (m_data[i] > _c.m_data[i]) return false; return false; }
+	bool operator>=(FixedHash const& _c) const { return !operator<(_c); }
+	bool operator<=(FixedHash const& _c) const { return operator==(_c) || operator<(_c); }
+	bool operator>(FixedHash const& _c) const { return !operator<=(_c); }
+
+	// The obvious binary operators.
+	FixedHash& operator^=(FixedHash const& _c) { for (unsigned i = 0; i < N; ++i) m_data[i] ^= _c.m_data[i]; return *this; }
+	FixedHash operator^(FixedHash const& _c) const { return FixedHash(*this) ^= _c; }
+	FixedHash& operator|=(FixedHash const& _c) { for (unsigned i = 0; i < N; ++i) m_data[i] |= _c.m_data[i]; return *this; }
+	FixedHash operator|(FixedHash const& _c) const { return FixedHash(*this) |= _c; }
+	FixedHash& operator&=(FixedHash const& _c) { for (unsigned i = 0; i < N; ++i) m_data[i] &= _c.m_data[i]; return *this; }
+	FixedHash operator&(FixedHash const& _c) const { return FixedHash(*this) &= _c; }
+	FixedHash operator~() const { FixedHash ret; for (unsigned i = 0; i < N; ++i) ret[i] = ~m_data[i]; return ret; }
 };
 
 }
