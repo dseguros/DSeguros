@@ -177,6 +177,23 @@ public:
 		}
 		return ret;
 	}
+
+	/// Returns the index of the first bit set to one, or size() * 8 if no bits are set.
+	inline unsigned firstBitSet() const
+	{
+		unsigned ret = 0;
+		for (auto d: m_data)
+			if (d)
+				for (;; ++ret, d <<= 1)
+					if (d & 0x80)
+						return ret;
+					else {}
+			else
+				ret += 8;
+		return ret;
+	}
+
+	void clear() { m_data.fill(0); }
 };
 
 }
