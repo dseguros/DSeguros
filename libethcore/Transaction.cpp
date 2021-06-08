@@ -92,3 +92,20 @@ Address const& TransactionBase::safeSender() const noexcept
 		return ZeroAddress;
 	}
 }
+
+Address const& TransactionBase::sender() const
+{
+	if (!m_sender)
+	{
+		if (hasZeroSignature())
+			m_sender = MaxAddress;
+		else
+		{
+			auto p = recover(m_vrs, sha3(WithoutSignature));
+			if (!p)
+				BOOST_THROW_EXCEPTION(InvalidSignature());
+			m_sender = right160(dev::sha3(bytesConstRef(p.data(), sizeof(p))));
+		}
+	}
+	return m_sender;
+}
