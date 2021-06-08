@@ -80,3 +80,15 @@ TransactionBase::TransactionBase(bytesConstRef _rlpData, CheckTransaction _check
 		throw;
 	}
 }
+
+Address const& TransactionBase::safeSender() const noexcept
+{
+	try
+	{
+		return sender();
+	}
+	catch (...)
+	{
+		return ZeroAddress;
+	}
+}
