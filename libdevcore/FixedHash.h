@@ -128,6 +128,55 @@ public:
 
 	/// @returns a constant reference to the object's data as an STL array.
 	std::array<byte, N> const& asArray() const { return m_data; }
+
+	/// Populate with random data.
+	template <class Engine>
+	void randomize(Engine& _eng)
+	{
+		for (auto& i: m_data)
+			i = (uint8_t)boost::random::uniform_int_distribution<uint16_t>(0, 255)(_eng);
+	}
+
+	/// @returns a random valued object.
+	static FixedHash random() { FixedHash ret; ret.randomize(s_fixedHashEngine); return ret; }
+
+	struct hash
+	{
+		/// Make a hash of the object's data.
+		size_t operator()(FixedHash const& _value) const { return boost::hash_range(_value.m_data.cbegin(), _value.m_data.cend()); }
+	};
+
+	template <unsigned P, unsigned M> inline FixedHash& shiftBloom(FixedHash<M> const& _h)
+	{
+		return (*this |= _h.template bloomPart<P, N>());
+	}
+
+	template <unsigned P, unsigned M> inline bool containsBloom(FixedHash<M> const& _h)
+	{
+		return contains(_h.template bloomPart<P, N>());
+	}
+
+	template <unsigned P, unsigned M> inline FixedHash<M> bloomPart() const
+	{
+		unsigned const c_bloomBits = M * 8;
+		unsigned const c_mask = c_bloomBits - 1;
+		unsigned const c_bloomBytes = (StaticLog2<c_bloomBits>::result + 7) / 8;
+
+		static_assert((M & (M - 1)) == 0, "M must be power-of-two");
+		static_assert(P * c_bloomBytes <= N, "out of range");
+
+		FixedHash<M> ret;
+		byte const* p = data();
+		for (unsigned i = 0; i < P; ++i)
+		{
+			unsigned index = 0;
+			for (unsigned j = 0; j < c_bloomBytes; ++j, ++p)
+				index = (index << 8) | *p;
+			index &= c_mask;
+			ret[M - 1 - index / 8] |= (1 << (index % 8));
+		}
+		return ret;
+	}
 };
 
 }
