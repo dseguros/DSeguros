@@ -109,3 +109,11 @@ Address const& TransactionBase::sender() const
 	}
 	return m_sender;
 }
+
+void TransactionBase::sign(Secret const& _priv)
+{
+	auto sig = dev::sign(_priv, sha3(WithoutSignature));
+	SignatureStruct sigStruct = *(SignatureStruct const*)&sig;
+	if (sigStruct.isValid())
+		m_vrs = sigStruct;
+}
