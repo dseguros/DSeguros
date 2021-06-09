@@ -117,3 +117,25 @@ void TransactionBase::sign(Secret const& _priv)
 	if (sigStruct.isValid())
 		m_vrs = sigStruct;
 }
+
+void TransactionBase::streamRLP(RLPStream& _s, IncludeSignature _sig, bool _forEip155hash) const
+{
+	if (m_type == NullTransaction)
+		return;
+
+	_s.appendList((_sig || _forEip155hash ? 3 : 0) + 6);
+	_s << m_nonce << m_gasPrice << m_gas;
+	if (m_type == MessageCall)
+		_s << m_receiveAddress;
+	else
+		_s << "";
+	_s << m_value << m_data;
+
+	if (_sig)
+	{
+		int vOffset = m_chainId*2 + 35;
+		_s << (m_vrs.v + vOffset) << (u256)m_vrs.r << (u256)m_vrs.s;
+	}
+	else if (_forEip155hash)
+		_s << m_chainId << 0 << 0;
+}
