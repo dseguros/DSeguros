@@ -153,3 +153,15 @@ void TransactionBase::checkChainId(int chainId) const
 	if (m_chainId != chainId && m_chainId != -4)
 		BOOST_THROW_EXCEPTION(InvalidSignature());
 }
+
+int64_t TransactionBase::baseGasRequired(bool _contractCreation, bytesConstRef _data, EVMSchedule const& _es)
+{
+	int64_t g = _contractCreation ? _es.txCreateGas : _es.txGas;
+
+	// Calculate the cost of input data.
+	// No risk of overflow by using int64 until txDataNonZeroGas is quite small
+	// (the value not in billions).
+	for (auto i: _data)
+		g += i ? _es.txDataNonZeroGas : _es.txDataZeroGas;
+	return g;
+}
