@@ -165,3 +165,17 @@ int64_t TransactionBase::baseGasRequired(bool _contractCreation, bytesConstRef _
 		g += i ? _es.txDataNonZeroGas : _es.txDataZeroGas;
 	return g;
 }
+
+h256 TransactionBase::sha3(IncludeSignature _sig) const
+{
+	if (_sig == WithSignature && m_hashWith)
+		return m_hashWith;
+
+	RLPStream s;
+	streamRLP(s, _sig, m_chainId > 0 && _sig == WithoutSignature);
+
+	auto ret = dev::sha3(s.out());
+	if (_sig == WithSignature)
+		m_hashWith = ret;
+	return ret;
+}
