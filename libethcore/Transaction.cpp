@@ -139,3 +139,17 @@ void TransactionBase::streamRLP(RLPStream& _s, IncludeSignature _sig, bool _forE
 	else if (_forEip155hash)
 		_s << m_chainId << 0 << 0;
 }
+
+static const u256 c_secp256k1n("115792089237316195423570985008687907852837564279074904382605163141518161494337");
+
+void TransactionBase::checkLowS() const
+{
+	if (m_vrs.s > c_secp256k1n / 2)
+		BOOST_THROW_EXCEPTION(InvalidSignature());
+}
+
+void TransactionBase::checkChainId(int chainId) const
+{
+	if (m_chainId != chainId && m_chainId != -4)
+		BOOST_THROW_EXCEPTION(InvalidSignature());
+}
