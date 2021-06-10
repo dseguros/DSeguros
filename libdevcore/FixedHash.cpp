@@ -19,3 +19,10 @@ h128 dev::fromUUID(std::string const& _uuid)
 	}
 }
 
+std::string dev::toUUID(h128 const& _uuid)
+{
+	std::string ret = toHex(_uuid.ref());
+	for (unsigned i: {20, 16, 12, 8})
+		ret.insert(ret.begin() + i, '-');
+	return ret;
+}
