@@ -21,6 +21,12 @@ public:
 	u256 bid(TransactionPriority _p = TransactionPriority::Medium) const override { return m_octiles[(int)_p] > 0 ? m_octiles[(int)_p] : (m_weiPerRef * m_refsPerBlock / m_gasPerBlock); }
 
 	void update(BlockChain const& _bc) override;
+
+private:
+	u256 m_weiPerRef;
+	u256 m_refsPerBlock;
+	u256 m_gasPerBlock = DefaultBlockGasLimit;
+	std::array<u256, 9> m_octiles;
 };
 }
 }
