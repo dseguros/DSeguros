@@ -25,4 +25,11 @@ using UpgradableGuard = boost::upgrade_lock<boost::shared_mutex>;
 using UpgradeGuard = boost::upgrade_to_unique_lock<boost::shared_mutex>;
 using WriteGuard = boost::unique_lock<boost::shared_mutex>;
 
+template <class GuardType, class MutexType>
+struct GenericGuardBool: GuardType
+{
+	GenericGuardBool(MutexType& _m): GuardType(_m) {}
+	bool b = true;
+};
+
 }
