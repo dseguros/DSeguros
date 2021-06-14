@@ -39,5 +39,13 @@ struct GenericUnguardBool
 	bool b = true;
 	MutexType& m;
 };
+template <class MutexType>
+struct GenericUnguardSharedBool
+{
+	GenericUnguardSharedBool(MutexType& _m): m(_m) { m.unlock_shared(); }
+	~GenericUnguardSharedBool() { m.lock_shared(); }
+	bool b = true;
+	MutexType& m;
+};
 
 }
