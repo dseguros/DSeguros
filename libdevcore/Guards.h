@@ -31,5 +31,13 @@ struct GenericGuardBool: GuardType
 	GenericGuardBool(MutexType& _m): GuardType(_m) {}
 	bool b = true;
 };
+template <class MutexType>
+struct GenericUnguardBool
+{
+	GenericUnguardBool(MutexType& _m): m(_m) { m.unlock(); }
+	~GenericUnguardBool() { m.lock(); }
+	bool b = true;
+	MutexType& m;
+};
 
 }
