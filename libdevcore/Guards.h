@@ -10,3 +10,19 @@
 #pragma warning(pop)
 #pragma GCC diagnostic pop
 
+namespace dev
+{
+
+using Mutex = std::mutex;
+using RecursiveMutex = std::recursive_mutex;
+using SharedMutex = boost::shared_mutex;
+
+using Guard = std::lock_guard<std::mutex>;
+using UniqueGuard = std::unique_lock<std::mutex>;
+using RecursiveGuard = std::lock_guard<std::recursive_mutex>;
+using ReadGuard = boost::shared_lock<boost::shared_mutex>;
+using UpgradableGuard = boost::upgrade_lock<boost::shared_mutex>;
+using UpgradeGuard = boost::upgrade_to_unique_lock<boost::shared_mutex>;
+using WriteGuard = boost::unique_lock<boost::shared_mutex>;
+
+}
