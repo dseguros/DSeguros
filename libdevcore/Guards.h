@@ -81,6 +81,10 @@ public:
 	template <class R, class P> void waitNot(std::chrono::duration<R, P> _d, N const& _v) const { UniqueGuard l(m_mutex); m_cv.wait_for(l, _d, [&](){return m_value != _v;}); }
 	template <class R, class P, class F> void wait(std::chrono::duration<R, P> _d, F const& _f) const { UniqueGuard l(m_mutex); m_cv.wait_for(l, _d, _f); }
 
+private:
+	mutable Mutex m_mutex;
+	mutable std::condition_variable m_cv;
+	N m_value;
 };
 
 }
