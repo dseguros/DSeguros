@@ -38,4 +38,39 @@ void BasicGasPricer::update(BlockChain const& _bc)
 		p = bi.parentHash();
 		++c;
 	}
+
+    // fill m_octiles with weighted gasPrices
+	if (total > 0)
+	{
+		m_octiles[0] = dist.begin()->first;
+
+		// calc mean
+		u256 mean = 0;
+		for (auto const& i: dist)
+			mean += i.first * i.second;
+		mean /= total;
+
+		// calc standard deviation
+		u256 sdSquared = 0;
+		for (auto const& i: dist)
+			sdSquared += i.second * (i.first - mean) * (i.first - mean);
+		sdSquared /= total;
+
+		if (sdSquared)
+		{
+			long double sd = sqrt(sdSquared.convert_to<long double>());
+			long double normalizedSd = sd / mean.convert_to<long double>();
+
+			// calc octiles normalized to gaussian distribution
+			boost::math::normal gauss(1.0, (normalizedSd > 0.01) ? normalizedSd : 0.01);
+			for (size_t i = 1; i < 8; i++)
+				m_octiles[i] = u256(mean.convert_to<long double>() * boost::math::quantile(gauss, i / 8.0));
+			m_octiles[8] = dist.rbegin()->first;
+		}
+		else
+		{
+			for (size_t i = 0; i < 9; i++)
+				m_octiles[i] = (i + 1) * mean / 5;
+		}
+	}
 }
