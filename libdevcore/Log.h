@@ -42,6 +42,16 @@ private:
 	int m_old;
 };
 
+template <class Channel>
+class LogOverride: LogOverrideAux
+{
+public:
+	LogOverride(bool _value): LogOverrideAux(&typeid(Channel), _value) {}
+};
+
+bool isChannelVisible(std::type_info const* _ch, bool _default);
+template <class Channel> bool isChannelVisible() { return isChannelVisible(&typeid(Channel), Channel::verbosity <= g_logVerbosity); }
+
 }
 }
 
