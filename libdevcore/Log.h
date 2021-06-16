@@ -21,6 +21,12 @@ public:
 	template <class T> NullOutputStream& operator<<(T const&) { return *this; }
 };
 
+/// A simple log-output function that prints log messages to stdout.
+void simpleDebugOut(std::string const&, char const*);
+
+/// The logging system's current verbosity.
+extern int g_logVerbosity;
+
 }
 }
 
