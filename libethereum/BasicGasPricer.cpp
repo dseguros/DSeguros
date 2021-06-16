@@ -7,3 +7,13 @@
 #include "BasicGasPricer.h"
 #include "BlockChain.h"
 
+void BasicGasPricer::update(BlockChain const& _bc)
+{
+	unsigned c = 0;
+	h256 p = _bc.currentHash();
+	m_gasPerBlock = _bc.info(p).gasLimit();
+
+	map<u256, u256> dist;
+	u256 total = 0;
+
+}
