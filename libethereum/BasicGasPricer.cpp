@@ -16,4 +16,26 @@ void BasicGasPricer::update(BlockChain const& _bc)
 	map<u256, u256> dist;
 	u256 total = 0;
 
+    // make gasPrice versus gasUsed distribution for the last 1000 blocks
+	while (c < 1000 && p)
+	{
+		BlockHeader bi = _bc.info(p);
+		if (bi.transactionsRoot() != EmptyTrie)
+		{
+			auto bb = _bc.block(p);
+			RLP r(bb);
+			BlockReceipts brs(_bc.receipts(bi.hash()));
+			size_t i = 0;
+			for (auto const& tr: r[1])
+			{
+				Transaction tx(tr.data(), CheckTransaction::None);
+				u256 gu = brs.receipts[i].gasUsed();
+				dist[tx.gasPrice()] += gu;
+				total += gu;
+				i++;
+			}
+		}
+		p = bi.parentHash();
+		++c;
+	}
 }
