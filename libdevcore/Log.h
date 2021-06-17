@@ -52,6 +52,28 @@ public:
 bool isChannelVisible(std::type_info const* _ch, bool _default);
 template <class Channel> bool isChannelVisible() { return isChannelVisible(&typeid(Channel), Channel::verbosity <= g_logVerbosity); }
 
+/// Temporary changes system's verbosity for specific function. Restores the old verbosity when function returns.
+/// Not thread-safe, use with caution!
+struct VerbosityHolder
+{
+	VerbosityHolder(int _temporaryValue, bool _force = false): oldLogVerbosity(g_logVerbosity) { if (g_logVerbosity >= 0 || _force) g_logVerbosity = _temporaryValue; }
+	~VerbosityHolder() { g_logVerbosity = oldLogVerbosity; }
+	int oldLogVerbosity;
+};
+
+#define ETH_THREAD_CONTEXT(name) for (std::pair<dev::ThreadContext, bool> __eth_thread_context(name, true); p.second; p.second = false)
+
+class ThreadContext
+{
+public:
+	ThreadContext(std::string const& _info) { push(_info); }
+	~ThreadContext() { pop(); }
+
+	static void push(std::string const& _n);
+	static void pop();
+	static std::string join(std::string const& _prior);
+};
+
 }
 }
 
