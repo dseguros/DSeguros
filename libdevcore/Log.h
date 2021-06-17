@@ -231,6 +231,65 @@ protected:
 	std::stringstream m_sstr;	///< The accrued log entry.
 	LogTag m_logTag = LogTag::None;
 };
+
+/// Logging class, iostream-like, that can be shifted to.
+template <class Id, bool _AutoSpacing = true>
+class LogOutputStream: LogOutputStreamBase
+{
+public:
+	/// Construct a new object.
+	/// If _term is true the the prefix info is terminated with a ']' character; if not it ends only with a '|' character.
+	LogOutputStream(): LogOutputStreamBase(Id::name(), &typeid(Id), Id::verbosity, _AutoSpacing) {}
+
+	/// Destructor. Posts the accrued log entry to the g_logPost function.
+	~LogOutputStream() { if (Id::verbosity <= g_logVerbosity) g_logPost(m_sstr.str(), Id::name()); }
+
+	LogOutputStream& operator<<(std::string const& _t) { if (Id::verbosity <= g_logVerbosity) { if (_AutoSpacing && m_sstr.str().size() && m_sstr.str().back() != ' ') m_sstr << " "; comment(_t); } return *this; }
+
+	LogOutputStream& operator<<(LogTag _t) { m_logTag = _t; return *this; }
+
+	/// Shift arbitrary data to the log. Spaces will be added between items as required.
+	template <class T> LogOutputStream& operator<<(T const& _t) { if (Id::verbosity <= g_logVerbosity) { if (_AutoSpacing && m_sstr.str().size() && m_sstr.str().back() != ' ') m_sstr << " "; append(_t); } return *this; }
+};
+
+/// A "hacky" way to execute the next statement on COND.
+/// We need such a thing due to the dangling else problem and the need
+/// for the logging macros to end with the stream object and not a closing brace '}'
+#define DEV_STATEMENT_IF(COND) for (bool i_eth_if_ = (COND); i_eth_if_; i_eth_if_ = false)
+/// A "hacky" way to skip the next statement.
+/// We need such a thing due to the dangling else problem and the need
+/// for the logging macros to end with the stream object and not a closing brace '}'
+#define DEV_STATEMENT_SKIP() while (/*CONSTCOND*/ false) /*NOTREACHED*/
+// Kill all logs when when NLOG is defined.
+#if NLOG
+#define clog(X) nlog(X)
+#define cslog(X) nslog(X)
+#else
+#if NDEBUG
+#define clog(X) DEV_STATEMENT_IF(!(X::debug)) dev::LogOutputStream<X, true>()
+#define cslog(X) DEV_STATEMENT_IF(!(X::debug)) dev::LogOutputStream<X, false>()
+#else
+#define clog(X) dev::LogOutputStream<X, true>()
+#define cslog(X) dev::LogOutputStream<X, false>()
+#endif
+#endif
+
+std::string logFileName(const char *file, int line, const char *fun, const char *t);
+#define LOG_INFO logFileName((const char*)__FILE__, __LINE__, (const char*)__FUNCTION__, (const char*)__TIMESTAMP__)
+
+// Simple cout-like stream objects for accessing common log channels.
+// Dirties the global namespace, but oh so convenient...
+#define cdebug (clog(dev::DebugChannel)<<LOG_INFO)
+#define cnote (clog(dev::NoteChannel)<<LOG_INFO)
+#define cwarn (clog(dev::WarnChannel)<<LOG_INFO)
+#define ctrace (clog(dev::TraceChannel)<<LOG_INFO)
+
+// Null stream-like objects.
+#define ndebug DEV_STATEMENT_SKIP() dev::NullOutputStream()
+#define nlog(X) DEV_STATEMENT_SKIP() dev::NullOutputStream()
+#define nslog(X) DEV_STATEMENT_SKIP() dev::NullOutputStream()
+
 }
+
 }
 
