@@ -11,5 +11,21 @@ namespace dev
 namespace eth
 {
 
+class Account
+{
+public:
+	/// Changedness of account to create.
+	enum Changedness
+	{
+		/// Account starts as though it has been changed.
+		Changed,
+		/// Account starts as though it has not been changed.
+		Unchanged
+	};
+
+	/// Construct a dead Account.
+	Account() {}
+};
+
 }
 }
