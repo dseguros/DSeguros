@@ -28,3 +28,10 @@ bool dev::isChannelVisible(std::type_info const* _ch, bool _default)
 	return _default;
 }
 
+LogOverrideAux::LogOverrideAux(std::type_info const* _ch, bool _value):
+	m_ch(_ch)
+{
+	Guard l(x_logOverride);
+	m_old = s_logOverride.count(_ch) ? (int)s_logOverride[_ch] : c_null;
+	s_logOverride[m_ch] = _value;
+}
