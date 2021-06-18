@@ -143,5 +143,51 @@ public:
 	static const h256 c_contractConceptionCodeHash;
 };
 
+class AccountMask
+{
+public:
+	AccountMask(bool _all = false):
+		m_hasBalance(_all),
+		m_hasNonce(_all),
+		m_hasCode(_all),
+		m_hasStorage(_all)
+	{}
+
+	AccountMask(
+		bool _hasBalance,
+		bool _hasNonce,
+		bool _hasCode,
+		bool _hasStorage,
+		bool _shouldNotExist = false
+	):
+		m_hasBalance(_hasBalance),
+		m_hasNonce(_hasNonce),
+		m_hasCode(_hasCode),
+		m_hasStorage(_hasStorage),
+		m_shouldNotExist(_shouldNotExist)
+	{}
+
+	bool allSet() const { return m_hasBalance && m_hasNonce && m_hasCode && m_hasStorage; }
+	bool hasBalance() const { return m_hasBalance; }
+	bool hasNonce() const { return m_hasNonce; }
+	bool hasCode() const { return m_hasCode; }
+	bool hasStorage() const { return m_hasStorage; }
+	bool shouldExist() const { return !m_shouldNotExist; }
+
+private:
+	bool m_hasBalance;
+	bool m_hasNonce;
+	bool m_hasCode;
+	bool m_hasStorage;
+	bool m_shouldNotExist = false;
+};
+
+using AccountMap = std::unordered_map<Address, Account>;
+using AccountMaskMap = std::unordered_map<Address, AccountMask>;
+
+class PrecompiledContract;
+using PrecompiledContractMap = std::unordered_map<Address, PrecompiledContract>;
+
+AccountMap jsonToAccountMap(std::string const& _json, u256 const& _defaultNonce = 0, AccountMaskMap* o_mask = nullptr, PrecompiledContractMap* o_precompiled = nullptr);
 }
 }
