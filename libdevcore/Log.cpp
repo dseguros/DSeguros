@@ -44,3 +44,21 @@ LogOverrideAux::~LogOverrideAux()
 	else
 		s_logOverride[m_ch] = (bool)m_old;
 }
+
+#if defined(_WIN32)
+const char* LogChannel::name() { return EthGray "..."; }
+const char* LeftChannel::name() { return EthNavy "<--"; }
+const char* RightChannel::name() { return EthGreen "-->"; }
+const char* WarnChannel::name() { return EthOnRed EthBlackBold "  X"; }
+const char* NoteChannel::name() { return EthBlue "  i"; }
+const char* DebugChannel::name() { return EthWhite "  D"; }
+const char* TraceChannel::name() { return EthGray "..."; }
+#else
+const char* LogChannel::name() { return EthGray "···"; }
+const char* LeftChannel::name() { return EthNavy "◀▬▬"; }
+const char* RightChannel::name() { return EthGreen "▬▬▶"; }
+const char* WarnChannel::name() { return EthOnRed EthBlackBold "  ✘"; }
+const char* NoteChannel::name() { return EthBlue "  ℹ"; }
+const char* DebugChannel::name() { return EthWhite "  ◇"; }
+const char* TraceChannel::name() { return EthGray "..."; }
+#endif
