@@ -100,6 +100,47 @@ public:
 
 	/// @returns the account's code.
 	bytes const& code() const { return m_codeCache; }
+
+        private:
+	/// Note that we've altered the account.
+	void changed() { m_isUnchanged = false; }
+
+	/// Is this account existant? If not, it represents a deleted account.
+	bool m_isAlive = false;
+
+	/// True if we've not made any alteration to the account having been given it's properties directly.
+	bool m_isUnchanged = false;
+
+	/// True if new code was deployed to the account
+	bool m_hasNewCode = false;
+
+	/// Account's nonce.
+	u256 m_nonce;
+
+	/// Account's balance.
+	u256 m_balance = 0;
+
+	/// The base storage root. Used with the state DB to give a base to the storage. m_storageOverlay is
+	/// overlaid on this and takes precedence for all values set.
+	h256 m_storageRoot = EmptyTrie;
+
+	/** If c_contractConceptionCodeHash then we're in the limbo where we're running the initialisation code.
+	 * We expect a setCode() at some point later.
+	 * If EmptySHA3, then m_code, which should be empty, is valid.
+	 * If anything else, then m_code is valid iff it's not empty, otherwise, State::ensureCached() needs to
+	 * be called with the correct args.
+	 */
+	h256 m_codeHash = EmptySHA3;
+
+	/// The map with is overlaid onto whatever storage is implied by the m_storageRoot in the trie.
+	std::unordered_map<u256, u256> m_storageOverlay;
+
+	/// The associated code for this account. The SHA3 of this should be equal to m_codeHash unless m_codeHash
+	/// equals c_contractConceptionCodeHash.
+	bytes m_codeCache;
+
+	/// Value for m_codeHash when this account is having its code determined.
+	static const h256 c_contractConceptionCodeHash;
 };
 
 }
