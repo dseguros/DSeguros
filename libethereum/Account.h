@@ -67,6 +67,39 @@ public:
 	/// Set nonce to a new value. This is used when reverting changes made to
 	/// the account.
 	void setNonce(u256 const& _nonce) { m_nonce = _nonce; changed(); }
+
+        /// @returns the root of the trie (whose nodes are stored in the state db externally to this class)
+	/// which encodes the base-state of the account's storage (upon which the storage is overlaid).
+	h256 baseRoot() const { assert(m_storageRoot); return m_storageRoot; }
+
+	/// @returns the storage overlay as a simple hash map.
+	std::unordered_map<u256, u256> const& storageOverlay() const { return m_storageOverlay; }
+
+	/// Set a key/value pair in the account's storage. This actually goes into the overlay, for committing
+	/// to the trie later.
+	void setStorage(u256 _p, u256 _v) { m_storageOverlay[_p] = _v; changed(); }
+
+	/// Set a key/value pair in the account's storage to a value that is already present inside the
+	/// database.
+	void setStorageCache(u256 _p, u256 _v) const { const_cast<decltype(m_storageOverlay)&>(m_storageOverlay)[_p] = _v; }
+
+	/// @returns the hash of the account's code.
+	h256 codeHash() const { return m_codeHash; }
+
+	bool hasNewCode() const { return m_hasNewCode; }
+
+	/// Sets the code of the account. Used by "create" messages.
+	void setNewCode(bytes&& _code);
+
+	/// Reset the code set by previous CREATE message.
+	void resetCode() { m_codeCache.clear(); m_hasNewCode = false; m_codeHash = EmptySHA3; }
+
+	/// Specify to the object what the actual code is for the account. @a _code must have a SHA3 equal to
+	/// codeHash() and must only be called when isFreshCode() returns false.
+	void noteCode(bytesConstRef _code) { assert(sha3(_code) == m_codeHash); m_codeCache = _code.toBytes(); }
+
+	/// @returns the account's code.
+	bytes const& code() const { return m_codeCache; }
 };
 
 }
