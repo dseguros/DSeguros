@@ -47,6 +47,26 @@ public:
 	bool isDirty() const { return !m_isUnchanged; }
 
 	void untouch() { m_isUnchanged = true; }
+
+    /// @returns true if the nonce, balance and code is zero / empty. Code is considered empty
+	/// during creation phase.
+	bool isEmpty() const { return nonce() == 0 && balance() == 0 && codeHash() == EmptySHA3; }
+
+	/// @returns the balance of this account.
+	u256 const& balance() const { return m_balance; }
+
+	/// Increments the balance of this account by the given amount.
+	void addBalance(u256 _value) { m_balance += _value; changed(); }
+
+	/// @returns the nonce of the account.
+	u256 nonce() const { return m_nonce; }
+
+	/// Increment the nonce of the account by one.
+	void incNonce() { ++m_nonce; changed(); }
+
+	/// Set nonce to a new value. This is used when reverting changes made to
+	/// the account.
+	void setNonce(u256 const& _nonce) { m_nonce = _nonce; changed(); }
 };
 
 }
