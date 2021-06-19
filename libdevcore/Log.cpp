@@ -62,3 +62,20 @@ const char* NoteChannel::name() { return EthBlue "  ℹ"; }
 const char* DebugChannel::name() { return EthWhite "  ◇"; }
 const char* TraceChannel::name() { return EthGray "..."; }
 #endif
+std::string dev::logFileName(const char *file, int line, const char *fun, const char *t)
+{
+	const char *p = ::strrchr((char*)file, '/');
+	p = p ? p+1 : file;
+
+	char buf[1024];
+	snprintf(buf, sizeof(buf), "%s:%d:%s:%s::\t", p, line, fun, t);
+	
+	/*
+    int len = strlen(file);
+    while(--len >= 0){
+            if(file[len] == '/')
+                    return file + len + 1;
+    }*/
+
+    return std::string(buf);
+}
