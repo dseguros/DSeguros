@@ -137,3 +137,68 @@ struct ThreadLocalLogContext
 
 	boost::thread_specific_ptr<std::vector<std::string>> m_contexts;
 };
+
+ThreadLocalLogContext g_logThreadContext;
+
+ThreadLocalLogName g_logThreadName("main");
+
+void dev::ThreadContext::push(string const& _n)
+{
+	g_logThreadContext.push(_n);
+}
+
+void dev::ThreadContext::pop()
+{
+	g_logThreadContext.pop();
+}
+
+string dev::ThreadContext::join(string const& _prior)
+{
+	return g_logThreadContext.join(_prior);
+}
+
+// foward declare without all of Windows.h
+#if defined(_WIN32)
+extern "C" __declspec(dllimport) void __stdcall OutputDebugStringA(const char* lpOutputString);
+#endif
+
+string dev::getThreadName()
+{
+#if defined(__GLIBC__) || defined(__APPLE__)
+	char buffer[128];
+	pthread_getname_np(pthread_self(), buffer, 127);
+	buffer[127] = 0;
+	return buffer;
+#else
+	return g_logThreadName.m_name.get() ? *g_logThreadName.m_name.get() : "<unknown>";
+#endif
+}
+
+void dev::setThreadName(string const& _n)
+{
+#if defined(__GLIBC__)
+	pthread_setname_np(pthread_self(), _n.c_str());
+#elif defined(__APPLE__)
+	pthread_setname_np(_n.c_str());
+#else
+	g_logThreadName.m_name.reset(new std::string(_n));
+#endif
+}
+
+void dev::simpleDebugOut(std::string const& _s, char const*)
+{
+	static SpinLock s_lock;
+	SpinGuard l(s_lock);
+
+	cerr << _s << endl << flush;
+
+	// helpful to use OutputDebugString on windows
+	#if defined(_WIN32)
+	{
+		OutputDebugStringA(_s.data());
+		OutputDebugStringA("\n");
+	}
+	#endif
+}
+
+std::function<void(std::string const&, char const*)> dev::g_logPost = simpleDebugOut;
