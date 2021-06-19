@@ -108,3 +108,32 @@ struct ThreadLocalLogName
 	ThreadLocalLogName(std::string const& _name) { m_name.reset(new string(_name)); }
 	boost::thread_specific_ptr<std::string> m_name;
 };
+
+/// Associate a name with each thread for nice logging.
+struct ThreadLocalLogContext
+{
+	ThreadLocalLogContext() = default;
+
+	void push(std::string const& _name)
+	{
+		if (!m_contexts.get())
+			m_contexts.reset(new vector<string>);
+		m_contexts->push_back(_name);
+	}
+
+	void pop()
+	{
+		m_contexts->pop_back();
+	}
+
+	string join(string const& _prior)
+	{
+		string ret;
+		if (m_contexts.get())
+			for (auto const& i: *m_contexts)
+				ret += _prior + i;
+		return ret;
+	}
+
+	boost::thread_specific_ptr<std::vector<std::string>> m_contexts;
+};
