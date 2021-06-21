@@ -10,4 +10,20 @@ void Account::setNewCode(bytes&& _code)
 	m_codeHash = sha3(m_codeCache);
 }
 
+namespace js = json_spirit;
+
+namespace
+{
+
+uint64_t toUnsigned(js::mValue const& _v)
+{
+	switch (_v.type())
+	{
+	case js::int_type: return _v.get_uint64();
+	case js::str_type: return fromBigEndian<uint64_t>(fromHex(_v.get_str()));
+	default: return 0;
+	}
+}
+
+}
 
