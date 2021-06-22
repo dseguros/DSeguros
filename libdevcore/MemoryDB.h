@@ -11,5 +11,7 @@
 namespace dev
 {
 
+struct DBChannel: public LogChannel  { static const char* name(); static const int verbosity = 18; };
+struct DBWarn: public LogChannel  { static const char* name(); static const int verbosity = 1; };
 
 }
