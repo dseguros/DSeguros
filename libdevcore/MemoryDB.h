@@ -16,4 +16,20 @@ struct DBWarn: public LogChannel  { static const char* name(); static const int 
 
 #define dbdebug clog(DBChannel)
 #define dbwarn clog(DBWarn)
+
+class MemoryDB
+{
+	friend class EnforceRefs;
+
+public:
+	MemoryDB() {}
+	MemoryDB(MemoryDB const& _c) { operator=(_c); }
+
+	MemoryDB& operator=(MemoryDB const& _c);
+
+	void clear() { m_main.clear(); m_aux.clear(); }	// WARNING !!!! didn't originally clear m_refCount!!!
+	std::unordered_map<h256, std::string> get() const;
+
+};
+
 }
