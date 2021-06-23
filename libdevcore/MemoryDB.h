@@ -30,6 +30,18 @@ public:
 	void clear() { m_main.clear(); m_aux.clear(); }	// WARNING !!!! didn't originally clear m_refCount!!!
 	std::unordered_map<h256, std::string> get() const;
 
+        std::string lookup(h256 const& _h) const;
+	bool exists(h256 const& _h) const;
+	void insert(h256 const& _h, bytesConstRef _v);
+	bool kill(h256 const& _h);
+	void purge();
+
+	bytes lookupAux(h256 const& _h) const;
+	void removeAux(h256 const& _h);
+	void insertAux(h256 const& _h, bytesConstRef _v);
+
+	h256Hash keys() const;
+
 };
 
 }
