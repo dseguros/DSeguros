@@ -45,6 +45,40 @@ struct PopulationStatistics
 DEV_SIMPLE_EXCEPTION(ChainOperationWithUnknownBlockChain);
 DEV_SIMPLE_EXCEPTION(InvalidOperationOnSealedBlock);
 
+
+/**
+ * @brief Active model of a block within the block chain.
+ * Keeps track of all transactions, receipts and state for a particular block. Can apply all
+ * needed transforms of the state for rewards and contains logic for sealing the block.
+ */
+class Block
+{
+	friend class ExtVM;
+	friend class dev::test::ImportTest;
+	friend class dev::test::StateLoader;
+	friend class Executive;
+	friend class BlockChain;
+
+public:
+	// TODO: pass in ChainOperationParams rather than u256
+
+	/// Default constructor; creates with a blank database prepopulated with the genesis block.
+	Block(u256 const& _accountStartNonce): m_state(_accountStartNonce, OverlayDB(), BaseState::Empty), m_precommit(_accountStartNonce) {}
+
+	/// Basic state object from database.
+	/// Use the default when you already have a database and you just want to make a Block object
+	/// which uses it. If you have no preexisting database then set BaseState to something other
+	/// than BaseState::PreExisting in order to prepopulate the Trie.
+	/// You can also set the author address.
+	Block(BlockChain const& _bc, OverlayDB const& _db, BaseState _bs = BaseState::PreExisting, Address const& _author = Address());
+
+	/// Basic state object from database.
+	/// Use the default when you already have a database and you just want to make a Block object
+	/// which uses it.
+	/// Will throw InvalidRoot if the root passed is not in the database.
+	/// You can also set the author address.
+	Block(BlockChain const& _bc, OverlayDB const& _db, h256 const& _root, Address const& _author = Address());
+
 }
 
 }
