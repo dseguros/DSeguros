@@ -20,5 +20,22 @@
 namespace dev
 {
 
+namespace test { class ImportTest; class StateLoader; }
+
+namespace eth
+{
+
+class SealEngineFace;
+class BlockChain;
+class State;
+class TransactionQueue;
+struct VerifiedBlockRef;
+
+struct BlockChat: public LogChannel { static const char* name(); static const int verbosity = 4; };
+struct BlockTrace: public LogChannel { static const char* name(); static const int verbosity = 5; };
+struct BlockDetail: public LogChannel { static const char* name(); static const int verbosity = 14; };
+struct BlockSafeExceptions: public LogChannel { static const char* name(); static const int verbosity = 21; };
+
+}
 
 }
