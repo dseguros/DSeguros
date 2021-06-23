@@ -125,6 +125,34 @@ public:
 	/// Get the value of a storage position of an account.
 	/// @returns 0 if no account exists at that address.
 	u256 storage(Address const& _contract, u256 const& _memory) const { return m_state.storage(_contract, _memory); }
+
+     /// Get the storage of an account.
+	/// @note This is expensive. Don't use it unless you need to.
+	/// @returns map of hashed keys to key-value pairs or empty map if no account exists at that address.
+	std::map<h256, std::pair<u256, u256>> storage(Address const& _contract) const { return m_state.storage(_contract); }
+
+	/// Get the code of an account.
+	/// @returns bytes() if no account exists at that address.
+	bytes const& code(Address const& _contract) const { return m_state.code(_contract); }
+
+	/// Get the code hash of an account.
+	/// @returns EmptySHA3 if no account exists at that address or if there is no code associated with the address.
+	h256 codeHash(Address const& _contract) const { return m_state.codeHash(_contract); }
+
+	// General information from state
+
+	/// Get the backing state object.
+	State const& state() const { return m_state; }
+
+	/// Open a DB - useful for passing into the constructor & keeping for other states that are necessary.
+	OverlayDB const& db() const { return m_state.db(); }
+
+	/// The hash of the root of our state tree.
+	h256 rootHash() const { return m_state.rootHash(); }
+
+	/// @returns the set containing all addresses currently in use in Ethereum.
+	/// @throws InterfaceNotSupported if compiled without ETH_FATDB.
+	std::unordered_map<Address, u256> addresses() const { return m_state.addresses(); }
 }
 
 }
