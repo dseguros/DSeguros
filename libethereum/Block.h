@@ -36,6 +36,15 @@ struct BlockTrace: public LogChannel { static const char* name(); static const i
 struct BlockDetail: public LogChannel { static const char* name(); static const int verbosity = 14; };
 struct BlockSafeExceptions: public LogChannel { static const char* name(); static const int verbosity = 21; };
 
+struct PopulationStatistics
+{
+	double verify;
+	double enact;
+};
+
+DEV_SIMPLE_EXCEPTION(ChainOperationWithUnknownBlockChain);
+DEV_SIMPLE_EXCEPTION(InvalidOperationOnSealedBlock);
+
 }
 
 }
