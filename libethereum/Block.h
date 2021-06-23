@@ -79,6 +79,35 @@ public:
 	/// You can also set the author address.
 	Block(BlockChain const& _bc, OverlayDB const& _db, h256 const& _root, Address const& _author = Address());
 
+
+    enum NullType { Null };
+	Block(NullType): m_state(0, OverlayDB(), BaseState::Empty), m_precommit(0) {}
+
+	/// Construct from a given blockchain. Empty, but associated with @a _bc 's chain params.
+	explicit Block(BlockChain const& _bc): Block(Null) { noteChain(_bc); }
+
+	/// Copy state object.
+	Block(Block const& _s);
+
+	/// Copy state object.
+	Block& operator=(Block const& _s);
+
+	/// Get the author address for any transactions we do and rewards we get.
+	Address author() const { return m_author; }
+
+	/// Set the author address for any transactions we do and rewards we get.
+	/// This causes a complete reset of current block.
+	void setAuthor(Address const& _id) { m_author = _id; resetCurrent(); }
+
+	/// Note the fact that this block is being used with a particular chain.
+	/// Call this before using any non-const methods.
+	void noteChain(BlockChain const& _bc);
+
+	// Account-getters. All operate on the final state.
+
+	/// Get an account's balance.
+	/// @returns 0 if the address has never been used.
+	u256 balance(Address const& _address) const { return m_state.balance(_address); }
 }
 
 }
