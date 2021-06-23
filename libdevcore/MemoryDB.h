@@ -42,6 +42,14 @@ public:
 
 	h256Hash keys() const;
 
+protected:
+#if DEV_GUARDED_DB
+	mutable SharedMutex x_this;
+#endif
+	std::unordered_map<h256, std::pair<std::string, unsigned>> m_main;
+	std::unordered_map<h256, std::pair<bytes, bool>> m_aux;
+
+	mutable bool m_enforceRefs = false;
 };
 
 }
