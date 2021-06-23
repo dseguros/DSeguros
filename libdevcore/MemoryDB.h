@@ -62,4 +62,15 @@ private:
 	bool m_r;
 };
 
+inline std::ostream& operator<<(std::ostream& _out, MemoryDB const& _m)
+{
+	for (auto const& i: _m.get())
+	{
+		_out << i.first << ": ";
+		_out << RLP(i.second);
+		_out << " " << toHex(i.second);
+		_out << std::endl;
+	}
+	return _out;
+}
 }
