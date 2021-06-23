@@ -108,6 +108,23 @@ public:
 	/// Get an account's balance.
 	/// @returns 0 if the address has never been used.
 	u256 balance(Address const& _address) const { return m_state.balance(_address); }
+
+    /// Get the number of transactions a particular address has sent (used for the transaction nonce).
+	/// @returns 0 if the address has never been used.
+	u256 transactionsFrom(Address const& _address) const { return m_state.getNonce(_address); }
+
+	/// Check if the address is in use.
+	bool addressInUse(Address const& _address) const { return m_state.addressInUse(_address); }
+
+	/// Check if the address contains executable code.
+	bool addressHasCode(Address const& _address) const { return m_state.addressHasCode(_address); }
+
+	/// Get the root of the storage of an account.
+	h256 storageRoot(Address const& _contract) const { return m_state.storageRoot(_contract); }
+
+	/// Get the value of a storage position of an account.
+	/// @returns 0 if no account exists at that address.
+	u256 storage(Address const& _contract, u256 const& _memory) const { return m_state.storage(_contract, _memory); }
 }
 
 }
