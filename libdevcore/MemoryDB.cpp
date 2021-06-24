@@ -22,4 +22,17 @@ std::unordered_map<h256, std::string> MemoryDB::get() const
 	return ret;
 }
 
+MemoryDB& MemoryDB::operator=(MemoryDB const& _c)
+{
+	if (this == &_c)
+		return *this;
+#if DEV_GUARDED_DB
+	ReadGuard l(_c.x_this);
+	WriteGuard l2(x_this);
+#endif
+	m_main = _c.m_main;
+	m_aux = _c.m_aux;
+	return *this;
+}
+
 }
