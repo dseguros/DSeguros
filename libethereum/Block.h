@@ -254,6 +254,75 @@ public:
 	bool sealBlock(bytes const& _header) { return sealBlock(&_header); }
 	bool sealBlock(bytesConstRef _header);
 	bool sealBlock(bytesConstRef _header, bytes & _out);
+
+    /// @returns true if sealed - in this case you can no longer append transactions.
+	bool isSealed() const { return !m_currentBytes.empty(); }
+
+	/// Get the complete current block, including valid nonce.
+	/// Only valid when isSealed() is true.
+	bytes const& blockData() const { return m_currentBytes; }
+
+	/// Get the header information on the present block.
+	BlockHeader const& info() const { return m_currentBlock; }
+	TransactionReceipts exec(BlockChain const& _bc, TransactionQueue& _tq);
+
+	void resetCurrentTime(u256 const& _timestamp = u256(utcTime()));
+	void setIndex(u256 _idx);
+	void setNodeList(h512s const& _nodes);
+
+private:
+	SealEngineFace* sealEngine() const;
+
+	/// Undo the changes to the state for committing to mine.
+	void uncommitToSeal();
+
+	/// Retrieve all information about a given address into the cache.
+	/// If _requireMemory is true, grab the full memory should it be a contract item.
+	/// If _forceCreate is true, then insert a default item into the cache, in the case it doesn't
+	/// exist in the DB.
+	void ensureCached(Address const& _a, bool _requireCode, bool _forceCreate) const;
+
+	/// Retrieve all information about a given address into a cache.
+	void ensureCached(std::unordered_map<Address, Account>& _cache, Address const& _a, bool _requireCode, bool _forceCreate) const;
+
+	/// Execute the given block, assuming it corresponds to m_currentBlock.
+	/// Throws on failure.
+	u256 enact(VerifiedBlockRef const& _block, BlockChain const& _bc);
+
+	/// Finalise the block, applying the earned rewards.
+	void applyRewards(std::vector<BlockHeader> const& _uncleBlockHeaders, u256 const& _blockReward);
+
+	/// @returns gas used by transactions thus far executed.
+	u256 gasUsed() const { return m_receipts.size() ? m_receipts.back().gasUsed() : 0; }
+
+	/// Performs irregular modifications right after initialization, e.g. to implement a hard fork.
+	void performIrregularModifications();
+
+	/// Provide a standard VM trace for debugging purposes.
+	std::string vmTrace(bytesConstRef _block, BlockChain const& _bc, ImportRequirements::value _ir);
+
+	State m_state;								///< Our state tree, as an OverlayDB DB.
+	Transactions m_transactions;				///< The current list of transactions that we've included in the state.
+	TransactionReceipts m_receipts;				///< The corresponding list of transaction receipts.
+	h256Hash m_transactionSet;					///< The set of transaction hashes that we've included in the state.
+	State m_precommit;							///< State at the point immediately prior to rewards.
+
+	BlockHeader m_previousBlock;				///< The previous block's information.
+	BlockHeader m_currentBlock;					///< The current block's information.
+	bytes m_currentBytes;						///< The current block's bytes.
+	bool m_committedToSeal = false;				///< Have we committed to mine on the present m_currentBlock?
+
+	bytes m_currentTxs;							///< The RLP-encoded block of transactions.
+	bytes m_currentUncles;						///< The RLP-encoded block of uncles.
+
+	Address m_author;							///< Our address (i.e. the address to which fees go).
+
+	SealEngineFace* m_sealEngine = nullptr;		///< The chain's seal engine.
+
+	friend std::ostream& operator<<(std::ostream& _out, Block const& _s);
+};
+
+std::ostream& operator<<(std::ostream& _out, Block const& _s);
 }
 
 }
