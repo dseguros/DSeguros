@@ -153,6 +153,41 @@ public:
 	/// @returns the set containing all addresses currently in use in Ethereum.
 	/// @throws InterfaceNotSupported if compiled without ETH_FATDB.
 	std::unordered_map<Address, u256> addresses() const { return m_state.addresses(); }
+
+    // For altering accounts behind-the-scenes
+
+	/// Get a mutable State object which is backing this block.
+	/// @warning Only use this is you know what you're doing. If you use it while constructing a
+	/// normal sealable block, don't expect things to work right.
+	State& mutableState() { return m_state; }
+
+	// Information concerning ongoing transactions
+
+	/// Get the remaining gas limit in this block.
+	u256 gasLimitRemaining() const { return m_currentBlock.gasLimit() - gasUsed(); }
+
+	/// Get the list of pending transactions.
+	Transactions const& pending() const { return m_transactions; }
+
+	/// Get the list of hashes of pending transactions.
+	h256Hash const& pendingHashes() const { return m_transactionSet; }
+
+	/// Get the transaction receipt for the transaction of the given index.
+	TransactionReceipt const& receipt(unsigned _i) const { return m_receipts[_i]; }
+
+	/// Get the list of pending transactions.
+	LogEntries const& log(unsigned _i) const { return m_receipts[_i].log(); }
+
+	/// Get the bloom filter of all logs that happened in the block.
+	LogBloom logBloom() const;
+
+	/// Get the bloom filter of a particular transaction that happened in the block.
+	LogBloom const& logBloom(unsigned _i) const { return m_receipts[_i].bloom(); }
+
+	/// Get the State immediately after the given number of pending transactions have been applied.
+	/// If (_i == 0) returns the initial state of the block.
+	/// If (_i == pending().size()) returns the final state of the block, prior to rewards.
+	State fromPending(unsigned _i) const;
 }
 
 }
