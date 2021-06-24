@@ -188,6 +188,41 @@ public:
 	/// If (_i == 0) returns the initial state of the block.
 	/// If (_i == pending().size()) returns the final state of the block, prior to rewards.
 	State fromPending(unsigned _i) const;
+
+    // State-change operations
+
+	/// Construct state object from arbitrary point in blockchain.
+	PopulationStatistics populateFromChain(BlockChain const& _bc, h256 const& _hash, ImportRequirements::value _ir = ImportRequirements::None);
+
+	/// Execute a given transaction.
+	/// This will append @a _t to the transaction list and change the state accordingly.
+	//ExecutionResult execute(LastHashes const& _lh, Transaction const& _t, Permanence _p = Permanence::Committed, OnOpFunc const& _onOp = OnOpFunc());
+	ExecutionResult execute(LastHashes const& _lh, Transaction const& _t, Permanence _p = Permanence::Committed, OnOpFunc const& _onOp = OnOpFunc(), BlockChain const *_bc = nullptr);
+
+	/// Sync our transactions, killing those from the queue that we have and assimilating those that we don't.
+	/// @returns a list of receipts one for each transaction placed from the queue into the state and bool, true iff there are more transactions to be processed.
+	std::pair<TransactionReceipts, bool> sync(BlockChain const& _bc, TransactionQueue& _tq, GasPricer const& _gp, unsigned _msTimeout = 100);
+	//std::pair<TransactionReceipts, bool> sync(BlockChain const& _bc, TransactionQueue& _tq, GasPricer const& _gp, bool _exec = true, u256 const& _max_block_txs = Invalid256);
+
+	/// Sync our state with the block chain.
+	/// This basically involves wiping ourselves if we've been superceded and rebuilding from the transaction queue.
+	bool sync(BlockChain const& _bc);
+
+	/// Sync with the block chain, but rather than synching to the latest block, instead sync to the given block.
+	bool sync(BlockChain const& _bc, h256 const& _blockHash, BlockHeader const& _bi = BlockHeader());
+
+	/// Execute all transactions within a given block.
+	/// @returns the additional total difficulty.
+	u256 enactOn(VerifiedBlockRef const& _block, BlockChain const& _bc);
+
+	/// Returns back to a pristine state after having done a playback.
+	/// @arg _fullCommit if true flush everything out to disk. If false, this effectively only validates
+	/// the block since all state changes are ultimately reversed.
+	void cleanup(bool _fullCommit);
+
+	/// Sets m_currentBlock to a clean state, (i.e. no change from m_previousBlock) and
+	/// optionally modifies the timestamp.
+	void resetCurrent(u256 const& _timestamp = u256(utcTime()));
 }
 
 }
