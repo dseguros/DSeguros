@@ -223,6 +223,37 @@ public:
 	/// Sets m_currentBlock to a clean state, (i.e. no change from m_previousBlock) and
 	/// optionally modifies the timestamp.
 	void resetCurrent(u256 const& _timestamp = u256(utcTime()));
+
+    // Sealing
+
+	/// Prepares the current state for mining.
+	/// Commits all transactions into the trie, compiles uncles and transactions list, applies all
+	/// rewards and populates the current block header with the appropriate hashes.
+	/// The only thing left to do after this is to actually mine().
+	///
+	/// This may be called multiple times and without issue.
+	void commitToSeal(BlockChain const& _bc, bytes const& _extraData = {});
+
+	void commitToSealAfterExecTx(BlockChain const& _bc); 
+
+	/// Pass in a properly sealed header matching this block.
+	/// @returns true iff we were previously committed to sealing, the header is valid and it
+	/// corresponds to this block.
+	/// TODO: verify it prior to calling this.
+	/** Commit to DB and build the final block if the previous call to mine()'s result is completion.
+	 * Typically looks like:
+	 * @code
+	 * while (!isSealed)
+	 * {
+	 * // lock
+	 * commitToSeal(_blockChain);  // will call uncommitToSeal if a repeat.
+	 * sealBlock(sealedHeader);
+	 * // unlock
+	 * @endcode
+	 */
+	bool sealBlock(bytes const& _header) { return sealBlock(&_header); }
+	bool sealBlock(bytesConstRef _header);
+	bool sealBlock(bytesConstRef _header, bytes & _out);
 }
 
 }
