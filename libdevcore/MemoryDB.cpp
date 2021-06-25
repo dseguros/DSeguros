@@ -80,4 +80,33 @@ void MemoryDB::insert(h256 const& _h, bytesConstRef _v)
 	dbdebug << "INST" << _h << "=>" << m_main[_h].second;
 #endif
 }
+
+bool MemoryDB::kill(h256 const& _h)
+{
+#if DEV_GUARDED_DB
+	ReadGuard l(x_this);
+#endif
+	if (m_main.count(_h))
+	{
+		if (m_main[_h].second > 0)
+		{
+			m_main[_h].second--;
+			return true;
+		}
+#if ETH_PARANOIA
+		else
+		{
+			// If we get to this point, then there was probably a node in the level DB which we need to remove and which we have previously
+			// used as part of the memory-based MemoryDB. Nothing to be worried about *as long as the node exists in the DB*.
+			dbdebug << "NOKILL-WAS" << _h;
+		}
+		dbdebug << "KILL" << _h << "=>" << m_main[_h].second;
+	}
+	else
+	{
+		dbdebug << "NOKILL" << _h;
+#endif
+	}
+	return false;
+}
 }
