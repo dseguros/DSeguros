@@ -109,4 +109,63 @@ bool MemoryDB::kill(h256 const& _h)
 	}
 	return false;
 }
+bytes MemoryDB::lookupAux(h256 const& _h) const
+{
+#if DEV_GUARDED_DB
+	ReadGuard l(x_this);
+#endif
+	auto it = m_aux.find(_h);
+	if (it != m_aux.end() && (!m_enforceRefs || it->second.second))
+		return it->second.first;
+	return bytes();
+}
+
+void MemoryDB::removeAux(h256 const& _h)
+{
+#if DEV_GUARDED_DB
+	WriteGuard l(x_this);
+#endif
+	m_aux[_h].second = false;
+}
+
+void MemoryDB::insertAux(h256 const& _h, bytesConstRef _v)
+{
+#if DEV_GUARDED_DB
+	WriteGuard l(x_this);
+#endif
+	m_aux[_h] = make_pair(_v.toBytes(), true);
+}
+
+void MemoryDB::purge()
+{
+#if DEV_GUARDED_DB
+	WriteGuard l(x_this);
+#endif
+	// purge m_main
+	for (auto it = m_main.begin(); it != m_main.end(); )
+		if (it->second.second)
+			++it;
+		else
+			it = m_main.erase(it);
+
+	// purge m_aux
+	for (auto it = m_aux.begin(); it != m_aux.end(); )
+		if (it->second.second)
+			++it;
+		else
+			it = m_aux.erase(it);
+}
+
+h256Hash MemoryDB::keys() const
+{
+#if DEV_GUARDED_DB
+	ReadGuard l(x_this);
+#endif
+	h256Hash ret;
+	for (auto const& i: m_main)
+		if (i.second.second)
+			ret.insert(i.first);
+	return ret;
+}
+
 }
