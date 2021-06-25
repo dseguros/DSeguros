@@ -52,4 +52,14 @@ std::string MemoryDB::lookup(h256 const& _h) const
 	return std::string();
 }
 
+bool MemoryDB::exists(h256 const& _h) const
+{
+#if DEV_GUARDED_DB
+	ReadGuard l(x_this);
+#endif
+	auto it = m_main.find(_h);
+	if (it != m_main.end() && (!m_enforceRefs || it->second.second > 0))
+		return true;
+	return false;
+}
 }
