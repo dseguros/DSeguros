@@ -62,4 +62,22 @@ bool MemoryDB::exists(h256 const& _h) const
 		return true;
 	return false;
 }
+
+void MemoryDB::insert(h256 const& _h, bytesConstRef _v)
+{
+#if DEV_GUARDED_DB
+	WriteGuard l(x_this);
+#endif
+	auto it = m_main.find(_h);
+	if (it != m_main.end())
+	{
+		it->second.first = _v.toString();
+		it->second.second++;
+	}
+	else
+		m_main[_h] = make_pair(_v.toString(), 1);
+#if ETH_PARANOIA
+	dbdebug << "INST" << _h << "=>" << m_main[_h].second;
+#endif
+}
 }
