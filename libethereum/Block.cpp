@@ -69,4 +69,22 @@ Block::Block(Block const& _s):
 	m_committedToSeal = false;
 }
 
+Block& Block::operator=(Block const& _s)
+{
+	if (&_s == this)
+		return *this;
 
+	m_state = _s.m_state;
+	m_transactions = _s.m_transactions;
+	m_receipts = _s.m_receipts;
+	m_transactionSet = _s.m_transactionSet;
+	m_previousBlock = _s.m_previousBlock;
+	m_currentBlock = _s.m_currentBlock;
+	m_currentBytes = _s.m_currentBytes;
+	m_author = _s.m_author;
+	m_sealEngine = _s.m_sealEngine;
+
+	m_precommit = m_state;
+	m_committedToSeal = false;
+	return *this;
+}
