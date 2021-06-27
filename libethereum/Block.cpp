@@ -53,3 +53,20 @@ Block::Block(BlockChain const& _bc, OverlayDB const& _db, h256 const& _root, Add
 	m_currentBlock.clear();
 //	assert(m_state.root() == m_previousBlock.stateRoot());
 }
+
+Block::Block(Block const& _s):
+	m_state(_s.m_state),
+	m_transactions(_s.m_transactions),
+	m_receipts(_s.m_receipts),
+	m_transactionSet(_s.m_transactionSet),
+	m_precommit(_s.m_state),
+	m_previousBlock(_s.m_previousBlock),
+	m_currentBlock(_s.m_currentBlock),
+	m_currentBytes(_s.m_currentBytes),
+	m_author(_s.m_author),
+	m_sealEngine(_s.m_sealEngine)
+{
+	m_committedToSeal = false;
+}
+
+
