@@ -42,3 +42,14 @@ Block::Block(BlockChain const& _bc, OverlayDB const& _db, BaseState _bs, Address
 //	assert(m_state.root() == m_previousBlock.stateRoot());
 }
 
+Block::Block(BlockChain const& _bc, OverlayDB const& _db, h256 const& _root, Address const& _author):
+	m_state(Invalid256, _db, BaseState::PreExisting),
+	m_precommit(Invalid256),
+	m_author(_author)
+{
+	noteChain(_bc);
+	m_state.setRoot(_root);
+	m_previousBlock.clear();
+	m_currentBlock.clear();
+//	assert(m_state.root() == m_previousBlock.stateRoot());
+}
