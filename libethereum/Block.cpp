@@ -108,3 +108,13 @@ void Block::resetCurrent(u256 const& _timestamp)
 
 	performIrregularModifications();
 }
+
+void Block::resetCurrentTime(u256 const& _timestamp) {
+    m_currentBlock.setTimestamp(max(m_previousBlock.timestamp() + 1, _timestamp));
+}
+void Block::setIndex(u256 _idx) {
+    m_currentBlock.setIndex(_idx);
+}
+void Block::setNodeList(h512s const& _nodes) {
+    m_currentBlock.setNodeList(_nodes);
+}
