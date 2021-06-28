@@ -118,3 +118,10 @@ void Block::setIndex(u256 _idx) {
 void Block::setNodeList(h512s const& _nodes) {
     m_currentBlock.setNodeList(_nodes);
 }
+
+SealEngineFace* Block::sealEngine() const
+{
+	if (!m_sealEngine)
+		BOOST_THROW_EXCEPTION(ChainOperationWithUnknownBlockChain());
+	return m_sealEngine;
+}
