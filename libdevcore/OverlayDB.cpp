@@ -10,6 +10,13 @@ using namespace dev;
 namespace dev
 {
 
+h256 const EmptyTrie = sha3(rlp(""));
+
+OverlayDB::~OverlayDB()
+{
+	if (m_db.use_count() == 1 && m_db.get())
+		ctrace << "Closing state DB";
+}
 
 }
 
