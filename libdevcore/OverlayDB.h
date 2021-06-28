@@ -27,6 +27,13 @@ public:
 
 	bytes lookupAux(h256 const& _h) const;
 
+private:
+	using MemoryDB::clear;
+
+	std::shared_ptr<ldb::DB> m_db;
+
+	ldb::ReadOptions m_readOptions;
+	ldb::WriteOptions m_writeOptions;
 };
 
 }
