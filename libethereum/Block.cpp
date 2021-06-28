@@ -178,3 +178,111 @@ PopulationStatistics Block::populateFromChain(BlockChain const& _bc, h256 const&
 
 	return ret;
 }
+
+bool Block::sync(BlockChain const& _bc)
+{
+	return sync(_bc, _bc.currentHash());
+}
+
+bool Block::sync(BlockChain const& _bc, h256 const& _block, BlockHeader const& _bi)
+{
+	noteChain(_bc);
+
+	bool ret = false;
+	// BLOCK
+	BlockHeader bi = _bi ? _bi : _bc.info(_block);
+#if ETH_PARANOIA
+	if (!bi)
+		while (1)
+		{
+			try
+			{
+				auto b = _bc.block(_block);
+				bi.populate(b);
+				break;
+			}
+			catch (Exception const& _e)
+			{
+				// TODO: Slightly nicer handling? :-)
+				cerr << "ERROR: Corrupt block-chain! Delete your block-chain DB and restart." << endl;
+				cerr << diagnostic_information(_e) << endl;
+			}
+			catch (std::exception const& _e)
+			{
+				// TODO: Slightly nicer handling? :-)
+				cerr << "ERROR: Corrupt block-chain! Delete your block-chain DB and restart." << endl;
+				cerr << _e.what() << endl;
+			}
+		}
+#endif
+	if (bi == m_currentBlock)
+	{
+		// We mined the last block.
+		// Our state is good - we just need to move on to next.
+		m_previousBlock = m_currentBlock;
+		resetCurrent();
+		ret = true;
+	}
+	else if (bi == m_previousBlock)
+	{
+		// No change since last sync.
+		// Carry on as we were.
+	}
+	else
+	{
+		// New blocks available, or we've switched to a different branch. All change.
+		// Find most recent state dump and replay what's left.
+		// (Most recent state dump might end up being genesis.)
+
+		if (m_state.db().lookup(bi.stateRoot()).empty())	// TODO: API in State for this?
+		{
+			cwarn << "Unable to sync to" << bi.hash() << "; state root" << bi.stateRoot() << "not found in database.";
+			cwarn << "Database corrupt: contains block without stateRoot:" << bi;
+			cwarn << "Try rescuing the database by running: eth --rescue";
+			BOOST_THROW_EXCEPTION(InvalidStateRoot() << errinfo_target(bi.stateRoot()));
+		}
+		m_previousBlock = bi;
+		resetCurrent();
+		ret = true;
+	}
+#if ALLOW_REBUILD
+	else
+	{
+		// New blocks available, or we've switched to a different branch. All change.
+		// Find most recent state dump and replay what's left.
+		// (Most recent state dump might end up being genesis.)
+
+		std::vector<h256> chain;
+		while (bi.number() != 0 && m_db.lookup(bi.stateRoot()).empty())	// while we don't have the state root of the latest block...
+		{
+			chain.push_back(bi.hash());				// push back for later replay.
+			bi.populate(_bc.block(bi.parentHash()));	// move to parent.
+		}
+
+		m_previousBlock = bi;
+		resetCurrent();
+
+		// Iterate through in reverse, playing back each of the blocks.
+		try
+		{
+			for (auto it = chain.rbegin(); it != chain.rend(); ++it)
+			{
+				auto b = _bc.block(*it);
+				enact(&b, _bc, _ir);
+				cleanup(true);
+			}
+		}
+		catch (...)
+		{
+			// TODO: Slightly nicer handling? :-)
+			cerr << "ERROR: Corrupt block-chain! Delete your block-chain DB and restart." << endl;
+			cerr << boost::current_exception_diagnostic_information() << endl;
+			exit(1);
+		}
+
+		resetCurrent();
+		ret = true;
+	}
+#endif
+	return ret;
+}
