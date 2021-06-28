@@ -18,6 +18,13 @@ OverlayDB::~OverlayDB()
 		ctrace << "Closing state DB";
 }
 
+
+class WriteBatchNoter: public ldb::WriteBatch::Handler
+{
+	virtual void Put(ldb::Slice const& _key, ldb::Slice const& _value) { cnote << "Put" << toHex(bytesConstRef(_key)) << "=>" << toHex(bytesConstRef(_value)); }
+	virtual void Delete(ldb::Slice const& _key) { cnote << "Delete" << toHex(bytesConstRef(_key)); }
+};
+
 }
 
 #endif // ETH_EMSCRIPTEN
