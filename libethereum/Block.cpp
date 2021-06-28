@@ -125,3 +125,56 @@ SealEngineFace* Block::sealEngine() const
 		BOOST_THROW_EXCEPTION(ChainOperationWithUnknownBlockChain());
 	return m_sealEngine;
 }
+
+void Block::noteChain(BlockChain const& _bc)
+{
+	if (!m_sealEngine)
+	{
+		m_state.noteAccountStartNonce(_bc.chainParams().accountStartNonce);
+		m_precommit.noteAccountStartNonce(_bc.chainParams().accountStartNonce);
+		m_sealEngine = _bc.sealEngine();
+	}
+}
+
+PopulationStatistics Block::populateFromChain(BlockChain const& _bc, h256 const& _h, ImportRequirements::value _ir)
+{
+	noteChain(_bc);
+
+	PopulationStatistics ret { 0.0, 0.0 };
+
+	if (!_bc.isKnown(_h))
+	{
+		// Might be worth throwing here.
+		cwarn << "Invalid block given for state population: " << _h;
+		BOOST_THROW_EXCEPTION(BlockNotFound() << errinfo_target(_h));
+	}
+
+	auto b = _bc.block(_h);
+	BlockHeader bi(b);		// No need to check - it's already in the DB.
+	if (bi.number())
+	{
+		// Non-genesis:
+
+		// 1. Start at parent's end state (state root).
+		BlockHeader bip(_bc.block(bi.parentHash()));
+		sync(_bc, bi.parentHash(), bip);
+
+		// 2. Enact the block's transactions onto this state.
+		m_author = bi.author();
+		Timer t;
+		auto vb = _bc.verifyBlock(&b, function<void(Exception&)>(), _ir | ImportRequirements::TransactionBasic);
+		ret.verify = t.elapsed();
+		t.restart();
+		enact(vb, _bc);
+		ret.enact = t.elapsed();
+	}
+	else
+	{
+		// Genesis required:
+		// We know there are no transactions, so just populate directly.
+		m_state = State(m_state.accountStartNonce(), m_state.db(), BaseState::Empty);	// TODO: try with PreExisting.
+		sync(_bc, _h, bi);
+	}
+
+	return ret;
+}
