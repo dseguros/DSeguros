@@ -115,6 +115,39 @@ bool OverlayDB::exists(h256 const& _h) const
 		m_db->Get(m_readOptions, ldb::Slice((char const*)_h.data(), 32), &ret);
 	return !ret.empty();
 }
+
+void OverlayDB::kill(h256 const& _h)
+{
+#if ETH_PARANOIA || 1
+	if (!MemoryDB::kill(_h))
+	{
+		std::string ret;
+		if (m_db)
+			m_db->Get(m_readOptions, ldb::Slice((char const*)_h.data(), 32), &ret);
+		// No point node ref decreasing for EmptyTrie since we never bother incrementing it in the first place for
+		// empty storage tries.
+		if (ret.empty() && _h != EmptyTrie)
+			cnote << "Decreasing DB node ref count below zero with no DB node. Probably have a corrupt Trie." << _h;
+
+		// TODO: for 1.1: ref-counted triedb.
+	}
+#else
+	MemoryDB::kill(_h);
+#endif
+}
+
+bool OverlayDB::deepkill(h256 const& _h)
+{
+	// kill in memoryDB
+	kill(_h);
+
+	//kill in overlayDB
+	ldb::Status s = m_db->Delete(m_writeOptions, ldb::Slice((char const*)_h.data(), 32));
+	if (s.ok())
+		return true;
+	else
+		return false;
+}
 }
 
 #endif // ETH_EMSCRIPTEN
