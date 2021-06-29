@@ -43,6 +43,18 @@ public:
 	/// Public only for test mode
 	void completeSync();
 
+        /// Called by peer to report status
+	void onPeerStatus(std::shared_ptr<EthereumPeer> _peer);
+
+	/// Called by peer once it has new block headers during sync
+	void onPeerBlockHeaders(std::shared_ptr<EthereumPeer> _peer, RLP const& _r);
+
+	/// Called by peer once it has new block bodies
+	void onPeerBlockBodies(std::shared_ptr<EthereumPeer> _peer, RLP const& _r);
+
+	/// Called by peer once it has new block bodies
+	void onPeerNewBlock(std::shared_ptr<EthereumPeer> _peer, RLP const& _r);
+
 };
 
 }
