@@ -76,6 +76,20 @@ void OverlayDB::commit()
 	}
 }
 
+bytes OverlayDB::lookupAux(h256 const& _h) const
+{
+	bytes ret = MemoryDB::lookupAux(_h);
+	if (!ret.empty() || !m_db)
+		return ret;
+	std::string v;
+	bytes b = _h.asBytes();
+	b.push_back(255);	// for aux
+	m_db->Get(m_readOptions, bytesConstRef(&b), &v);
+	if (v.empty())
+		cwarn << "Aux not found: " << _h;
+	return asBytes(v);
+}
+
 }
 
 #endif // ETH_EMSCRIPTEN
