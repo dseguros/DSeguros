@@ -105,6 +105,16 @@ std::string OverlayDB::lookup(h256 const& _h) const
 		m_db->Get(m_readOptions, ldb::Slice((char const*)_h.data(), 32), &ret);
 	return ret;
 }
+
+bool OverlayDB::exists(h256 const& _h) const
+{
+	if (MemoryDB::exists(_h))
+		return true;
+	std::string ret;
+	if (m_db)
+		m_db->Get(m_readOptions, ldb::Slice((char const*)_h.data(), 32), &ret);
+	return !ret.empty();
+}
 }
 
 #endif // ETH_EMSCRIPTEN
