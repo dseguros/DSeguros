@@ -90,6 +90,21 @@ bytes OverlayDB::lookupAux(h256 const& _h) const
 	return asBytes(v);
 }
 
+void OverlayDB::rollback()
+{
+#if DEV_GUARDED_DB
+	WriteGuard l(x_this);
+#endif
+	m_main.clear();
+}
+
+std::string OverlayDB::lookup(h256 const& _h) const
+{
+	std::string ret = MemoryDB::lookup(_h);
+	if (ret.empty() && m_db)
+		m_db->Get(m_readOptions, ldb::Slice((char const*)_h.data(), 32), &ret);
+	return ret;
+}
 }
 
 #endif // ETH_EMSCRIPTEN
