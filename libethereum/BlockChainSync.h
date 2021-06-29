@@ -55,6 +55,19 @@ public:
 	/// Called by peer once it has new block bodies
 	void onPeerNewBlock(std::shared_ptr<EthereumPeer> _peer, RLP const& _r);
 
+
+        void onPeerNewHashes(std::shared_ptr<EthereumPeer> _peer, std::vector<std::pair<h256, u256>> const& _hashes);
+
+	/// Called by peer when it is disconnecting
+	void onPeerAborting();
+
+	/// Called when a blockchain has imported a new block onto the DB
+	void onBlockImported(BlockHeader const& _info);
+
+	/// @returns Synchonization status
+	SyncStatus status() const;
+
+	static char const* stateName(SyncState _s) { return s_stateNames[static_cast<int>(_s)]; }
 };
 
 }
