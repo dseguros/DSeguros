@@ -13,4 +13,15 @@
 namespace dev
 {
 
+class RLPStream;
+
+namespace eth
+{
+
+class EthereumHost;
+class BlockQueue;
+class EthereumPeer;
+
+}
+
 }
