@@ -79,5 +79,25 @@ public:
 
 	RangeMask& operator+=(RangeMask const& _m) { return unionWith(_m); }
 
+        RangeMask& unionWith(RangeMask const& _m)
+	{
+		m_all.first = std::min(_m.m_all.first, m_all.first);
+		m_all.second = std::max(_m.m_all.second, m_all.second);
+		for (auto const& i: _m.m_ranges)
+			unionWith(i);
+		return *this;
+	}
+	RangeMask& operator+=(Range const& _m) { return unionWith(_m); }
+	/// Modifies this range mask to also include the range _m, which has to be a subset of
+	/// the ground range.
+	RangeMask& unionWith(Range const& _m);
+
+	/// Adds the single element _i to the range mask.
+	RangeMask& operator+=(T _m) { return unionWith(_m); }
+	/// Adds the single element _i to the range mask.
+	RangeMask& unionWith(T _i)
+	{
+		return operator+=(Range(_i, _i + 1));
+	}
 };
 }
