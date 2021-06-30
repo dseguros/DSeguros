@@ -86,6 +86,38 @@ private:
 	void clearPeerDownload();
 	void collectBlocks();
 
+private:
+	struct Header
+	{
+		bytes data;		///< Header data
+		h256 hash;		///< Block hash
+		h256 parent;	///< Parent hash
+	};
+
+	/// Used to identify header by transactions and uncles hashes
+	struct HeaderId
+	{
+		h256 transactionsRoot;
+		h256 uncles;
+
+		bool operator==(HeaderId const& _other) const
+		{
+			return transactionsRoot == _other.transactionsRoot && uncles == _other.uncles;
+		}
+	};
+
+	struct HeaderIdHash
+	{
+		std::size_t operator()(const HeaderId& _k) const
+		{
+			size_t seed = 0;
+			h256::hash hasher;
+			boost::hash_combine(seed, hasher(_k.transactionsRoot));
+			boost::hash_combine(seed, hasher(_k.uncles));
+			return seed;
+		}
+	};
+
 };
 
 }
