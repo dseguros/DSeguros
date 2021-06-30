@@ -38,5 +38,20 @@ public:
 	/// Constructs an empty range mask with ground range _c.
 	RangeMask(Range const& _c): m_all(_c) {}
 
+        /// @returns the union with the range mask _m, taking also the union of the ground ranges.
+	RangeMask unionedWith(RangeMask const& _m) const { return operator+(_m); }
+	RangeMask operator+(RangeMask const& _m) const { return RangeMask(*this) += _m; }
+
+	/// @returns a new range mask containing the smallest _items elements (not ranges).
+	RangeMask lowest(decltype(T{} - T{}) _items) const
+	{
+		RangeMask ret(m_all);
+		for (auto i = m_ranges.begin(); i != m_ranges.end() && _items; ++i)
+			_items -= (ret.m_ranges[i->first] = std::min(i->first + _items, i->second)) - i->first;
+		return ret;
+	}
+
+	/// @returns the complement of the range mask relative to the ground range.
+	RangeMask operator~() const { return inverted(); }
 };
 }
