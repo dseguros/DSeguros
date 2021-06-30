@@ -53,5 +53,31 @@ public:
 
 	/// @returns the complement of the range mask relative to the ground range.
 	RangeMask operator~() const { return inverted(); }
+
+        /// @returns a copy of this range mask representing the complement relative to the ground range.
+	RangeMask inverted() const
+	{
+		RangeMask ret(m_all);
+		T last = m_all.first;
+		for (auto i: m_ranges)
+		{
+			if (i.first != last)
+				ret.m_ranges[last] = i.first;
+			last = i.second;
+		}
+		if (last != m_all.second)
+			ret.m_ranges[last] = m_all.second;
+		return ret;
+	}
+
+	/// Changes the range mask to its complement relative to the ground range and returns a
+	/// reference to itself.
+	RangeMask& invert() { return *this = inverted(); }
+
+	template <class S> RangeMask operator-(S const& _m) const { auto ret = *this; return ret -= _m; }
+	template <class S> RangeMask& operator-=(S const& _m) { return invert().unionWith(_m).invert(); }
+
+	RangeMask& operator+=(RangeMask const& _m) { return unionWith(_m); }
+
 };
 }
