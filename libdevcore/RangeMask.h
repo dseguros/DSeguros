@@ -99,5 +99,18 @@ public:
 	{
 		return operator+=(Range(_i, _i + 1));
 	}
+
+        bool contains(T _i) const
+	{
+		auto it = m_ranges.upper_bound(_i);
+		if (it == m_ranges.begin())
+			return false;
+		return (--it)->second > _i;
+	}
+
+	bool empty() const
+	{
+		return m_ranges.empty();
+	}
 };
 }
