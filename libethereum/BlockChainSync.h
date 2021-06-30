@@ -144,6 +144,8 @@ private:
 	void logNewBlock(h256 const& _h);
 };
 
+std::ostream& operator<<(std::ostream& _out, SyncStatus const& _sync);
+
 }
 
 }
