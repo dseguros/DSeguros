@@ -10,4 +10,9 @@
 namespace dev
 {
 
+class RLPStream;
+
+using UnsignedRange = std::pair<unsigned, unsigned>;
+using UnsignedRanges = std::vector<UnsignedRange>;
+
 }
