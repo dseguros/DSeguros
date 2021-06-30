@@ -68,6 +68,24 @@ public:
 	SyncStatus status() const;
 
 	static char const* stateName(SyncState _s) { return s_stateNames[static_cast<int>(_s)]; }
+
+private:
+	/// Resume downloading after witing state
+	void continueSync();
+
+	/// Enter waiting state
+	void pauseSync();
+
+	EthereumHost& host() { return m_host; }
+	EthereumHost const& host() const { return m_host; }
+
+	void resetSync();
+	void syncPeer(std::shared_ptr<EthereumPeer> _peer, bool _force);
+	void requestBlocks(std::shared_ptr<EthereumPeer> _peer);
+	void clearPeerDownload(std::shared_ptr<EthereumPeer> _peer);
+	void clearPeerDownload();
+	void collectBlocks();
+
 };
 
 }
