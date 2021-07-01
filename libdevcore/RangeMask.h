@@ -193,5 +193,11 @@ public:
 			return m_all.first;
 		return m_ranges.rbegin()->second - 1;
 	}
+
+private:
+	/// The ground range.
+	UnsignedRange m_all;
+	/// Mapping begin -> end containing the ranges.
+	std::map<T, T> m_ranges;
 };
 }
