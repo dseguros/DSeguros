@@ -112,5 +112,26 @@ public:
 	{
 		return m_ranges.empty();
 	}
+
+        bool full() const
+	{
+		return m_all.first == m_all.second || (m_ranges.size() == 1 && m_ranges.begin()->first == m_all.first && m_ranges.begin()->second == m_all.second);
+	}
+
+	void clear()
+	{
+		m_ranges.clear();
+	}
+
+	void reset()
+	{
+		m_ranges.clear();
+		m_all = std::make_pair(0, 0);
+	}
+
+	/// @returns the ground range.
+	std::pair<T, T> const& all() const { return m_all; }
+	/// Extends the ground range to include _i.
+	void extendAll(T _i) { m_all = std::make_pair(std::min(m_all.first, _i), std::max(m_all.second, _i + 1)); }
 };
 }
