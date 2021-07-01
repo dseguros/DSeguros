@@ -133,5 +133,65 @@ public:
 	std::pair<T, T> const& all() const { return m_all; }
 	/// Extends the ground range to include _i.
 	void extendAll(T _i) { m_all = std::make_pair(std::min(m_all.first, _i), std::max(m_all.second, _i + 1)); }
+
+        class const_iterator: public std::iterator<std::forward_iterator_tag, T>
+	{
+		friend class RangeMask;
+
+	public:
+		const_iterator() {}
+
+		T operator*() const { return m_value; }
+		const_iterator& operator++() { if (m_owner) m_value = m_owner->next(m_value); return *this; }
+		const_iterator operator++(int) { auto ret = *this; if (m_owner) m_value = m_owner->next(m_value); return ret; }
+
+		bool operator==(const_iterator const& _i) const { return m_owner == _i.m_owner && m_value == _i.m_value; }
+		bool operator!=(const_iterator const& _i) const { return !operator==(_i); }
+		bool operator<(const_iterator const& _i) const { return m_value < _i.m_value; }
+
+	private:
+		const_iterator(RangeMask const& _m, bool _end): m_owner(&_m), m_value(_m.m_ranges.empty() || _end ? _m.m_all.second : _m.m_ranges.begin()->first) {}
+
+		RangeMask const* m_owner = nullptr;
+		T m_value = 0;
+	};
+
+	const_iterator begin() const { return const_iterator(*this, false); }
+	const_iterator end() const { return const_iterator(*this, true); }
+	/// @returns the smallest element in the range mask that is larger than _t or the end of the
+	/// base range if such an element does not exist.
+	T next(T _t) const
+	{
+		_t++;
+		// find next item in range at least _t
+		auto uit = m_ranges.upper_bound(_t);	 // > _t
+		auto it = uit == m_ranges.begin() ? m_ranges.end() : std::prev(uit);
+		if (it != m_ranges.end() && it->first <= _t && it->second > _t)
+			return _t;
+		return uit == m_ranges.end() ? m_all.second : uit->first;
+	}
+
+	/// @returns the number of elements (not ranges) in the range mask.
+	size_t size() const
+	{
+		size_t c = 0;
+		for (auto const& r: this->m_ranges)
+			c += r.second - r.first;
+		return c;
+	}
+
+	size_t firstOut() const
+	{
+		if (m_ranges.empty() || !m_ranges.count(m_all.first))
+			return m_all.first;
+		return m_ranges.at(m_all.first);
+	}
+
+	size_t lastIn() const
+	{
+		if (m_ranges.empty())
+			return m_all.first;
+		return m_ranges.rbegin()->second - 1;
+	}
 };
 }
