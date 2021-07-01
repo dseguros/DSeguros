@@ -836,3 +836,74 @@ u256 Block::enact(VerifiedBlockRef const& _block, BlockChain const& _bc)
 	return tdIncrease;
 }
 
+/*
+ExecutionResult Block::execute(LastHashes const& _lh, Transaction const& _t, Permanence _p, OnOpFunc const& _onOp)
+{
+	if (isSealed())
+		BOOST_THROW_EXCEPTION(InvalidOperationOnSealedBlock());
+
+	// Uncommitting is a non-trivial operation - only do it once we've verified as much of the
+	// transaction as possible.
+	uncommitToSeal();
+
+	std::pair<ExecutionResult, TransactionReceipt> resultReceipt = m_state.execute(EnvInfo(info(), _lh, gasUsed()), *m_sealEngine, _t, _p, _onOp);
+
+	if (_p == Permanence::Committed)
+	{
+		// Add to the user-originated transactions that we've executed.
+		m_transactions.push_back(_t);
+		m_receipts.push_back(resultReceipt.second);
+		m_transactionSet.insert(_t.sha3());
+	}
+
+	return resultReceipt.first;
+}
+*/
+// will throw exception
+ExecutionResult Block::execute(LastHashes const& _lh, Transaction const& _t, Permanence _p, OnOpFunc const& _onOp, BlockChain const *_bcp)
+{
+    (void)_bcp;
+    cdebug << "Block::execute " << _t.sha3();
+    if (isSealed())
+        BOOST_THROW_EXCEPTION(InvalidOperationOnSealedBlock());
+
+    // Uncommitting is a non-trivial operation - only do it once we've verified as much of the
+    // transaction as possible.
+    uncommitToSeal();
+
+    //if ( _bcp != nullptr )
+    //{
+    //    u256 check = _bcp->filterCheck(_t, FilterCheckScene::BlockExecuteTransation);
+    //    if ( (u256)SystemContractCode::Ok != check )
+    //    {
+    //        cwarn << "Block::execute " << _t.sha3() << " transition filterCheck Fail" << check;
+    //        BOOST_THROW_EXCEPTION(FilterCheckFail());
+    //    }
+    //}
+
+    std::pair<ExecutionResult, TransactionReceipt> resultReceipt = m_state.execute(EnvInfo(info(), _lh, gasUsed()), *m_sealEngine, _t, _p, _onOp);
+
+    if (_p == Permanence::Committed)
+    {
+        // Add to the user-originated transactions that we've executed.
+        m_transactions.push_back(_t);
+        cdebug << "Block::execute: t=" << toString(_t.sha3());
+        m_receipts.push_back(resultReceipt.second);
+        cdebug << "Block::execute: stateRoot=" << toString(resultReceipt.second.stateRoot()) << ",gasUsed=" << toString(resultReceipt.second.gasUsed()) << ",sha3=" << toString(sha3(resultReceipt.second.rlp()));
+        m_transactionSet.insert(_t.sha3());
+
+
+        //if (_bcp) {
+        //    (_bcp)->updateCache(_t.to());
+        //}
+
+    }
+   
+    //if (_p == Permanence::OnlyReceipt)
+    //{
+    //    m_receipts.push_back(resultReceipt.second);
+    //    cdebug << "Block::execute: stateRoot=" << toString(resultReceipt.second.stateRoot()) << ",gasUsed=" << toString(resultReceipt.second.gasUsed()) << ",sha3=" << toString(sha3(resultReceipt.second.rlp()));
+    //}
+
+    return resultReceipt.first;
+}
