@@ -386,3 +386,205 @@ pair<TransactionReceipts, bool> Block::sync(BlockChain const& _bc, TransactionQu
 	}
 	return ret;
 }
+
+
+/*
+pair<TransactionReceipts, bool> Block::sync(BlockChain const& _bc, TransactionQueue& _tq, GasPricer const& _gp, bool _exec, u256 const& _max_block_txs)
+{
+    cdebug << "Block::sync ";
+
+    if (isSealed())
+        BOOST_THROW_EXCEPTION(InvalidOperationOnSealedBlock());
+
+    noteChain(_bc);
+
+    // TRANSACTIONS
+    pair<TransactionReceipts, bool> ret;
+
+    unsigned max_sync_txs = 0;
+    if (_max_block_txs == Invalid256) {
+        max_sync_txs = c_maxSyncTransactions;
+    } else {
+        max_sync_txs = static_cast<unsigned>(_max_block_txs > m_transactions.size() ? _max_block_txs - m_transactions.size() : 0);
+    }
+  
+    auto ts = _tq.allTransactions();
+
+    LastHashes lh;
+    unsigned goodTxs = 0;
+   
+    {
+        //goodTxs = 0;
+        for (auto const& t : ts)
+            if (!m_transactionSet.count(t.sha3()))
+            {
+                try
+                {
+                    cdebug << "PACK-TX: Hash=" << (t.sha3()) << ",time=" << utcTime();
+
+                    //u256 check = _bc.filterCheck(t, FilterCheckScene::PackTranscation);
+                    //if ( (u256)SystemContractCode::Ok != check  )
+                    //{
+                    //    cwarn << "Block::sync " << t.sha3() << " transition filterCheck PackTranscation Fail" << check;
+                    //    BOOST_THROW_EXCEPTION(FilterCheckFail());
+                    //}
+
+                    if ( ! _bc.isBlockLimitOk(t)  ) 
+                    {
+                        cwarn << "Block::sync " << t.sha3() << " transition blockLimit=" << t.blockLimit() << " chain number=" << _bc.number();
+                        BOOST_THROW_EXCEPTION(BlockLimitCheckFail());
+                    }
+
+                    if ( !_bc.isNonceOk(t) ) 
+                    {
+                        cwarn << "Block::sync " << t.sha3() << " " << t.randomid();
+                        BOOST_THROW_EXCEPTION(NonceCheckFail());
+                    }
+                    for ( size_t pIndex = 0; pIndex < m_transactions.size(); pIndex++) 
+                    {
+                        if ( (m_transactions[pIndex].from() == t.from() ) && (m_transactions[pIndex].randomid() == t.randomid()) )
+                            BOOST_THROW_EXCEPTION(NonceCheckFail());
+                    }//for
+
+                    if (_exec) {
+                        u256 _t = _gp.ask(*this);
+
+                        if ( _t )
+                            _t = 0;
+                        //Timer t;
+                        if (lh.empty())
+                            lh = _bc.lastHashes();
+                        execute(lh, t, Permanence::Committed, OnOpFunc(), &_bc);
+                        ret.first.push_back(m_receipts.back());
+                    } else {
+                        cdebug << "Block::sync no need exec: t=" << toString(t.sha3());
+                        m_transactions.push_back(t);
+                        m_transactionSet.insert(t.sha3());
+                    }
+                    ++goodTxs;
+                }
+                catch ( FilterCheckFail const& in)
+                {
+                    cwarn << t.sha3() << "Block::sync Dropping  transaction (filter check fail!)";
+                    _tq.drop(t.sha3());
+                }
+                catch ( NoDeployPermission const &in)
+                {
+                    cwarn << t.sha3() << "Block::sync Dropping  transaction (NoDeployPermission  fail!)";
+                    _tq.drop(t.sha3());
+                }
+                catch (BlockLimitCheckFail const& in)
+                {
+                    cwarn << t.sha3() << "Block::sync Dropping  transaction (blocklimit  check fail!)";
+                    _tq.drop(t.sha3());
+                }
+                catch (NonceCheckFail const& in)
+                {
+                    cwarn << t.sha3() << "Block::sync Dropping  transaction (nonce check fail!)";
+                    _tq.drop(t.sha3());
+                }
+                catch (InvalidNonce const& in)
+                {
+                    bigint const& req = *boost::get_error_info<errinfo_required>(in);
+                    bigint const& got = *boost::get_error_info<errinfo_got>(in);
+
+                    if (req > got)
+                    {
+                        // too old
+                        cdebug << t.sha3() << "Dropping old transaction (nonce too low)";
+                        _tq.drop(t.sha3());
+                    }
+                    else if (got > req + _tq.waiting(t.sender()))
+                    {
+                        // too new
+                        cdebug << t.sha3() << "Dropping new transaction (too many nonces ahead)";
+                        _tq.drop(t.sha3());
+                    }
+                    else
+                        _tq.setFuture(t.sha3());
+                }
+                catch (BlockGasLimitReached const& e)
+                {
+                    bigint const& got = *boost::get_error_info<errinfo_got>(e);
+                    if (got > m_currentBlock.gasLimit())
+                    {
+                        cdebug << t.sha3() << "Dropping over-gassy transaction (gas > block's gas limit)";
+                        _tq.drop(t.sha3());
+                    }
+                    else
+                    {
+                        cdebug << t.sha3() << "Temporarily no gas left in current block (txs gas > block's gas limit)";
+                    }
+                }
+                catch (Exception const& _e)
+                {
+                    // Something else went wrong - drop it.
+                    cdebug << t.sha3() << "Dropping invalid transaction:" << diagnostic_information(_e);
+                    _tq.drop(t.sha3());
+                }
+                catch (std::exception const&)
+                {
+                    // Something else went wrong - drop it.
+                    _tq.drop(t.sha3());
+                    cwarn << t.sha3() << "Transaction caused low-level exception :(";
+                }
+
+                if (goodTxs >= max_sync_txs) {
+                    break;
+                }
+            }
+        ret.second = (goodTxs >= max_sync_txs);
+    }
+    return ret;
+}
+*/
+
+TransactionReceipts Block::exec(BlockChain const& _bc, TransactionQueue& _tq)
+{
+    cdebug << "Block::exec ";
+
+    if (isSealed())
+        BOOST_THROW_EXCEPTION(InvalidOperationOnSealedBlock());
+
+    noteChain(_bc);
+
+    // TRANSACTIONS
+    TransactionReceipts ret;
+
+    LastHashes lh;
+    DEV_TIMED_ABOVE("lastHashes", 500)
+    lh = _bc.lastHashes();
+
+    unsigned i = 0;
+    DEV_TIMED_ABOVE("txExec,blk=" + toString(info().number()) + ",txs=" + toString(m_transactions.size()), 500)
+    for (Transaction const& tr : m_transactions)
+    {
+        try
+        {
+            cdebug << "Block::exec transaction: " << tr.from() /*<< state().transactionsFrom(tr.from()) */ << tr.value() << toString(tr.sha3());
+            execute(lh, tr, Permanence::Committed, OnOpFunc(), &_bc);
+        }
+        catch (Exception& ex)
+        {
+            ex << errinfo_transactionIndex(i);
+            _tq.drop(tr.sha3());  
+            throw;
+        }
+        catch (std::exception& ex)
+        {
+	    cwarn<<"execute t="<<toString(tr.sha3())<<" failed, error message:"<<ex.what();
+            _tq.drop(tr.sha3());  
+            throw;
+        }
+        cdebug << "Block::exec: t=" << toString(tr.sha3());
+        cdebug << "Block::exec: stateRoot=" << toString(m_receipts.back().stateRoot()) << ",gasUsed=" << toString(m_receipts.back().gasUsed()) << ",sha3=" << toString(sha3(m_receipts.back().rlp()));
+
+        RLPStream receiptRLP;
+        m_receipts.back().streamRLP(receiptRLP);
+        ret.push_back(m_receipts.back());
+        ++i;
+    }
+
+    return ret;
+}
+
