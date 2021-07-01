@@ -286,3 +286,103 @@ bool Block::sync(BlockChain const& _bc, h256 const& _block, BlockHeader const& _
 #endif
 	return ret;
 }
+
+pair<TransactionReceipts, bool> Block::sync(BlockChain const& _bc, TransactionQueue& _tq, GasPricer const& _gp, unsigned msTimeout)
+{
+	if (isSealed())
+		BOOST_THROW_EXCEPTION(InvalidOperationOnSealedBlock());
+
+	noteChain(_bc);
+
+	// TRANSACTIONS
+	pair<TransactionReceipts, bool> ret;
+
+	auto ts = _tq.topTransactions(c_maxSyncTransactions, m_transactionSet);
+	ret.second = (ts.size() == c_maxSyncTransactions);	// say there's more to the caller if we hit the limit
+
+	LastHashes lh;
+
+	auto deadline =  chrono::steady_clock::now() + chrono::milliseconds(msTimeout);
+
+	for (int goodTxs = max(0, (int)ts.size() - 1); goodTxs < (int)ts.size(); )
+	{
+		goodTxs = 0;
+		for (auto const& t: ts)
+			if (!m_transactionSet.count(t.sha3()))
+			{
+				try
+				{
+					if (t.gasPrice() >= _gp.ask(*this))
+					{
+//						Timer t;
+						if (lh.empty())
+							lh = _bc.lastHashes();
+						execute(lh, t);
+						ret.first.push_back(m_receipts.back());
+						++goodTxs;
+//						cnote << "TX took:" << t.elapsed() * 1000;
+					}
+					else if (t.gasPrice() < _gp.ask(*this) * 9 / 10)
+					{
+						clog(StateTrace) << t.sha3() << "Dropping El Cheapo transaction (<90% of ask price)";
+						_tq.drop(t.sha3());
+					}
+				}
+				catch (InvalidNonce const& in)
+				{
+					bigint const& req = *boost::get_error_info<errinfo_required>(in);
+					bigint const& got = *boost::get_error_info<errinfo_got>(in);
+
+					if (req > got)
+					{
+						// too old
+						clog(StateTrace) << t.sha3() << "Dropping old transaction (nonce too low)";
+						_tq.drop(t.sha3());
+					}
+					else if (got > req + _tq.waiting(t.sender()))
+					{
+						// too new
+						clog(StateTrace) << t.sha3() << "Dropping new transaction (too many nonces ahead)";
+						_tq.drop(t.sha3());
+					}
+					else
+						_tq.setFuture(t.sha3());
+				}
+				catch (BlockGasLimitReached const& e)
+				{
+					bigint const& got = *boost::get_error_info<errinfo_got>(e);
+					if (got > m_currentBlock.gasLimit())
+					{
+						clog(StateTrace) << t.sha3() << "Dropping over-gassy transaction (gas > block's gas limit)";
+						_tq.drop(t.sha3());
+					}
+					else
+					{
+						clog(StateTrace) << t.sha3() << "Temporarily no gas left in current block (txs gas > block's gas limit)";
+						//_tq.drop(t.sha3());
+						// Temporarily no gas left in current block.
+						// OPTIMISE: could note this and then we don't evaluate until a block that does have the gas left.
+						// for now, just leave alone.
+					}
+				}
+				catch (Exception const& _e)
+				{
+					// Something else went wrong - drop it.
+					clog(StateTrace) << t.sha3() << "Dropping invalid transaction:" << diagnostic_information(_e);
+					_tq.drop(t.sha3());
+				}
+				catch (std::exception const&)
+				{
+					// Something else went wrong - drop it.
+					_tq.drop(t.sha3());
+					cwarn << t.sha3() << "Transaction caused low-level exception :(";
+				}
+			}
+		if (chrono::steady_clock::now() > deadline)
+		{
+			ret.second = true;	// say there's more to the caller if we ended up crossing the deadline.
+			break;
+		}
+	}
+	return ret;
+}
