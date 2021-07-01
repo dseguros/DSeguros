@@ -200,4 +200,74 @@ private:
 	/// Mapping begin -> end containing the ranges.
 	std::map<T, T> m_ranges;
 };
+
+template <class T> inline std::ostream& operator<<(std::ostream& _out, RangeMask<T> const& _r)
+{
+	_out << _r.m_all.first << "{ ";
+	for (auto const& i: _r.m_ranges)
+		_out << "[" << i.first << ", " << i.second << ") ";
+	_out << "}" << _r.m_all.second;
+	return _out;
+}
+
+template <class T>
+RangeMask<T>& RangeMask<T>::unionWith(typename RangeMask<T>::Range const& _m)
+{
+	for (auto i = _m.first; i < _m.second;)
+	{
+		assert(i >= m_all.first);
+		assert(i < m_all.second);
+		// For each number, we find the element equal or next lower. this, if any, must contain the value.
+		// First range that starts after i.
+		auto rangeAfter = m_ranges.upper_bound(i);
+		// Range before rangeAfter or "end" if the rangeAfter is the first ever...
+		auto it = rangeAfter == m_ranges.begin() ? m_ranges.end() : std::prev(rangeAfter);
+		if (it == m_ranges.end() || it->second < i)
+		{
+			// i is either before the first range or between two ranges (with some distance
+			// so that we cannot merge it onto "it").
+			// lower range is too low to merge.
+			// if the next higher range is too high.
+			if (rangeAfter == m_ranges.end() || rangeAfter->first > _m.second)
+			{
+				// just create a new range
+				m_ranges[i] = _m.second;
+				break;
+			}
+			else
+			{
+				if (rangeAfter->first == i)
+					// move i to end of range
+					i = rangeAfter->second;
+				else
+				{
+					// merge with the next higher range
+					// move i to end of range
+					i = m_ranges[i] = rangeAfter->second;
+					m_ranges.erase(rangeAfter);
+				}
+			}
+		}
+		else if (it->second == i)
+		{
+			// The range before i ends with i.
+			// if the next higher range is too high.
+			if (rangeAfter == m_ranges.end() || rangeAfter->first > _m.second)
+			{
+				// merge with the next lower range
+				m_ranges[it->first] = _m.second;
+				break;
+			}
+			else
+			{
+				// merge with both next lower & next higher.
+				i = m_ranges[it->first] = rangeAfter->second;
+				m_ranges.erase(rangeAfter);
+			}
+		}
+		else
+			i = it->second;
+	}
+	return *this;
+}
 }
