@@ -588,3 +588,51 @@ TransactionReceipts Block::exec(BlockChain const& _bc, TransactionQueue& _tq)
     return ret;
 }
 
+u256 Block::enactOn(VerifiedBlockRef const& _block, BlockChain const& _bc)
+{
+	noteChain(_bc);
+
+#if ETH_TIMED_ENACTMENTS
+	Timer t;
+	double populateVerify;
+	double populateGrand;
+	double syncReset;
+	double enactment;
+#endif
+
+	// Check family:
+	BlockHeader biParent = _bc.info(_block.info.parentHash());
+	_block.info.verify(CheckNothingNew/*CheckParent*/, biParent);
+
+#if ETH_TIMED_ENACTMENTS
+	populateVerify = t.elapsed();
+	t.restart();
+#endif
+
+	BlockHeader biGrandParent;
+	if (biParent.number())
+		biGrandParent = _bc.info(biParent.parentHash());
+
+#if ETH_TIMED_ENACTMENTS
+	populateGrand = t.elapsed();
+	t.restart();
+#endif
+
+	sync(_bc, _block.info.parentHash(), BlockHeader());
+	resetCurrent();
+
+#if ETH_TIMED_ENACTMENTS
+	syncReset = t.elapsed();
+	t.restart();
+#endif
+
+	m_previousBlock = biParent;
+	auto ret = enact(_block, _bc);
+
+#if ETH_TIMED_ENACTMENTS
+	enactment = t.elapsed();
+	if (populateVerify + populateGrand + syncReset + enactment > 0.5)
+		clog(StateChat) << "popVer/popGrand/syncReset/enactment = " << populateVerify << "/" << populateGrand << "/" << syncReset << "/" << enactment;
+#endif
+	return ret;
+}
