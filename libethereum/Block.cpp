@@ -907,3 +907,27 @@ ExecutionResult Block::execute(LastHashes const& _lh, Transaction const& _t, Per
 
     return resultReceipt.first;
 }
+
+void Block::applyRewards(vector<BlockHeader> const& _uncleBlockHeaders, u256 const& _blockReward)
+{
+	u256 r = _blockReward;
+	for (auto const& i: _uncleBlockHeaders)
+	{
+		m_state.addBalance(i.author(), _blockReward * (8 + i.number() - m_currentBlock.number()) / 8);
+		r += _blockReward / 32;
+	}
+	m_state.addBalance(m_currentBlock.author(), r);
+}
+
+void Block::performIrregularModifications()
+{
+	u256 daoHardfork = m_sealEngine->chainParams().u256Param("daoHardforkBlock");
+	if (daoHardfork != 0 && info().number() == daoHardfork)
+	{
+		Address recipient("0xbf4ed7b27f1d666546e30d74d50d173d20bca754");
+		Addresses allDAOs = childDaos();
+		for (Address const& dao: allDAOs)
+			m_state.transferBalance(dao, recipient, m_state.balance(dao));
+		m_state.commit(State::CommitBehaviour::KeepEmptyAccounts);
+	}
+}
