@@ -636,3 +636,203 @@ u256 Block::enactOn(VerifiedBlockRef const& _block, BlockChain const& _bc)
 #endif
 	return ret;
 }
+
+u256 Block::enact(VerifiedBlockRef const& _block, BlockChain const& _bc)
+{
+	noteChain(_bc);
+
+	DEV_TIMED_FUNCTION_ABOVE(500);
+
+	// m_currentBlock is assumed to be prepopulated and reset.
+#if !ETH_RELEASE
+	assert(m_previousBlock.hash() == _block.info.parentHash());
+	assert(m_currentBlock.parentHash() == _block.info.parentHash());
+#endif
+
+	if (m_currentBlock.parentHash() != m_previousBlock.hash())
+		// Internal client error.
+		BOOST_THROW_EXCEPTION(InvalidParentHash());
+
+	// Populate m_currentBlock with the correct values.
+	m_currentBlock.noteDirty();
+	m_currentBlock = _block.info;
+
+//	cnote << "playback begins:" << m_currentBlock.hash() << "(without: " << m_currentBlock.hash(WithoutSeal) << ")";
+//	cnote << m_state;
+
+	LastHashes lh;
+	DEV_TIMED_ABOVE("lastHashes", 500)
+		lh = _bc.lastHashes(m_currentBlock.parentHash());
+
+	RLP rlp(_block.block);
+
+	vector<bytes> receipts;
+
+	// All ok with the block generally. Play back the transactions now...
+	unsigned i = 0;
+	DEV_TIMED_ABOVE("txExec", 500)
+		for (Transaction const& tr: _block.transactions)
+		{
+			try
+			{
+				LogOverride<ExecutiveWarnChannel> o(false);
+//				cnote << "Enacting transaction: " << tr.nonce() << tr.from() << state().transactionsFrom(tr.from()) << tr.value();
+				execute(lh, tr);
+//				cnote << "Now: " << tr.from() << state().transactionsFrom(tr.from());
+//				cnote << m_state;
+			}
+			catch (Exception& ex)
+			{
+				ex << errinfo_transactionIndex(i);
+				throw;
+			}
+
+			RLPStream receiptRLP;
+			m_receipts.back().streamRLP(receiptRLP);
+			receipts.push_back(receiptRLP.out());
+			++i;
+		}
+
+	h256 receiptsRoot;
+	DEV_TIMED_ABOVE(".receiptsRoot()", 500)
+		receiptsRoot = orderedTrieRoot(receipts);
+
+	if (receiptsRoot != m_currentBlock.receiptsRoot())
+	{
+		InvalidReceiptsStateRoot ex;
+		ex << Hash256RequirementError(receiptsRoot, m_currentBlock.receiptsRoot());
+		ex << errinfo_receipts(receipts);
+//		ex << errinfo_vmtrace(vmTrace(_block.block, _bc, ImportRequirements::None));
+		BOOST_THROW_EXCEPTION(ex);
+	}
+
+	if (m_currentBlock.logBloom() != logBloom())
+	{
+		InvalidLogBloom ex;
+		ex << LogBloomRequirementError(logBloom(), m_currentBlock.logBloom());
+		ex << errinfo_receipts(receipts);
+		BOOST_THROW_EXCEPTION(ex);
+	}
+
+	// Initialise total difficulty calculation.
+	u256 tdIncrease = m_currentBlock.difficulty();
+
+	// Check uncles & apply their rewards to state.
+	if (rlp[2].itemCount() > 2)
+	{
+		TooManyUncles ex;
+		ex << errinfo_max(2);
+		ex << errinfo_got(rlp[2].itemCount());
+		BOOST_THROW_EXCEPTION(ex);
+	}
+
+	vector<BlockHeader> rewarded;
+	h256Hash excluded;
+	DEV_TIMED_ABOVE("allKin", 500)
+		excluded = _bc.allKinFrom(m_currentBlock.parentHash(), 6);
+	excluded.insert(m_currentBlock.hash());
+
+	unsigned ii = 0;
+	DEV_TIMED_ABOVE("uncleCheck", 500)
+		for (auto const& i: rlp[2])
+		{
+			try
+			{
+				auto h = sha3(i.data());
+				if (excluded.count(h))
+				{
+					UncleInChain ex;
+					ex << errinfo_comment("Uncle in block already mentioned");
+					ex << errinfo_unclesExcluded(excluded);
+					ex << errinfo_hash256(sha3(i.data()));
+					BOOST_THROW_EXCEPTION(ex);
+				}
+				excluded.insert(h);
+
+				// CheckNothing since it's a VerifiedBlock.
+				BlockHeader uncle(i.data(), HeaderData, h);
+
+				BlockHeader uncleParent;
+				if (!_bc.isKnown(uncle.parentHash()))
+					BOOST_THROW_EXCEPTION(UnknownParent() << errinfo_hash256(uncle.parentHash()));
+				uncleParent = BlockHeader(_bc.block(uncle.parentHash()));
+
+				// m_currentBlock.number() - uncle.number()		m_cB.n - uP.n()
+				// 1											2
+				// 2
+				// 3
+				// 4
+				// 5
+				// 6											7
+				//												(8 Invalid)
+				bigint depth = (bigint)m_currentBlock.number() - (bigint)uncle.number();
+				if (depth > 6)
+				{
+					UncleTooOld ex;
+					ex << errinfo_uncleNumber(uncle.number());
+					ex << errinfo_currentNumber(m_currentBlock.number());
+					BOOST_THROW_EXCEPTION(ex);
+				}
+				else if (depth < 1)
+				{
+					UncleIsBrother ex;
+					ex << errinfo_uncleNumber(uncle.number());
+					ex << errinfo_currentNumber(m_currentBlock.number());
+					BOOST_THROW_EXCEPTION(ex);
+				}
+				// cB
+				// cB.p^1	    1 depth, valid uncle
+				// cB.p^2	---/  2
+				// cB.p^3	-----/  3
+				// cB.p^4	-------/  4
+				// cB.p^5	---------/  5
+				// cB.p^6	-----------/  6
+				// cB.p^7	-------------/
+				// cB.p^8
+				auto expectedUncleParent = _bc.details(m_currentBlock.parentHash()).parent;
+				for (unsigned i = 1; i < depth; expectedUncleParent = _bc.details(expectedUncleParent).parent, ++i) {}
+				if (expectedUncleParent != uncleParent.hash())
+				{
+					UncleParentNotInChain ex;
+					ex << errinfo_uncleNumber(uncle.number());
+					ex << errinfo_currentNumber(m_currentBlock.number());
+					BOOST_THROW_EXCEPTION(ex);
+				}
+				uncle.verify(CheckNothingNew/*CheckParent*/, uncleParent);
+
+				rewarded.push_back(uncle);
+				++ii;
+			}
+			catch (Exception& ex)
+			{
+				ex << errinfo_uncleIndex(ii);
+				throw;
+			}
+		}
+
+	DEV_TIMED_ABOVE("applyRewards", 500)
+		applyRewards(rewarded, _bc.chainParams().blockReward);
+
+	// Commit all cached state changes to the state trie.
+	bool removeEmptyAccounts = m_currentBlock.number() >= _bc.chainParams().u256Param("EIP158ForkBlock");
+	DEV_TIMED_ABOVE("commit", 500)
+		m_state.commit(removeEmptyAccounts ? State::CommitBehaviour::RemoveEmptyAccounts : State::CommitBehaviour::KeepEmptyAccounts);
+
+	// Hash the state trie and check against the state_root hash in m_currentBlock.
+	if (m_currentBlock.stateRoot() != m_previousBlock.stateRoot() && m_currentBlock.stateRoot() != rootHash())
+	{
+		auto r = rootHash();
+		m_state.db().rollback();		// TODO: API in State for this?
+		BOOST_THROW_EXCEPTION(InvalidStateRoot() << Hash256RequirementError(r, m_currentBlock.stateRoot()));
+	}
+
+	if (m_currentBlock.gasUsed() != gasUsed())
+	{
+		// Rollback the trie.
+		m_state.db().rollback();		// TODO: API in State for this?
+		BOOST_THROW_EXCEPTION(InvalidGasUsed() << RequirementError(bigint(gasUsed()), bigint(m_currentBlock.gasUsed())));
+	}
+
+	return tdIncrease;
+}
+
