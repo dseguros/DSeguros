@@ -931,3 +931,103 @@ void Block::performIrregularModifications()
 		m_state.commit(State::CommitBehaviour::KeepEmptyAccounts);
 	}
 }
+
+void Block::commitToSeal(BlockChain const& _bc, bytes const& _extraData)
+{
+	if (isSealed())
+		BOOST_THROW_EXCEPTION(InvalidOperationOnSealedBlock());
+
+	noteChain(_bc);
+
+	if (m_committedToSeal)
+		uncommitToSeal();
+	else
+		m_precommit = m_state;
+
+	vector<BlockHeader> uncleBlockHeaders;
+
+	RLPStream unclesData;
+	unsigned unclesCount = 0;
+	if (m_previousBlock.number() != 0)
+	{
+		// Find great-uncles (or second-cousins or whatever they are) - children of great-grandparents, great-great-grandparents... that were not already uncles in previous generations.
+		clog(StateDetail) << "Checking " << m_previousBlock.hash() << ", parent=" << m_previousBlock.parentHash();
+		h256Hash excluded = _bc.allKinFrom(m_currentBlock.parentHash(), 6);
+		auto p = m_previousBlock.parentHash();
+		for (unsigned gen = 0; gen < 6 && p != _bc.genesisHash() && unclesCount < 2; ++gen, p = _bc.details(p).parent)
+		{
+			auto us = _bc.details(p).children;
+			assert(us.size() >= 1);	// must be at least 1 child of our grandparent - it's our own parent!
+			for (auto const& u: us)
+				if (!excluded.count(u))	// ignore any uncles/mainline blocks that we know about.
+				{
+					uncleBlockHeaders.push_back(_bc.info(u));
+					unclesData.appendRaw(_bc.headerData(u));
+					++unclesCount;
+					if (unclesCount == 2)
+						break;
+					excluded.insert(u);
+				}
+		}
+	}
+
+	BytesMap transactionsMap;
+	BytesMap receiptsMap;
+
+	RLPStream txs;
+	txs.appendList(m_transactions.size());
+
+	for (unsigned i = 0; i < m_transactions.size(); ++i)
+	{
+		RLPStream k;
+		k << i;
+
+		RLPStream receiptrlp;
+		m_receipts[i].streamRLP(receiptrlp);
+		receiptsMap.insert(std::make_pair(k.out(), receiptrlp.out()));
+
+		RLPStream txrlp;
+		m_transactions[i].streamRLP(txrlp);
+		transactionsMap.insert(std::make_pair(k.out(), txrlp.out()));
+
+		txs.appendRaw(txrlp.out());
+
+//#if ETH_PARANOIA
+/*		if (fromPending(i).transactionsFrom(m_transactions[i].from()) != m_transactions[i].nonce())
+		{
+			cwarn << "GAAA Something went wrong! " << fromPending(i).transactionsFrom(m_transactions[i].from()) << "!=" << m_transactions[i].nonce();
+		}*/
+//#endif
+	}
+
+	txs.swapOut(m_currentTxs);
+
+	RLPStream(unclesCount).appendRaw(unclesData.out(), unclesCount).swapOut(m_currentUncles);
+
+	// Apply rewards last of all.
+	applyRewards(uncleBlockHeaders, _bc.chainParams().blockReward);
+
+	// Commit any and all changes to the trie that are in the cache, then update the state root accordingly.
+	bool removeEmptyAccounts = m_currentBlock.number() >= _bc.chainParams().u256Param("EIP158ForkBlock");
+	DEV_TIMED_ABOVE("commit", 500)
+		m_state.commit(removeEmptyAccounts ? State::CommitBehaviour::RemoveEmptyAccounts : State::CommitBehaviour::KeepEmptyAccounts);
+
+	clog(StateDetail) << "Post-reward stateRoot:" << m_state.rootHash();
+	clog(StateDetail) << m_state;
+	clog(StateDetail) << *this;
+
+	m_currentBlock.setLogBloom(logBloom());
+	m_currentBlock.setGasUsed(gasUsed());
+	m_currentBlock.setRoots(hash256(transactionsMap), hash256(receiptsMap), sha3(m_currentUncles), m_state.rootHash());
+
+	m_currentBlock.setParentHash(m_previousBlock.hash());
+	m_currentBlock.setExtraData(_extraData);
+	if (m_currentBlock.extraData().size() > 32)
+	{
+		auto ed = m_currentBlock.extraData();
+		ed.resize(32);
+		m_currentBlock.setExtraData(ed);
+	}
+
+	m_committedToSeal = true;
+}
