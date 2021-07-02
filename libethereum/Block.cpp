@@ -1031,3 +1031,37 @@ void Block::commitToSeal(BlockChain const& _bc, bytes const& _extraData)
 
 	m_committedToSeal = true;
 }
+
+void Block::commitToSealAfterExecTx(BlockChain const&) {
+    BytesMap receiptsMap;
+    for (unsigned i = 0; i < m_receipts.size(); ++i) {
+        RLPStream receiptrlp;
+        m_receipts[i].streamRLP(receiptrlp);
+        RLPStream k;
+        k << i;
+        receiptsMap.insert(std::make_pair(k.out(), receiptrlp.out()));
+    }
+
+    //bool removeEmptyAccounts = m_currentBlock.number() >= _bc.chainParams().u256Param("EIP158ForkBlock");
+    DEV_TIMED_ABOVE("commit", 500)
+    m_state.commit(State::CommitBehaviour::KeepEmptyAccounts);
+
+    //LOG(INFO) << "Post-reward stateRoot:" << m_state.rootHash();
+    //LOG(INFO) << m_state;
+    //LOG(INFO) << *this;
+
+    m_currentBlock.setLogBloom(logBloom());
+    m_currentBlock.setGasUsed(gasUsed());
+    m_currentBlock.setRoots(m_currentBlock.transactionsRoot(), hash256(receiptsMap), m_currentBlock.sha3Uncles(), m_state.rootHash());
+
+    m_committedToSeal = true;
+}
+
+void Block::uncommitToSeal()
+{
+	if (m_committedToSeal)
+	{
+		m_state = m_precommit;
+		m_committedToSeal = false;
+	}
+}
