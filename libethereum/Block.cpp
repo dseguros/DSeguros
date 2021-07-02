@@ -1125,3 +1125,92 @@ bool Block::sealBlock(bytesConstRef _header, bytes & _out)
 
     return true;
 }
+
+
+State Block::fromPending(unsigned _i) const
+{
+	State ret = m_state;
+	_i = min<unsigned>(_i, m_transactions.size());
+	if (!_i)
+		ret.setRoot(m_previousBlock.stateRoot());
+	else
+		ret.setRoot(m_receipts[_i - 1].stateRoot());
+	return ret;
+}
+
+LogBloom Block::logBloom() const
+{
+	LogBloom ret;
+	for (TransactionReceipt const& i: m_receipts)
+		ret |= i.bloom();
+	return ret;
+}
+
+void Block::cleanup(bool _fullCommit)
+{
+	if (_fullCommit)
+	{
+		// Commit the new trie to disk.
+		if (isChannelVisible<StateTrace>()) // Avoid calling toHex if not needed
+			clog(StateTrace) << "Committing to disk: stateRoot" << m_currentBlock.stateRoot() << "=" << rootHash() << "=" << toHex(asBytes(db().lookup(rootHash())));
+
+		try
+		{
+			EnforceRefs er(db(), true);
+			rootHash();
+		}
+		catch (BadRoot const&)
+		{
+			clog(StateChat) << "Trie corrupt! :-(";
+			throw;
+		}
+
+		m_state.db().commit();	// TODO: State API for this?
+
+		if (isChannelVisible<StateTrace>()) // Avoid calling toHex if not needed
+			clog(StateTrace) << "Committed: stateRoot" << m_currentBlock.stateRoot() << "=" << rootHash() << "=" << toHex(asBytes(db().lookup(rootHash())));
+
+		m_previousBlock = m_currentBlock;
+		sealEngine()->populateFromParent(m_currentBlock, m_previousBlock);
+
+		clog(StateTrace) << "finalising enactment. current -> previous, hash is" << m_previousBlock.hash();
+	}
+	else
+		m_state.db().rollback();	// TODO: State API for this?
+
+	resetCurrent();
+}
+
+string Block::vmTrace(bytesConstRef _block, BlockChain const& _bc, ImportRequirements::value _ir)
+{
+	noteChain(_bc);
+
+	RLP rlp(_block);
+
+	cleanup(false);
+	BlockHeader bi(_block);
+	m_currentBlock = bi;
+	m_currentBlock.verify((_ir & ImportRequirements::ValidSeal) ? CheckEverything : IgnoreSeal, _block);
+	m_currentBlock.noteDirty();
+
+	LastHashes lh = _bc.lastHashes(m_currentBlock.parentHash());
+
+	string ret;
+	unsigned i = 0;
+	for (auto const& tr: rlp[1])
+	{
+		StandardTrace st;
+		st.setShowMnemonics();
+		execute(lh, Transaction(tr.data(), CheckTransaction::Everything), Permanence::Committed, st.onOp());
+		ret += (ret.empty() ? "[" : ",") + st.json();
+		++i;
+	}
+	return ret.empty() ? "[]" : (ret + "]");
+}
+
+std::ostream& dev::eth::operator<<(std::ostream& _out, Block const& _s)
+{
+	(void)_s;
+	return _out;
+}
+
