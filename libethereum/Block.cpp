@@ -1065,3 +1065,63 @@ void Block::uncommitToSeal()
 		m_committedToSeal = false;
 	}
 }
+
+bool Block::sealBlock(bytesConstRef _header)
+{
+	if (!m_committedToSeal)
+		return false;
+
+	if (BlockHeader(_header, HeaderData).hash(WithoutSeal) != m_currentBlock.hash(WithoutSeal))
+		return false;
+
+	clog(StateDetail) << "Sealing block!";
+
+	// Compile block:
+	RLPStream ret;
+	ret.appendList(3);
+	ret.appendRaw(_header);
+	ret.appendRaw(m_currentTxs);
+	ret.appendRaw(m_currentUncles);
+	ret.swapOut(m_currentBytes);
+	m_currentBlock = BlockHeader(_header, HeaderData);
+//	cnote << "Mined " << m_currentBlock.hash() << "(parent: " << m_currentBlock.parentHash() << ")";
+	// TODO: move into SealEngine
+
+	m_state = m_precommit;
+
+	// m_currentBytes is now non-empty; we're in a sealed state so no more transactions can be added.
+
+	return true;
+}
+
+bool Block::sealBlock(bytesConstRef _header, bytes & _out)
+{
+    if (!m_committedToSeal) {
+        cdebug << "sealBlock return false, for m_committedToSeal is false";
+        return false;
+    }
+
+    auto tmpBlock = BlockHeader(_header, HeaderData);
+    if (tmpBlock.hash(WithoutSeal) != m_currentBlock.hash(WithoutSeal)) {
+        cdebug << "sealBlock return false, for tmpBlock=" << tmpBlock.hash(WithoutSeal) << ",m_currentBlock=" << m_currentBlock.hash(WithoutSeal);
+        return false;
+    }
+
+    cdebug << "Sealing block!";
+
+    // Compile block:
+    RLPStream ret;
+    ret.appendList(5);
+    ret.appendRaw(_header);
+    ret.appendRaw(m_currentTxs);
+    ret.appendRaw(m_currentUncles);
+    
+    ret.append(m_currentBlock.hash(WithoutSeal));
+   
+    std::vector<std::pair<u256, Signature>> sig_list;
+    ret.appendVector(sig_list);
+
+    ret.swapOut(_out);
+
+    return true;
+}
