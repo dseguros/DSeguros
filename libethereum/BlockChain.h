@@ -28,3 +28,38 @@ template <> struct hash<pair<dev::h256, unsigned>>
 };
 }
 
+
+namespace dev
+{
+
+class OverlayDB;
+
+namespace eth
+{
+
+static const h256s NullH256s;
+
+class State;
+class Block;
+
+DEV_SIMPLE_EXCEPTION(AlreadyHaveBlock);
+DEV_SIMPLE_EXCEPTION(FutureTime);
+DEV_SIMPLE_EXCEPTION(TransientError);
+
+struct BlockChainChat: public LogChannel { static const char* name(); static const int verbosity = 5; };
+struct BlockChainNote: public LogChannel { static const char* name(); static const int verbosity = 3; };
+struct BlockChainWarn: public LogChannel { static const char* name(); static const int verbosity = 1; };
+struct BlockChainDebug: public LogChannel { static const char* name(); static const int verbosity = 0; };
+
+// TODO: Move all this Genesis stuff into Genesis.h/.cpp
+std::unordered_map<Address, Account> const& genesisState();
+
+ldb::Slice toSlice(h256 const& _h, unsigned _sub = 0);
+ldb::Slice toSlice(uint64_t _n, unsigned _sub = 0);
+
+using BlocksHash = std::unordered_map<h256, bytes>;
+using TransactionHashes = h256s;
+using UncleHashes = h256s;
+
+}
+}
