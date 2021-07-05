@@ -17,4 +17,8 @@ bool sha3(bytesConstRef _input, bytesRef o_output);
 inline h256 sha3(bytesConstRef _input) { h256 ret; sha3(_input, ret.ref()); return ret; }
 inline SecureFixedHash<32> sha3Secure(bytesConstRef _input) { SecureFixedHash<32> ret; sha3(_input, ret.writable().ref()); return ret; }
 
+
+/// Calculate SHA3-256 hash of the given input, returning as a 256-bit hash.
+inline h256 sha3(bytes const& _input) { return sha3(bytesConstRef(&_input)); }
+inline SecureFixedHash<32> sha3Secure(bytes const& _input) { return sha3Secure(bytesConstRef(&_input)); }
 }
