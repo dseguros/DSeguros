@@ -30,4 +30,12 @@ inline SecureFixedHash<32> sha3Secure(std::string const& _input) { return sha3Se
 template<unsigned N> inline h256 sha3(FixedHash<N> const& _input) { return sha3(_input.ref()); }
 template<unsigned N> inline SecureFixedHash<32> sha3Secure(FixedHash<N> const& _input) { return sha3Secure(_input.ref()); }
 
+
+/// Fully secure variants are equivalent for sha3 and sha3Secure.
+inline SecureFixedHash<32> sha3(bytesSec const& _input) { return sha3Secure(_input.ref()); }
+inline SecureFixedHash<32> sha3Secure(bytesSec const& _input) { return sha3Secure(_input.ref()); }
+template<unsigned N> inline SecureFixedHash<32> sha3(SecureFixedHash<N> const& _input) { return sha3Secure(_input.ref()); }
+template<unsigned N> inline SecureFixedHash<32> sha3Secure(SecureFixedHash<N> const& _input) { return sha3Secure(_input.ref()); }
+
+
 }
