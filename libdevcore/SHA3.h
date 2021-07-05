@@ -21,4 +21,13 @@ inline SecureFixedHash<32> sha3Secure(bytesConstRef _input) { SecureFixedHash<32
 /// Calculate SHA3-256 hash of the given input, returning as a 256-bit hash.
 inline h256 sha3(bytes const& _input) { return sha3(bytesConstRef(&_input)); }
 inline SecureFixedHash<32> sha3Secure(bytes const& _input) { return sha3Secure(bytesConstRef(&_input)); }
+
+/// Calculate SHA3-256 hash of the given input (presented as a binary-filled string), returning as a 256-bit hash.
+inline h256 sha3(std::string const& _input) { return sha3(bytesConstRef(_input)); }
+inline SecureFixedHash<32> sha3Secure(std::string const& _input) { return sha3Secure(bytesConstRef(_input)); }
+
+/// Calculate SHA3-256 hash of the given input (presented as a FixedHash), returns a 256-bit hash.
+template<unsigned N> inline h256 sha3(FixedHash<N> const& _input) { return sha3(_input.ref()); }
+template<unsigned N> inline SecureFixedHash<32> sha3Secure(FixedHash<N> const& _input) { return sha3Secure(_input.ref()); }
+
 }
