@@ -61,5 +61,23 @@ using BlocksHash = std::unordered_map<h256, bytes>;
 using TransactionHashes = h256s;
 using UncleHashes = h256s;
 
+
+enum {
+	ExtraDetails = 0,
+	ExtraBlockHash,
+	ExtraTransactionAddress,
+	ExtraLogBlooms,
+	ExtraReceipts,
+	ExtraBlocksBlooms
+};
+
+using ProgressCallback = std::function<void(unsigned, unsigned)>;
+
+class VersionChecker
+{
+public:
+	VersionChecker(std::string const& _dbPath, h256 const& _genesisHash);
+};
+
 }
 }
