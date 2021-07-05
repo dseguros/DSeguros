@@ -37,5 +37,14 @@ inline SecureFixedHash<32> sha3Secure(bytesSec const& _input) { return sha3Secur
 template<unsigned N> inline SecureFixedHash<32> sha3(SecureFixedHash<N> const& _input) { return sha3Secure(_input.ref()); }
 template<unsigned N> inline SecureFixedHash<32> sha3Secure(SecureFixedHash<N> const& _input) { return sha3Secure(_input.ref()); }
 
+/// Calculate SHA3-256 hash of the given input, possibly interpreting it as nibbles, and return the hash as a string filled with binary data.
+inline std::string sha3(std::string const& _input, bool _isNibbles) { return asString((_isNibbles ? sha3(fromHex(_input)) : sha3(bytesConstRef(&_input))).asBytes()); }
+
+/// Calculate SHA3-256 MAC
+inline void sha3mac(bytesConstRef _secret, bytesConstRef _plain, bytesRef _output) { sha3(_secret.toBytes() + _plain.toBytes()).ref().populate(_output); }
+
+extern h256 EmptySHA3;
+
+extern h256 EmptyListSHA3;
 
 }
