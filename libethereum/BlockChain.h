@@ -298,7 +298,112 @@ public:
 	void addBlockCache(Block block, u256 td) const;
 
 	void checkBlockValid(h256 const& _head, bytes const& _block, Block & _outBlock) const;
- 
+
+private:
+	static h256 chunkId(unsigned _level, unsigned _index) { return h256(_index * 0xff + _level); }
+
+	/// Initialise everything and ready for openning the database.
+	void init(ChainParams const& _p);
+	/// Open the database.
+	unsigned open(std::string const& _path, WithExisting _we);
+	/// Open the database, rebuilding if necessary.
+	void open(std::string const& _path, WithExisting _we, ProgressCallback const& _pc);
+	/// Finalise everything and close the database.
+	void close();
+
+	template<class T, class K, unsigned N> T queryExtras(K const& _h, std::unordered_map<K, T>& _m, boost::shared_mutex& _x, T const& _n, ldb::DB* _extrasDB = nullptr) const
+	{
+		{
+			ReadGuard l(_x);
+			auto it = _m.find(_h);
+			if (it != _m.end())
+				return it->second;
+		}
+
+		std::string s;
+		(_extrasDB ? _extrasDB : m_extrasDB)->Get(m_readOptions, toSlice(_h, N), &s);
+		if (s.empty())
+			return _n;
+
+		noteUsed(_h, N);
+
+		WriteGuard l(_x);
+		auto ret = _m.insert(std::make_pair(_h, T(RLP(s))));
+		return ret.first->second;
+	}
+
+	template<class T, unsigned N> T queryExtras(h256 const& _h, std::unordered_map<h256, T>& _m, boost::shared_mutex& _x, T const& _n, ldb::DB* _extrasDB = nullptr) const
+	{
+		return queryExtras<T, h256, N>(_h, _m, _x, _n, _extrasDB);
+	}
+
+	void checkConsistency();
+
+	/// Clears all caches from the tip of the chain up to (including) _firstInvalid.
+	/// These include the blooms, the block hashes and the transaction lookup tables.
+	void clearCachesDuringChainReversion(unsigned _firstInvalid);
+	void clearBlockBlooms(unsigned _begin, unsigned _end);
+
+	/// The caches of the disk DB and their locks.
+	mutable SharedMutex x_blocks;
+	mutable BlocksHash m_blocks;
+	mutable SharedMutex x_details;
+	mutable BlockDetailsHash m_details;
+	mutable SharedMutex x_logBlooms;
+	mutable BlockLogBloomsHash m_logBlooms;
+	mutable SharedMutex x_receipts;
+	mutable BlockReceiptsHash m_receipts;
+	mutable SharedMutex x_transactionAddresses;
+	mutable TransactionAddressHash m_transactionAddresses;
+	mutable SharedMutex x_blockHashes;
+	mutable BlockHashHash m_blockHashes;
+	mutable SharedMutex x_blocksBlooms;
+	mutable BlocksBloomsHash m_blocksBlooms;
+
+	using CacheID = std::pair<h256, unsigned>;
+	mutable Mutex x_cacheUsage;
+	mutable std::deque<std::unordered_set<CacheID>> m_cacheUsage;
+	mutable std::unordered_set<CacheID> m_inUse;
+	void noteUsed(h256 const& _h, unsigned _extra = (unsigned)-1) const;
+	void noteUsed(uint64_t const& _h, unsigned _extra = (unsigned)-1) const { (void)_h; (void)_extra; } // don't note non-hash types
+	std::chrono::system_clock::time_point m_lastCollection;
+
+	void noteCanonChanged() const { Guard l(x_lastLastHashes); m_lastLastHashes.clear(); }
+	mutable Mutex x_lastLastHashes;
+	mutable LastHashes m_lastLastHashes;
+
+	void updateStats() const;
+	mutable Statistics m_lastStats;
+
+	/// The disk DBs. Thread-safe, so no need for locks.
+	ldb::DB* m_blocksDB;
+	ldb::DB* m_extrasDB;
+
+	/// Hash of the last (valid) block on the longest chain.
+	mutable boost::shared_mutex x_lastBlockHash;
+	h256 m_lastBlockHash;
+	unsigned m_lastBlockNumber = 0;
+
+	ldb::ReadOptions m_readOptions;
+	ldb::WriteOptions m_writeOptions;
+
+	ChainParams m_params;
+	std::shared_ptr<SealEngineFace> m_sealEngine;	// consider shared_ptr.
+	mutable SharedMutex x_genesis;
+	mutable BlockHeader m_genesis;	// mutable because they're effectively memos.
+	mutable bytes m_genesisHeaderBytes;	// mutable because they're effectively memos.
+	mutable h256 m_genesisHash;		// mutable because they're effectively memos.
+
+	std::function<void(Exception&)> m_onBad;									///< Called if we have a block that doesn't verify.
+	std::function<void(BlockHeader const&)> m_onBlockImport;										///< Called if we have imported a new block into the db
+	std::function<bool(BlockHeader const&, std::vector<std::pair<u256, Signature>>)> m_sign_checker;
+
+	std::string m_dbPath;
+
+	mutable SharedMutex  x_blockcache;
+	mutable std::map<h256, std::pair<Block, u256> > m_blockCache;
+
+	friend std::ostream& operator<<(std::ostream& _out, BlockChain const& _bc); 
 };
 
 }
