@@ -264,6 +264,41 @@ public:
 		unsigned memBlockHashes;
 		unsigned memTotal() const { return memBlocks + memDetails + memLogBlooms + memReceipts + memTransactionAddresses + memBlockHashes; }
 	};
+
+        /// @returns statistics about memory usage.
+	Statistics usage(bool _freshen = false) const { if (_freshen) updateStats(); return m_lastStats; }
+
+	/// Deallocate unused data.
+	void garbageCollect(bool _force = false);
+
+	/// Change the function that is called with a bad block.
+	void setOnBad(std::function<void(Exception&)> _t) { m_onBad = _t; }
+
+	/// 
+	template <class T> void setSignChecker(T const& _t) { m_sign_checker = _t; }
+
+	/// Change the function that is called when a new block is imported
+	void setOnBlockImport(std::function<void(BlockHeader const&)> _t) { m_onBlockImport = _t; }
+
+	/// Get a pre-made genesis State object.
+	Block genesisBlock(OverlayDB const& _db) const;
+
+	/// Verify block and prepare it for enactment
+	VerifiedBlockRef verifyBlock(bytesConstRef _block, std::function<void(Exception&)> const& _onBad, ImportRequirements::value _ir = ImportRequirements::OutOfOrderChecks) const;
+
+	/// Gives a dump of the blockchain database. For debug/test use only.
+	std::string dumpDatabase() const;
+
+	ChainParams const& chainParams() const { return m_params; }
+
+	SealEngineFace* sealEngine() const { return m_sealEngine.get(); }
+
+	BlockHeader const& genesis() const;
+
+	void addBlockCache(Block block, u256 td) const;
+
+	void checkBlockValid(h256 const& _head, bytes const& _block, Block & _outBlock) const;
+ 
 };
 
 }
