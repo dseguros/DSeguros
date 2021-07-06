@@ -405,6 +405,6 @@ private:
 
 	friend std::ostream& operator<<(std::ostream& _out, BlockChain const& _bc); 
 };
-
+std::ostream& operator<<(std::ostream& _out, BlockChain const& _bc);
 }
 }
