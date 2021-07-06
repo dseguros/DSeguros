@@ -203,6 +203,67 @@ public:
 	std::vector<bytes> transactions(h256 const& _blockHash) const { bytes b = block(_blockHash); std::vector<bytes> ret; for (auto const& i: RLP(b)[1]) ret.push_back(i.data().toBytes()); return ret; }
 	std::vector<bytes> transactions() const { return transactions(currentHash()); }
 
+        /// Get a number for the given hash (or the most recent mined if none given). Thread-safe.
+	unsigned number(h256 const& _hash) const { return details(_hash).number; }
+	unsigned number() const { return m_lastBlockNumber; }
+
+	/// Get a given block (RLP format). Thread-safe.
+	h256 currentHash() const { ReadGuard l(x_lastBlockHash); return m_lastBlockHash; }
+
+	/// Get the hash of the genesis block. Thread-safe.
+	h256 genesisHash() const { return m_genesisHash; }
+
+	/// Get all blocks not allowed as uncles given a parent (i.e. featured as uncles/main in parent, parent + 1, ... parent + @a _generations).
+	/// @returns set including the header-hash of every parent (including @a _parent) up to and including generation + @a _generations
+	/// togther with all their quoted uncles.
+	h256Hash allKinFrom(h256 const& _parent, unsigned _generations) const;
+
+	/// Run through database and verify all blocks by reevaluating.
+	/// Will call _progress with the progress in this operation first param done, second total.
+	void rebuild(std::string const& _path, ProgressCallback const& _progress = std::function<void(unsigned, unsigned)>());
+
+	/// Alter the head of the chain to some prior block along it.
+	void rewind(unsigned _newHead);
+
+	/// Rescue the database.
+	void rescue(OverlayDB const& _db);
+
+	/** @returns a tuple of:
+	 * - an vector of hashes of all blocks between @a _from and @a _to, all blocks are ordered first by a number of
+	 * blocks that are parent-to-child, then two sibling blocks, then a number of blocks that are child-to-parent;
+	 * - the block hash of the latest common ancestor of both blocks;
+	 * - the index where the latest common ancestor of both blocks would either be found or inserted, depending
+	 * on whether it is included.
+	 *
+	 * @param _common if true, include the common ancestor in the returned vector.
+	 * @param _pre if true, include all block hashes running from @a _from until the common ancestor in the returned vector.
+	 * @param _post if true, include all block hashes running from the common ancestor until @a _to in the returned vector.
+	 *
+	 * e.g. if the block tree is 3a -> 2a -> 1a -> g and 2b -> 1b -> g (g is genesis, *a, *b are competing chains),
+	 * then:
+	 * @code
+	 * treeRoute(3a, 2b, false) == make_tuple({ 3a, 2a, 1a, 1b, 2b }, g, 3);
+	 * treeRoute(2a, 1a, false) == make_tuple({ 2a, 1a }, 1a, 1)
+	 * treeRoute(1a, 2a, false) == make_tuple({ 1a, 2a }, 1a, 0)
+	 * treeRoute(1b, 2a, false) == make_tuple({ 1b, 1a, 2a }, g, 1)
+	 * treeRoute(3a, 2b, true) == make_tuple({ 3a, 2a, 1a, g, 1b, 2b }, g, 3);
+	 * treeRoute(2a, 1a, true) == make_tuple({ 2a, 1a }, 1a, 1)
+	 * treeRoute(1a, 2a, true) == make_tuple({ 1a, 2a }, 1a, 0)
+	 * treeRoute(1b, 2a, true) == make_tuple({ 1b, g, 1a, 2a }, g, 1)
+	 * @endcode
+	 */
+	std::tuple<h256s, h256, unsigned> treeRoute(h256 const& _from, h256 const& _to, bool _common = true, bool _pre = true, bool _post = true) const;
+
+	struct Statistics
+	{
+		unsigned memBlocks;
+		unsigned memDetails;
+		unsigned memLogBlooms;
+		unsigned memReceipts;
+		unsigned memTransactionAddresses;
+		unsigned memBlockHashes;
+		unsigned memTotal() const { return memBlocks + memDetails + memLogBlooms + memReceipts + memTransactionAddresses + memBlockHashes; }
+	};
 };
 
 }
