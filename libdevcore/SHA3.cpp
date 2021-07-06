@@ -10,4 +10,7 @@ using namespace dev;
 namespace dev
 {
 
+h256 EmptySHA3 = sha3(bytesConstRef());
+h256 EmptyListSHA3 = sha3(rlpList());
+
 }
