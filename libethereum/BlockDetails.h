@@ -34,6 +34,17 @@ struct BlockDetails
 
 	mutable unsigned size;
 };
+
+struct BlockLogBlooms
+{
+	BlockLogBlooms() {}
+	BlockLogBlooms(RLP const& _r) { blooms = _r.toVector<LogBloom>(); size = _r.data().size(); }
+	bytes rlp() const { bytes r = dev::rlp(blooms); size = r.size(); return r; }
+
+	LogBlooms blooms;
+	mutable unsigned size;
+};
+
 }
 }
 
