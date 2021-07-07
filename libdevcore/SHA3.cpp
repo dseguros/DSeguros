@@ -160,5 +160,40 @@ static inline int hash(uint8_t* out, size_t outlen,
   memset(a, 0, 200);
   return 0;
 }
+/*** Helper macros to define SHA3 and SHAKE instances. ***/
+#define defshake(bits)                                            \
+  int shake##bits(uint8_t* out, size_t outlen,                    \
+				  const uint8_t* in, size_t inlen) {              \
+	return hash(out, outlen, in, inlen, 200 - (bits / 4), 0x1f);  \
+  }
+#define defsha3(bits)                                             \
+  int sha3_##bits(uint8_t* out, size_t outlen,                    \
+				  const uint8_t* in, size_t inlen) {              \
+	if (outlen > (bits/8)) {                                      \
+	  return -1;                                                  \
+	}                                                             \
+	return hash(out, outlen, in, inlen, 200 - (bits / 4), 0x01);  \
+  }
+
+/*** FIPS202 SHAKE VOFs ***/
+defshake(128)
+defshake(256)
+
+/*** FIPS202 SHA3 FOFs ***/
+defsha3(224)
+defsha3(256)
+defsha3(384)
+defsha3(512)
+
+}
+
+bool sha3(bytesConstRef _input, bytesRef o_output)
+{
+	// FIXME: What with unaligned memory?
+	if (o_output.size() != 32)
+		return false;
+	keccak::sha3_256(o_output.data(), 32, _input.data(), _input.size());
+//	keccak::keccak(ret.data(), 32, (uint64_t const*)_input.data(), _input.size());
+	return true;
 }
 }
