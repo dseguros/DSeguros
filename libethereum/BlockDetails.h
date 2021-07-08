@@ -65,6 +65,17 @@ struct BlockReceipts
 	mutable unsigned size = 0;
 };
 
+struct BlockHash
+{
+	BlockHash() {}
+	BlockHash(h256 const& _h): value(_h) {}
+	BlockHash(RLP const& _r) { value = _r.toHash<h256>(); }
+	bytes rlp() const { return dev::rlp(value); }
+
+	h256 value;
+	static const unsigned size = 65;
+};
+
 }
 }
 
