@@ -75,6 +75,19 @@ struct BlockHash
 	h256 value;
 	static const unsigned size = 65;
 };
+struct TransactionAddress
+{
+	TransactionAddress() {}
+	TransactionAddress(RLP const& _rlp) { blockHash = _rlp[0].toHash<h256>(); index = _rlp[1].toInt<unsigned>(); }
+	bytes rlp() const { RLPStream s(2); s << blockHash << index; return s.out(); }
+
+	explicit operator bool() const { return !!blockHash; }
+
+	h256 blockHash;
+	unsigned index = 0;
+
+	static const unsigned size = 67;
+};
 
 }
 }
