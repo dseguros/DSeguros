@@ -55,6 +55,16 @@ struct BlocksBlooms
 	mutable unsigned size;
 };
 
+struct BlockReceipts
+{
+	BlockReceipts() {}
+	BlockReceipts(RLP const& _r) { for (auto const& i: _r) receipts.emplace_back(i.data()); size = _r.data().size(); }
+	bytes rlp() const { RLPStream s(receipts.size()); for (TransactionReceipt const& i: receipts) i.streamRLP(s); size = s.out().size(); return s.out(); }
+
+	TransactionReceipts receipts;
+	mutable unsigned size = 0;
+};
+
 }
 }
 
