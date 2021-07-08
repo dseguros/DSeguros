@@ -89,6 +89,19 @@ struct TransactionAddress
 	static const unsigned size = 67;
 };
 
+using BlockDetailsHash = std::unordered_map<h256, BlockDetails>;
+using BlockLogBloomsHash = std::unordered_map<h256, BlockLogBlooms>;
+using BlockReceiptsHash = std::unordered_map<h256, BlockReceipts>;
+using TransactionAddressHash = std::unordered_map<h256, TransactionAddress>;
+using BlockHashHash = std::unordered_map<uint64_t, BlockHash>;
+using BlocksBloomsHash = std::unordered_map<h256, BlocksBlooms>;
+
+static const BlockDetails NullBlockDetails;
+static const BlockLogBlooms NullBlockLogBlooms;
+static const BlockReceipts NullBlockReceipts;
+static const TransactionAddress NullTransactionAddress;
+static const BlockHash NullBlockHash;
+static const BlocksBlooms NullBlocksBlooms;
 }
 }
 
