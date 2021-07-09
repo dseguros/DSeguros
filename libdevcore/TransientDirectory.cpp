@@ -25,3 +25,23 @@ TransientDirectory::TransientDirectory(std::string const& _path):
 	DEV_IGNORE_EXCEPTIONS(fs::permissions(m_path, fs::owner_all));
 }
 
+TransientDirectory::~TransientDirectory()
+{
+	boost::system::error_code ec;		
+	fs::remove_all(m_path, ec);
+	if (!ec)
+		return;
+
+	// In some cases, antivirus runnig on Windows will scan all the newly created directories.
+	// As a consequence, directory is locked and can not be deleted immediately.
+	// Retry after 10 milliseconds usually is successful.
+	// This will help our tests run smoothly in such environment.
+	this_thread::sleep_for(chrono::milliseconds(10));
+
+	ec.clear();
+	fs::remove_all(m_path, ec);
+	if (!ec)
+	{
+		cwarn << "Failed to delete directory '" << m_path << "': " << ec.message();
+	}
+}
