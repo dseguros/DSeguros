@@ -34,6 +34,21 @@ struct ChainParams: public ChainOperationParams
 	mutable h256 stateRoot;	///< Only pre-populate if known equivalent to genesisState's root. If they're different Bad Things Will Happen.
 	AccountMap genesisState;
 
+        unsigned sealFields = 0;
+	bytes sealRLP;
+
+	h256 calculateStateRoot(bool _force = false) const;
+
+	/// Genesis block info.
+	bytes genesisBlock() const;
+	/// load config/genesis
+	ChainParams loadConfig(std::string const& _json, h256 const& _stateRoot = h256()) const;
+	ChainParams loadGenesisState(std::string const& _json,  h256 const& _stateRoot = h256()) const;
+	ChainParams loadGenesis(std::string const& _json, h256 const& _stateRoot = h256()) const;
+
+private:
+	void populateFromGenesis(bytes const& _genesisRLP, AccountMap const& _state);
+};
 };
 }
 }
