@@ -88,4 +88,25 @@ inline NibbleSlice keyOf(bytesConstRef _hpe)
 	else
 		return NibbleSlice(_hpe, 2);
 }
+
+inline NibbleSlice keyOf(RLP const& _twoItem)
+{
+	return keyOf(_twoItem[0].payload());
+}
+
+byte uniqueInUse(RLP const& _orig, byte except);
+std::string hexPrefixEncode(bytes const& _hexVector, bool _leaf = false, int _begin = 0, int _end = -1);
+std::string hexPrefixEncode(bytesConstRef _data, bool _leaf, int _beginNibble, int _endNibble, unsigned _offset);
+std::string hexPrefixEncode(bytesConstRef _d1, unsigned _o1, bytesConstRef _d2, unsigned _o2, bool _leaf);
+
+inline std::string hexPrefixEncode(NibbleSlice _s, bool _leaf, int _begin = 0, int _end = -1)
+{
+	return hexPrefixEncode(_s.data, _leaf, _begin, _end, _s.offset);
+}
+
+inline std::string hexPrefixEncode(NibbleSlice _s1, NibbleSlice _s2, bool _leaf)
+{
+	return hexPrefixEncode(_s1.data, _s1.offset, _s2.data, _s2.offset, _leaf);
+}
+
 }
