@@ -56,3 +56,11 @@ ChainParams ChainParams::loadConfig(string const& _json, h256 const& _stateRoot)
 	cp = cp.loadGenesisState(genesisStateStr, _stateRoot);
 	return cp;
 }
+
+ChainParams ChainParams::loadGenesisState(string const& _json, h256 const& _stateRoot) const
+{
+	ChainParams cp(*this);
+	cp.genesisState = jsonToAccountMap(_json, cp.accountStartNonce, nullptr, &cp.precompiled);
+	cp.stateRoot = _stateRoot ? _stateRoot : cp.calculateStateRoot(true);
+	return cp;
+}
