@@ -65,4 +65,10 @@ struct NibbleSlice
 	bool operator!=(NibbleSlice _s) const { return !operator==(_s); }
 };
 
+inline std::ostream& operator<<(std::ostream& _out, NibbleSlice const& _m)
+{
+	for (unsigned i = 0; i < _m.size(); ++i)
+		_out << std::hex << (int)_m[i] << std::dec;
+	return _out;
+}
 }
