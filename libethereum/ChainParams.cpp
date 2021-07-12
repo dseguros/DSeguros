@@ -64,3 +64,32 @@ ChainParams ChainParams::loadGenesisState(string const& _json, h256 const& _stat
 	cp.stateRoot = _stateRoot ? _stateRoot : cp.calculateStateRoot(true);
 	return cp;
 }
+
+ChainParams ChainParams::loadGenesis(string const& _json, h256 const& _stateRoot) const
+{
+	ChainParams cp(*this);
+
+	js::mValue val;
+	json_spirit::read_string(_json, val);
+	js::mObject genesis = val.get_obj();
+
+	cp.parentHash = h256(genesis["parentHash"].get_str());
+	cp.author = genesis.count("coinbase") ? h160(genesis["coinbase"].get_str()) : h160(genesis["author"].get_str());
+	cp.difficulty = genesis.count("difficulty") ? u256(fromBigEndian<u256>(fromHex(genesis["difficulty"].get_str()))) : 0;
+	cp.gasLimit = u256(fromBigEndian<u256>(fromHex(genesis["gasLimit"].get_str())));
+	cp.gasUsed = genesis.count("gasUsed") ? u256(fromBigEndian<u256>(fromHex(genesis["gasUsed"].get_str()))) : 0;
+	cp.timestamp = u256(fromBigEndian<u256>(fromHex(genesis["timestamp"].get_str())));
+	cp.extraData = bytes(fromHex(genesis["extraData"].get_str()));
+
+	// magic code for handling ethash stuff:
+	if ((genesis.count("mixhash") || genesis.count("mixHash")) && genesis.count("nonce"))
+	{
+		h256 mixHash(genesis[genesis.count("mixhash") ? "mixhash" : "mixHash"].get_str());
+		h64 nonce(genesis["nonce"].get_str());
+		cp.sealFields = 2;
+		cp.sealRLP = rlp(mixHash) + rlp(nonce);
+	}
+	cp.stateRoot = _stateRoot ? _stateRoot : cp.calculateStateRoot();
+	return cp;
+}
+
