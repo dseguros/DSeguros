@@ -152,3 +152,29 @@ h256 ChainParams::calculateStateRoot(bool _force) const
 	}
 	return stateRoot;
 }
+
+bytes ChainParams::genesisBlock() const
+{
+	RLPStream block(3);
+
+	calculateStateRoot();
+
+	block.appendList(BlockHeader::BasicFields + sealFields)
+			<< parentHash
+			<< EmptyListSHA3	// sha3(uncles)
+			<< author
+			<< stateRoot
+			<< EmptyTrie		// transactions
+			<< EmptyTrie		// receipts
+			<< LogBloom()
+			<< difficulty
+			<< 0				// number
+			<< gasLimit
+			<< gasUsed			// gasUsed
+			<< timestamp
+			<< extraData;
+	block.appendRaw(sealRLP, sealFields);
+	block.appendRaw(RLPEmptyList);
+	block.appendRaw(RLPEmptyList);
+	return block.out();
+}
