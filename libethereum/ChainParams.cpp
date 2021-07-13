@@ -137,3 +137,18 @@ void ChainParams::populateFromGenesis(bytes const& _genesisRLP, AccountMap const
 		throw 0;
 	}
 }
+
+h256 ChainParams::calculateStateRoot(bool _force) const
+{
+	MemoryDB db;
+	SecureTrieDB<Address, MemoryDB> state(&db);
+	state.init();
+	if (!stateRoot || _force)
+	{
+		// TODO: use hash256
+		//stateRoot = hash256(toBytesMap(gs));
+		dev::eth::commit(genesisState, state);
+		stateRoot = state.root();
+	}
+	return stateRoot;
+}
