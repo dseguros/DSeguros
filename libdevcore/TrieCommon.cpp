@@ -57,4 +57,37 @@ std::string hexPrefixEncode(bytesConstRef _data, bool _leaf, int _beginNibble, i
 	}
 	return ret;
 }
+
+std::string hexPrefixEncode(bytesConstRef _d1, unsigned _o1, bytesConstRef _d2, unsigned _o2, bool _leaf)
+{
+	unsigned begin1 = _o1;
+	unsigned end1 = _d1.size() * 2;
+	unsigned begin2 = _o2;
+	unsigned end2 = _d2.size() * 2;
+
+	bool odd = (end1 - begin1 + end2 - begin2) & 1;
+
+	std::string ret(1, ((_leaf ? 2 : 0) | (odd ? 1 : 0)) * 16);
+	ret.reserve((end1 - begin1 + end2 - begin2) / 2 + 1);
+
+	unsigned d = odd ? 1 : 2;
+	for (auto i = begin1; i < end1; ++i, ++d)
+	{
+		byte n = nibble(_d1, i);
+		if (d & 1)	// odd
+			ret.back() |= n;		// or the nibble onto the back
+		else
+			ret.push_back(n << 4);	// push the nibble on to the back << 4
+	}
+	for (auto i = begin2; i < end2; ++i, ++d)
+	{
+		byte n = nibble(_d2, i);
+		if (d & 1)	// odd
+			ret.back() |= n;		// or the nibble onto the back
+		else
+			ret.push_back(n << 4);	// push the nibble on to the back << 4
+	}
+	return ret;
+}
+
 }
