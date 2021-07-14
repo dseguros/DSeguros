@@ -73,7 +73,30 @@ public:
 	void setGasPricer(std::shared_ptr<GasPricer> _gp) { m_gp = _gp; }
 	std::shared_ptr<GasPricer> gasPricer() const { return m_gp; }
 
+        /// Blocks until all pending transactions have been processed.
+	virtual void flushTransactions() override;
 
+	/// Queues a block for import.
+	ImportResult queueBlock(bytes const& _block, bool _isSafe = false);
+
+	using Interface::call; // to remove warning about hiding virtual function
+	/// Makes the given call. Nothing is recorded into the state. This cheats by creating a null address and endowing it with a lot of ETH.
+	ExecutionResult call(Address _dest, bytes const& _data = bytes(), u256 _gas = 125000, u256 _value = 0, u256 _gasPrice = 1 * ether, Address const& _from = Address());
+
+	/// Get the remaining gas limit in this block.
+	virtual u256 gasLimitRemaining() const override { return m_postSeal.gasLimitRemaining(); }
+	/// Get the gas bid price
+	virtual u256 gasBidPrice() const override { return m_gp->bid(); }
+
+	// [PRIVATE API - only relevant for base clients, not available in general]
+	/// Get the block.
+	dev::eth::Block block(h256 const& _blockHash, PopulationStatistics* o_stats) const;
+	/// Get the state of the given block part way through execution, immediately before transaction
+	/// index @a _txi.
+	dev::eth::State state(unsigned _txi, h256 const& _block) const;
+	/// Get the state of the currently pending block part way through execution, immediately before
+	/// transaction index @a _txi.
+	dev::eth::State state(unsigned _txi) const;
 };
 
 }
