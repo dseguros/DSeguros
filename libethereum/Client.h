@@ -97,6 +97,32 @@ public:
 	/// Get the state of the currently pending block part way through execution, immediately before
 	/// transaction index @a _txi.
 	dev::eth::State state(unsigned _txi) const;
+
+	/// Get the object representing the current state of Ethereum.
+	dev::eth::Block postState() const { ReadGuard l(x_postSeal); return m_postSeal; }
+	/// Get the object representing the current canonical blockchain.
+	BlockChain const& blockChain() const { return bc(); }
+	/// Get some information on the block queue.
+	BlockQueueStatus blockQueueStatus() const { return m_bq.status(); }
+	/// Get some information on the block syncing.
+	SyncStatus syncStatus() const override;
+	/// Get the block queue.
+	BlockQueue const& blockQueue() const { return m_bq; }
+	/// Get the block queue.
+	OverlayDB const& stateDB() const { return m_stateDB; }
+	/// Get some information on the transaction queue.
+	TransactionQueue::Status transactionQueueStatus() const { return m_tq.status(); }
+	TransactionQueue::Limits transactionQueueLimits() const { return m_tq.limits(); }
+
+	/// Freeze worker thread and sync some of the block queue.
+	std::tuple<ImportRoute, bool, unsigned> syncQueue(unsigned _max = 1);
+
+	// Sealing stuff:
+	// Note: "mining"/"miner" is deprecated. Use "sealing"/"sealer".
+
+	virtual Address author() const override { ReadGuard l(x_preSeal); return m_preSeal.author(); }
+	virtual void setAuthor(Address const& _us) override { WriteGuard l(x_preSeal); m_preSeal.setAuthor(_us); }
+
 };
 
 }
