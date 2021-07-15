@@ -210,6 +210,114 @@ protected:
 
 	/// Submit
 	virtual bool submitSealed(bytes const& _s);
+
+protected:
+	/// Called when Worker is starting.
+	void startedWorking() override;
+
+	/// Do some work. Handles blockchain maintenance and sealing.
+	void doWork(bool _doWait);
+	void doWork() override { doWork(true); }
+
+	/// Called when Worker is exiting.
+	void doneWorking() override;
+
+	/// Called when wouldSeal(), pendingTransactions() have changed.
+	void rejigSealing();
+
+	/// Called on chain changes
+	void onDeadBlocks(h256s const& _blocks, h256Hash& io_changed);
+
+	/// Called on chain changes
+	virtual void onNewBlocks(h256s const& _blocks, h256Hash& io_changed);
+
+	/// Called after processing blocks by onChainChanged(_ir)
+	void resyncStateFromChain();
+
+	/// Clear working state of transactions
+	void resetState();
+
+	/// Magically called when the chain has changed. An import route is provided.
+	/// Called by either submitWork() or in our main thread through syncBlockQueue().
+	void onChainChanged(ImportRoute const& _ir);
+
+	/// Signal handler for when the block queue needs processing.
+	void syncBlockQueue();
+
+	/// Signal handler for when the block queue needs processing.
+	void syncTransactionQueue();
+
+	/// Magically called when m_tq needs syncing. Be nice and don't block.
+	void onTransactionQueueReady() { m_syncTransactionQueue = true; m_signalled.notify_all(); }
+
+	/// Magically called when m_bq needs syncing. Be nice and don't block.
+	void onBlockQueueReady() { m_syncBlockQueue = true; m_signalled.notify_all(); }
+
+	/// Called when the post state has changed (i.e. when more transactions are in it or we're sealing on a new block).
+	/// This updates m_sealingInfo.
+	void onPostStateChanged();
+
+	/// Does garbage collection on watches.
+	void checkWatchGarbage();
+
+	/// Ticks various system-level objects.
+	void tick();
+
+	/// Called when we have attempted to import a bad block.
+	/// @warning May be called from any thread.
+	void onBadBlock(Exception& _ex) const;
+
+	/// Executes the pending functions in m_functionQueue
+	void callQueuedFunctions();
+
+	BlockChain m_bc;						///< Maintains block database and owns the seal engine.
+	BlockQueue m_bq;						///< Maintains a list of incoming blocks not yet on the blockchain (to be imported).
+	std::shared_ptr<GasPricer> m_gp;		///< The gas pricer.
+
+	OverlayDB m_stateDB;					///< Acts as the central point for the state database, so multiple States can share it.
+	mutable SharedMutex x_preSeal;			///< Lock on m_preSeal.
+	Block m_preSeal;						///< The present state of the client.
+	mutable SharedMutex x_postSeal;			///< Lock on m_postSeal.
+	Block m_postSeal;						///< The state of the client which we're sealing (i.e. it'll have all the rewards added).
+	mutable SharedMutex x_working;			///< Lock on m_working.
+	Block m_working;						///< The state of the client which we're sealing (i.e. it'll have all the rewards added), while we're actually working on it.
+	BlockHeader m_sealingInfo;				///< The header we're attempting to seal on (derived from m_postSeal).
+	bool remoteActive() const;				///< Is there an active and valid remote worker?
+	bool m_remoteWorking = false;			///< Has the remote worker recently been reset?
+	std::atomic<bool> m_needStateReset = { false };			///< Need reset working state to premin on next sync
+	std::chrono::system_clock::time_point m_lastGetWork;	///< Is there an active and valid remote worker?
+
+	std::weak_ptr<EthereumHost> m_host;		///< Our Ethereum Host. Don't do anything if we can't lock.
+
+	Handler<> m_tqReady;
+	Handler<h256 const&> m_tqReplaced;
+	Handler<> m_bqReady;
+
+	bool m_wouldSeal = false;				///< True if we /should/ be sealing.
+	bool m_wouldButShouldnot = false;		///< True if the last time we called rejigSealing wouldSeal() was true but sealer's shouldSeal() was false.
+
+	mutable std::chrono::system_clock::time_point m_lastGarbageCollection;
+											///< When did we last both doing GC on the watches?
+	mutable std::chrono::system_clock::time_point m_lastTick = std::chrono::system_clock::now();
+											///< When did we last tick()?
+
+	unsigned m_syncAmount = 50;				///< Number of blocks to sync in each go.
+
+	ActivityReport m_report;
+
+	SharedMutex x_functionQueue;
+	std::queue<std::function<void()>> m_functionQueue;	///< Functions waiting to be executed in the main thread.
+
+	std::condition_variable m_signalled;
+	Mutex x_signalled;
+	std::atomic<bool> m_syncTransactionQueue = {false};
+	std::atomic<bool> m_syncBlockQueue = {false};
+
+	bytes m_extraData;
+
+	//added by sctchain
+	bool m_omit_empty_block = true;
+	u256 m_maxBlockTranscations = 1000; 
 };
 
 }
