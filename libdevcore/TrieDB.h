@@ -284,4 +284,12 @@ private:
 	DB* m_db = nullptr;
 };
 
+template <class DB>
+std::ostream& operator<<(std::ostream& _out, GenericTrieDB<DB> const& _db)
+{
+	for (auto const& i: _db)
+		_out << escaped(i.first.toString(), false) << ": " << escaped(i.second.toString(), false) << std::endl;
+	return _out;
+}
+
 }
