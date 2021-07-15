@@ -153,6 +153,33 @@ public:
 
 	/// Get the seal engine.
 	SealEngineFace* sealEngine() const override { return bc().sealEngine(); }
+
+	// Debug stuff:
+
+	DownloadMan const* downloadMan() const;
+	/// Clears pending transactions. Just for debug use.
+	void clearPending();
+	/// Kills the blockchain. Just for debug use.
+	void killChain() { reopenChain(WithExisting::Kill); }
+	/// Reloads the blockchain. Just for debug use.
+	void reopenChain(ChainParams const& _p, WithExisting _we = WithExisting::Trust);
+	void reopenChain(WithExisting _we);
+	/// Retries all blocks with unknown parents.
+	void retryUnknown() { m_bq.retryAllUnknown(); }
+	/// Get a report of activity.
+	ActivityReport activityReport() { ActivityReport ret; std::swap(m_report, ret); return ret; }
+	/// Set the extra data that goes into sealed blocks.
+	void setExtraData(bytes const& _extraData) { m_extraData = _extraData; }
+	/// Rewind to a prior head.
+	void rewind(unsigned _n);
+	/// Rescue the chain.
+	void rescue() { bc().rescue(m_stateDB); }
+
+	/// Queues a function to be executed in the main thread (that owns the blockchain, etc).
+	void executeInMainThread(std::function<void()> const& _function);
+
+	virtual Block block(h256 const& _block) const override;
+	using ClientBase::block;
 };
 
 }
