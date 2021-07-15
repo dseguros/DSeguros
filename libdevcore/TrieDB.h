@@ -179,6 +179,109 @@ public:
 			BOOST_THROW_EXCEPTION(InvalidTrie());
 	}
 
+	/// Used for debugging, scans the whole trie.
+	h256Hash leftOvers(std::ostream* _out = nullptr) const
+	{
+		h256Hash k = m_db->keys();
+		descendKey(m_root, k, false, _out);
+		return k;
+	}
+
+	/// Used for debugging, scans the whole trie.
+	void debugStructure(std::ostream& _out) const
+	{
+		leftOvers(&_out);
+	}
+
+	/// Used for debugging, scans the whole trie.
+	/// @param _requireNoLeftOvers if true, requires that all keys are reachable.
+	bool check(bool _requireNoLeftOvers) const
+	{
+		try
+		{
+			return leftOvers().empty() || !_requireNoLeftOvers;
+		}
+		catch (...)
+		{
+			cwarn << boost::current_exception_diagnostic_information();
+			return false;
+		}
+	}
+
+	/// Get the underlying database.
+	/// @warning This can be used to bypass the trie code. Don't use these unless you *really*
+	/// know what you're doing.
+	DB const* db() const { return m_db; }
+	DB* db() { return m_db; }
+
+private:
+	RLPStream& streamNode(RLPStream& _s, bytes const& _b);
+
+	std::string atAux(RLP const& _here, NibbleSlice _key) const;
+
+	void mergeAtAux(RLPStream& _out, RLP const& _replace, NibbleSlice _key, bytesConstRef _value);
+	bytes mergeAt(RLP const& _replace, NibbleSlice _k, bytesConstRef _v, bool _inLine = false);
+	bytes mergeAt(RLP const& _replace, h256 const& _replaceHash, NibbleSlice _k, bytesConstRef _v, bool _inLine = false);
+
+	bool deleteAtAux(RLPStream& _out, RLP const& _replace, NibbleSlice _key);
+	bytes deleteAt(RLP const& _replace, NibbleSlice _k);
+
+	// in: null (DEL)  -- OR --  [_k, V] (DEL)
+	// out: [_k, _s]
+	// -- OR --
+	// in: [V0, ..., V15, S16] (DEL)  AND  _k == {}
+	// out: [V0, ..., V15, _s]
+	bytes place(RLP const& _orig, NibbleSlice _k, bytesConstRef _s);
+
+	// in: [K, S] (DEL)
+	// out: null
+	// -- OR --
+	// in: [V0, ..., V15, S] (DEL)
+	// out: [V0, ..., V15, null]
+	bytes remove(RLP const& _orig);
+
+	// in: [K1 & K2, V] (DEL) : nibbles(K1) == _s, 0 < _s <= nibbles(K1 & K2)
+	// out: [K1, H] ; [K2, V] => H (INS)  (being  [K1, [K2, V]]  if necessary)
+	bytes cleve(RLP const& _orig, unsigned _s);
+
+	// in: [K1, H] (DEL) ; H <= [K2, V] (DEL)  (being  [K1, [K2, V]] (DEL)  if necessary)
+	// out: [K1 & K2, V]
+	bytes graft(RLP const& _orig);
+
+	// in: [V0, ... V15, S] (DEL)
+	// out1: [k{i}, Vi]    where i < 16
+	// out2: [k{}, S]      where i == 16
+	bytes merge(RLP const& _orig, byte _i);
+
+	// in: [k{}, S] (DEL)
+	// out: [null ** 16, S]
+	// -- OR --
+	// in: [k{i}, N] (DEL)
+	// out: [null ** i, N, null ** (16 - i)]
+	// -- OR --
+	// in: [k{i}K, V] (DEL)
+	// out: [null ** i, H, null ** (16 - i)] ; [K, V] => H (INS)  (being [null ** i, [K, V], null ** (16 - i)]  if necessary)
+	bytes branch(RLP const& _orig);
+
+	bool isTwoItemNode(RLP const& _n) const;
+	std::string deref(RLP const& _n) const;
+
+	std::string node(h256 const& _h) const { return m_db->lookup(_h); }
+
+	// These are low-level node insertion functions that just go straight through into the DB.
+	h256 forceInsertNode(bytesConstRef _v) { auto h = sha3(_v); forceInsertNode(h, _v); return h; }
+	void forceInsertNode(h256 const& _h, bytesConstRef _v) { m_db->insert(_h, _v); }
+	void forceKillNode(h256 const& _h) { m_db->kill(_h); }
+
+	// This are semantically-aware node insertion functions that only kills when the node's
+	// data is < 32 bytes. It can safely be used when pruning the trie but won't work correctly
+	// for the special case of the root (which is always looked up via a hash). In that case,
+	// use forceKillNode().
+	void killNode(RLP const& _d) { if (_d.data().size() >= 32) forceKillNode(sha3(_d.data())); }
+	void killNode(RLP const& _d, h256 const& _h) { if (_d.data().size() >= 32) forceKillNode(_h); }
+
+	h256 m_root;
+	DB* m_db = nullptr;
 };
 
 }
