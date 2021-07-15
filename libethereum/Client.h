@@ -123,6 +123,36 @@ public:
 	virtual Address author() const override { ReadGuard l(x_preSeal); return m_preSeal.author(); }
 	virtual void setAuthor(Address const& _us) override { WriteGuard l(x_preSeal); m_preSeal.setAuthor(_us); }
 
+	/// Type of sealers available for this seal engine.
+	strings sealers() const { return sealEngine()->sealers(); }
+	/// Current sealer in use.
+	std::string sealer() const { return sealEngine()->sealer(); }
+	/// Change sealer.
+	void setSealer(std::string const& _id) { sealEngine()->setSealer(_id); if (wouldSeal()) startSealing(); }
+	/// Review option for the sealer.
+	bytes sealOption(std::string const& _name) const { return sealEngine()->option(_name); }
+	/// Set option for the sealer.
+	bool setSealOption(std::string const& _name, bytes const& _value) { auto ret = sealEngine()->setOption(_name, _value); if (wouldSeal()) startSealing(); return ret; }
+
+	/// Start sealing.
+	void startSealing() override;
+	/// Stop sealing.
+	void stopSealing() override { m_wouldSeal = false; }
+	/// Are we sealing now?
+	bool wouldSeal() const override { return m_wouldSeal; }
+
+	/// Are we updating the chain (syncing or importing a new block)?
+	bool isSyncing() const override;
+	/// Are we syncing the chain?
+	bool isMajorSyncing() const override;
+
+	/// Gets the network id.
+	u256 networkId() const override;
+	/// Sets the network id.
+	void setNetworkId(u256 const& _n) override;
+
+	/// Get the seal engine.
+	SealEngineFace* sealEngine() const override { return bc().sealEngine(); }
 };
 
 }
