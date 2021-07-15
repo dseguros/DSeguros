@@ -180,6 +180,36 @@ public:
 
 	virtual Block block(h256 const& _block) const override;
 	using ClientBase::block;
+
+protected:
+	/// Perform critical setup functions.
+	/// Must be called in the constructor of the finally derived class.
+	void init(p2p::Host* _extNet, std::string const& _dbPath, WithExisting _forceAction, u256 _networkId);
+
+	/// InterfaceStub methods
+	BlockChain& bc() override { return m_bc; }
+	BlockChain const& bc() const override { return m_bc; }
+
+	/// Returns the state object for the full block (i.e. the terminal state) for index _h.
+	/// Works properly with LatestBlock and PendingBlock.
+	virtual Block preSeal() const override { ReadGuard l(x_preSeal); return m_preSeal; }
+	virtual Block postSeal() const override { ReadGuard l(x_postSeal); return m_postSeal; }
+	virtual void prepareForTransaction() override;
+
+	/// Collate the changed filters for the bloom filter of the given pending transaction.
+	/// Insert any filters that are activated into @a o_changed.
+	void appendFromNewPending(TransactionReceipt const& _receipt, h256Hash& io_changed, h256 _sha3);
+
+	/// Collate the changed filters for the hash of the given block.
+	/// Insert any filters that are activated into @a o_changed.
+	void appendFromBlock(h256 const& _blockHash, BlockPolarity _polarity, h256Hash& io_changed);
+
+	/// Record that the set of filters @a _filters have changed.
+	/// This doesn't actually make any callbacks, but incrememnts some counters in m_watches.
+	void noteChanged(h256Hash const& _filters);
+
+	/// Submit
+	virtual bool submitSealed(bytes const& _s);
 };
 
 }
