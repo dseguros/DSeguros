@@ -473,4 +473,39 @@ public:
 	HashedIterator hashedBegin() const { return HashedIterator(this); }
 	HashedIterator hashedEnd() const { return HashedIterator(); }
 };
+
+template <class KeyType, class DB> using TrieDB = SpecificTrieDB<GenericTrieDB<DB>, KeyType>;
+
+}
+
+// Template implementations...
+namespace dev
+{
+
+template <class DB> GenericTrieDB<DB>::iterator::iterator(GenericTrieDB const* _db)
+{
+	m_that = _db;
+	m_trail.push_back({_db->node(_db->m_root), std::string(1, '\0'), 255});	// one null byte is the HPE for the empty key.
+	next();
+}
+
+template <class DB> GenericTrieDB<DB>::iterator::iterator(GenericTrieDB const* _db, bytesConstRef _fullKey)
+{
+	m_that = _db;
+	m_trail.push_back({_db->node(_db->m_root), std::string(1, '\0'), 255});	// one null byte is the HPE for the empty key.
+	next(_fullKey);
+}
+
+template <class DB> typename GenericTrieDB<DB>::iterator::value_type GenericTrieDB<DB>::iterator::at() const
+{
+	assert(m_trail.size());
+	Node const& b = m_trail.back();
+	assert(b.key.size());
+	assert(!(b.key[0] & 0x10));	// should be an integer number of bytes (i.e. not an odd number of nibbles).
+
+	RLP rlp(b.rlp);
+	return std::make_pair(bytesConstRef(b.key).cropped(1), rlp[rlp.itemCount() == 2 ? 1 : 16].payload());
+}
+
+
 }
