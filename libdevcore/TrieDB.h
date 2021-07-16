@@ -398,4 +398,79 @@ public:
 	iterator lower_bound(bytesConstRef) const { return iterator(); }
 };
 
+// Hashed & Hash-key mapping
+template <class _DB>
+class FatGenericTrieDB: private SpecificTrieDB<GenericTrieDB<_DB>, h256>
+{
+	using Super = SpecificTrieDB<GenericTrieDB<_DB>, h256>;
+
+public:
+	using DB = _DB;
+	FatGenericTrieDB(DB* _db = nullptr): Super(_db) {}
+	FatGenericTrieDB(DB* _db, h256 _root, Verification _v = Verification::Normal): Super(_db, _root, _v) {}
+
+	using Super::init;
+	using Super::isNull;
+	using Super::isEmpty;
+	using Super::root;
+	using Super::leftOvers;
+	using Super::check;
+	using Super::open;
+	using Super::setRoot;
+	using Super::db;
+	using Super::debugStructure;
+
+	std::string at(bytesConstRef _key) const { return Super::at(sha3(_key)); }
+	bool contains(bytesConstRef _key) { return Super::contains(sha3(_key)); }
+	void insert(bytesConstRef _key, bytesConstRef _value)
+	{
+		h256 hash = sha3(_key);
+		Super::insert(hash, _value);
+		Super::db()->insertAux(hash, _key);
+	}
+
+	void remove(bytesConstRef _key) { Super::remove(sha3(_key)); }
+
+	// iterates over <key, value> pairs
+	class iterator: public GenericTrieDB<_DB>::iterator
+	{
+	public:
+		using Super = typename GenericTrieDB<_DB>::iterator;
+
+		iterator() { }
+		iterator(FatGenericTrieDB const* _trie) : Super(_trie) { }
+
+		typename Super::value_type at() const
+		{
+			auto hashed = Super::at();
+			m_key = static_cast<FatGenericTrieDB const*>(Super::m_that)->db()->lookupAux(h256(hashed.first));
+			return std::make_pair(&m_key, std::move(hashed.second));
+		}
+
+	private:
+		mutable bytes m_key;
+	};
+
+	iterator begin() const { return iterator(); }
+	iterator end() const { return iterator(); }
+
+	// iterates over <hashedKey, value> pairs
+	class HashedIterator: public GenericTrieDB<_DB>::iterator
+	{
+	public:
+		using Super = typename GenericTrieDB<_DB>::iterator;
+
+		HashedIterator() {}
+		HashedIterator(FatGenericTrieDB const* _trie) : Super(_trie) {}
+
+		bytes key() const
+		{
+			auto hashed = Super::at();
+			return static_cast<FatGenericTrieDB const*>(Super::m_that)->db()->lookupAux(h256(hashed.first));
+		}
+	};
+
+	HashedIterator hashedBegin() const { return HashedIterator(this); }
+	HashedIterator hashedEnd() const { return HashedIterator(); }
+};
 }
