@@ -292,4 +292,45 @@ std::ostream& operator<<(std::ostream& _out, GenericTrieDB<DB> const& _db)
 	return _out;
 }
 
+/**
+ * Different view on a GenericTrieDB that can use different key types.
+ */
+template <class Generic, class _KeyType>
+class SpecificTrieDB: public Generic
+{
+public:
+	using DB = typename Generic::DB;
+	using KeyType = _KeyType;
+
+	SpecificTrieDB(DB* _db = nullptr): Generic(_db) {}
+	SpecificTrieDB(DB* _db, h256 _root, Verification _v = Verification::Normal): Generic(_db, _root, _v) {}
+
+	std::string operator[](KeyType _k) const { return at(_k); }
+
+	bool contains(KeyType _k) const { return Generic::contains(bytesConstRef((byte const*)&_k, sizeof(KeyType))); }
+	std::string at(KeyType _k) const { return Generic::at(bytesConstRef((byte const*)&_k, sizeof(KeyType))); }
+	void insert(KeyType _k, bytesConstRef _value) { Generic::insert(bytesConstRef((byte const*)&_k, sizeof(KeyType)), _value); }
+	void insert(KeyType _k, bytes const& _value) { insert(_k, bytesConstRef(&_value)); }
+	void remove(KeyType _k) { Generic::remove(bytesConstRef((byte const*)&_k, sizeof(KeyType))); }
+
+	class iterator: public Generic::iterator
+	{
+	public:
+		using Super = typename Generic::iterator;
+		using value_type = std::pair<KeyType, bytesConstRef>;
+
+		iterator() {}
+		iterator(Generic const* _db): Super(_db) {}
+		iterator(Generic const* _db, bytesConstRef _k): Super(_db, _k) {}
+
+		value_type operator*() const { return at(); }
+		value_type operator->() const { return at(); }
+
+		value_type at() const;
+	};
+
+	iterator begin() const { return this; }
+	iterator end() const { return iterator(); }
+	iterator lower_bound(KeyType _k) const { return iterator(this, bytesConstRef((byte const*)&_k, sizeof(KeyType))); }
+};
 }
