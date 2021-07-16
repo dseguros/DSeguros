@@ -333,4 +333,69 @@ public:
 	iterator end() const { return iterator(); }
 	iterator lower_bound(KeyType _k) const { return iterator(this, bytesConstRef((byte const*)&_k, sizeof(KeyType))); }
 };
+
+template <class Generic, class KeyType>
+std::ostream& operator<<(std::ostream& _out, SpecificTrieDB<Generic, KeyType> const& _db)
+{
+	for (auto const& i: _db)
+		_out << i.first << ": " << escaped(i.second.toString(), false) << std::endl;
+	return _out;
+}
+
+template <class _DB>
+class HashedGenericTrieDB: private SpecificTrieDB<GenericTrieDB<_DB>, h256>
+{
+	using Super = SpecificTrieDB<GenericTrieDB<_DB>, h256>;
+
+public:
+	using DB = _DB;
+
+	HashedGenericTrieDB(DB* _db = nullptr): Super(_db) {}
+	HashedGenericTrieDB(DB* _db, h256 _root, Verification _v = Verification::Normal): Super(_db, _root, _v) {}
+
+	using Super::open;
+	using Super::init;
+	using Super::setRoot;
+
+	/// True if the trie is uninitialised (i.e. that the DB doesn't contain the root node).
+	using Super::isNull;
+	/// True if the trie is initialised but empty (i.e. that the DB contains the root node which is empty).
+	using Super::isEmpty;
+
+	using Super::root;
+	using Super::db;
+
+	using Super::leftOvers;
+	using Super::check;
+	using Super::debugStructure;
+
+	std::string at(bytesConstRef _key) const { return Super::at(sha3(_key)); }
+	bool contains(bytesConstRef _key) { return Super::contains(sha3(_key)); }
+	void insert(bytesConstRef _key, bytesConstRef _value) { Super::insert(sha3(_key), _value); }
+	void remove(bytesConstRef _key) { Super::remove(sha3(_key)); }
+
+	// empty from the PoV of the iterator interface; still need a basic iterator impl though.
+	class iterator
+	{
+	public:
+		using value_type = std::pair<bytesConstRef, bytesConstRef>;
+
+		iterator() {}
+		iterator(HashedGenericTrieDB const*) {}
+		iterator(HashedGenericTrieDB const*, bytesConstRef) {}
+
+		iterator& operator++() { return *this; }
+		value_type operator*() const { return value_type(); }
+		value_type operator->() const { return value_type(); }
+
+		bool operator==(iterator const&) const { return true; }
+		bool operator!=(iterator const&) const { return false; }
+
+		value_type at() const { return value_type(); }
+	};
+	iterator begin() const { return iterator(); }
+	iterator end() const { return iterator(); }
+	iterator lower_bound(bytesConstRef) const { return iterator(); }
+};
+
 }
