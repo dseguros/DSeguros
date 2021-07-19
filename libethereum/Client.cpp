@@ -195,3 +195,72 @@ void Client::startedWorking()
 	}
 }
 
+void Client::doneWorking()
+{
+	// Synchronise the state according to the head of the block chain.
+	// TODO: currently it contains keys for *all* blocks. Make it remove old ones.
+	DEV_WRITE_GUARDED(x_preSeal)
+		m_preSeal.sync(bc());
+	DEV_READ_GUARDED(x_preSeal)
+	{
+		DEV_WRITE_GUARDED(x_working)
+			m_working = m_preSeal;
+		DEV_WRITE_GUARDED(x_postSeal)
+			m_postSeal = m_preSeal;
+	}
+}
+
+void Client::reopenChain(WithExisting _we)
+{
+	reopenChain(bc().chainParams(), _we);
+}
+
+void Client::reopenChain(ChainParams const& _p, WithExisting _we)
+{
+	bool wasSealing = wouldSeal();
+	if (wasSealing)
+		stopSealing();
+	stopWorking();
+
+	m_tq.clear();
+	m_bq.clear();
+	sealEngine()->cancelGeneration();
+
+	{
+		WriteGuard l(x_postSeal);
+		WriteGuard l2(x_preSeal);
+		WriteGuard l3(x_working);
+
+		auto author = m_preSeal.author();	// backup and restore author.
+		m_preSeal = Block(chainParams().accountStartNonce);
+		m_postSeal = Block(chainParams().accountStartNonce);
+		m_working = Block(chainParams().accountStartNonce);
+
+		m_stateDB = OverlayDB();
+		bc().reopen(_p, _we);
+		m_stateDB = State::openDB(Defaults::dbPath(), bc().genesisHash(), _we);
+
+		m_preSeal = bc().genesisBlock(m_stateDB);
+		m_preSeal.setAuthor(author);
+		m_postSeal = m_preSeal;
+		m_working = Block(chainParams().accountStartNonce);
+	}
+
+	if (auto h = m_host.lock())
+		h->reset();
+
+	startedWorking();
+	doWork();
+
+	startWorking();
+	if (wasSealing)
+		startSealing();
+}
+
+void Client::executeInMainThread(function<void ()> const& _function)
+{
+	DEV_WRITE_GUARDED(x_functionQueue)
+		m_functionQueue.push(_function);
+	m_signalled.notify_all();
+}
+
