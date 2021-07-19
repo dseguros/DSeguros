@@ -161,4 +161,37 @@ void Client::setNetworkId(u256 const& _n)
 		h->setNetworkId(_n);
 }
 
+bool Client::isSyncing() const
+{
+	if (auto h = m_host.lock())
+		return h->isSyncing();
+	return false;
+}
+
+bool Client::isMajorSyncing() const
+{
+	if (auto h = m_host.lock())
+	{
+		SyncState state = h->status().state;
+		return (state != SyncState::Idle && state != SyncState::NewBlocks) || h->bq().items().first > 10;
+	}
+	return false;
+}
+
+void Client::startedWorking()
+{
+	// Synchronise the state according to the head of the block chain.
+	// TODO: currently it contains keys for *all* blocks. Make it remove old ones.
+	clog(ClientTrace) << "startedWorking()";
+
+	DEV_WRITE_GUARDED(x_preSeal)
+		m_preSeal.sync(bc());
+	DEV_READ_GUARDED(x_preSeal)
+	{
+		DEV_WRITE_GUARDED(x_working)
+			m_working = m_preSeal;
+		DEV_WRITE_GUARDED(x_postSeal)
+			m_postSeal = m_preSeal;
+	}
+}
 
