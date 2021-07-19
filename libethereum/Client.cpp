@@ -103,6 +103,32 @@ void Client::init(p2p::Host* _extNet, std::string const& _dbPath, WithExisting _
 	startWorking();
 }
 
+ImportResult Client::queueBlock(bytes const& _block, bool _isSafe)
+{
+	if (m_bq.status().verified + m_bq.status().verifying + m_bq.status().unverified > 10000)
+		this_thread::sleep_for(std::chrono::milliseconds(500));
+	return m_bq.import(&_block, _isSafe);
+}
+
+tuple<ImportRoute, bool, unsigned> Client::syncQueue(unsigned _max)
+{
+	stopWorking();
+	return bc().sync(m_bq, m_stateDB, _max);
+}
+
+void Client::onBadBlock(Exception& _ex) const
+{
+	// BAD BLOCK!!!
+	bytes const* block = boost::get_error_info<errinfo_block>(_ex);
+	if (!block)
+	{
+		cwarn << "ODD: onBadBlock called but exception (" << _ex.what() << ") has no block in it.";
+		cwarn << boost::diagnostic_information(_ex);
+		return;
+	}
+
+	badBlock(*block, _ex.what());
+}
 
 
 
