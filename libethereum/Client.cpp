@@ -130,5 +130,35 @@ void Client::onBadBlock(Exception& _ex) const
 	badBlock(*block, _ex.what());
 }
 
+void Client::callQueuedFunctions()
+{
+	while (true)
+	{
+		function<void()> f;
+		DEV_WRITE_GUARDED(x_functionQueue)
+			if (!m_functionQueue.empty())
+			{
+				f = m_functionQueue.front();
+				m_functionQueue.pop();
+			}
+		if (f)
+			f();
+		else
+			break;
+	}
+}
+
+u256 Client::networkId() const
+{
+	if (auto h = m_host.lock())
+		return h->networkId();
+	return 0;
+}
+
+void Client::setNetworkId(u256 const& _n)
+{
+	if (auto h = m_host.lock())
+		h->setNetworkId(_n);
+}
 
 
