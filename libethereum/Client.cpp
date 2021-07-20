@@ -264,3 +264,83 @@ void Client::executeInMainThread(function<void ()> const& _function)
 	m_signalled.notify_all();
 }
 
+void Client::clearPending()
+{
+	DEV_WRITE_GUARDED(x_postSeal)
+	{
+		if (!m_postSeal.pending().size())
+			return;
+		m_tq.clear();
+		DEV_READ_GUARDED(x_preSeal)
+			m_postSeal = m_preSeal;
+	}
+
+	startSealing();
+	h256Hash changeds;
+	noteChanged(changeds);
+}
+
+template <class S, class T>
+static S& filtersStreamOut(S& _out, T const& _fs)
+{
+	_out << "{";
+	unsigned i = 0;
+	for (h256 const& f: _fs)
+	{
+		_out << (i++ ? ", " : "");
+		if (f == PendingChangedFilter)
+			_out << LogTag::Special << "pending";
+		else if (f == ChainChangedFilter)
+			_out << LogTag::Special << "chain";
+		else
+			_out << f;
+	}
+	_out << "}";
+	return _out;
+}
+
+void Client::appendFromNewPending(TransactionReceipt const& _receipt, h256Hash& io_changed, h256 _sha3)
+{
+	Guard l(x_filtersWatches);
+	io_changed.insert(PendingChangedFilter);
+	m_specialFilters.at(PendingChangedFilter).push_back(_sha3);
+	for (pair<h256 const, InstalledFilter>& i: m_filters)
+	{
+		// acceptable number.
+		auto m = i.second.filter.matches(_receipt);
+		if (m.size())
+		{
+			// filter catches them
+			for (LogEntry const& l: m)
+				i.second.changes.push_back(LocalisedLogEntry(l));
+			io_changed.insert(i.first);
+		}
+	}
+}
+
+void Client::appendFromBlock(h256 const& _block, BlockPolarity _polarity, h256Hash& io_changed)
+{
+	// TODO: more precise check on whether the txs match.
+	auto receipts = bc().receipts(_block).receipts;
+
+	Guard l(x_filtersWatches);
+	io_changed.insert(ChainChangedFilter);
+	m_specialFilters.at(ChainChangedFilter).push_back(_block);
+	for (pair<h256 const, InstalledFilter>& i: m_filters)
+	{
+		// acceptable number & looks like block may contain a matching log entry.
+		for (size_t j = 0; j < receipts.size(); j++)
+		{
+			auto tr = receipts[j];
+			auto m = i.second.filter.matches(tr);
+			if (m.size())
+			{
+				auto transactionHash = transaction(_block, j).sha3();
+				// filter catches them
+				for (LogEntry const& l: m)
+					i.second.changes.push_back(LocalisedLogEntry(l, _block, (BlockNumber)bc().number(_block), transactionHash, j, 0, _polarity));
+				io_changed.insert(i.first);
+			}
+		}
+	}
+}
