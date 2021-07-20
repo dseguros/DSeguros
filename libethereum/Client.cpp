@@ -395,3 +395,80 @@ void Client::syncBlockQueue()
 		return;
 	onChainChanged(ir);
 }
+
+void Client::syncTransactionQueue()
+{
+	Timer timer;
+
+	h256Hash changeds;
+	TransactionReceipts newPendingReceipts;
+
+	DEV_WRITE_GUARDED(x_working)
+	{
+		if (m_working.isSealed())
+		{
+			ctrace << "Skipping txq sync for a sealed block.";
+			return;
+		}
+
+		tie(newPendingReceipts, m_syncTransactionQueue) = m_working.sync(bc(), m_tq, *m_gp);
+	}
+
+	if (newPendingReceipts.empty())
+	{
+		auto s = m_tq.status();
+		ctrace << "No transactions to process. " << m_working.pending().size() << " pending, " << s.current << " queued, " << s.future << " future, " << s.unverified << " unverified";
+		return;
+	}
+
+	DEV_READ_GUARDED(x_working)
+		DEV_WRITE_GUARDED(x_postSeal)
+			m_postSeal = m_working;
+
+	DEV_READ_GUARDED(x_postSeal)
+		for (size_t i = 0; i < newPendingReceipts.size(); i++)
+			appendFromNewPending(newPendingReceipts[i], changeds, m_postSeal.pending()[i].sha3());
+
+	// Tell farm about new transaction (i.e. restart mining).
+	onPostStateChanged();
+
+	// Tell watches about the new transactions.
+	noteChanged(changeds);
+
+	// Tell network about the new transactions.
+	if (auto h = m_host.lock())
+		h->noteNewTransactions();
+
+	ctrace << "Processed " << newPendingReceipts.size() << " transactions in" << (timer.elapsed() * 1000) << "(" << (bool)m_syncTransactionQueue << ")";
+}
+
+void Client::onDeadBlocks(h256s const& _blocks, h256Hash& io_changed)
+{
+	// insert transactions that we are declaring the dead part of the chain
+	for (auto const& h: _blocks)
+	{
+		clog(ClientTrace) << "Dead block:" << h;
+		for (auto const& t: bc().transactions(h))
+		{
+			clog(ClientTrace) << "Resubmitting dead-block transaction " << Transaction(t, CheckTransaction::None);
+			ctrace << "Resubmitting dead-block transaction " << Transaction(t, CheckTransaction::None);
+			m_tq.import(t, IfDropped::Retry);
+		}
+	}
+
+	for (auto const& h: _blocks)
+		appendFromBlock(h, BlockPolarity::Dead, io_changed);
+}
+
+void Client::onNewBlocks(h256s const& _blocks, h256Hash& io_changed)
+{
+	// remove transactions from m_tq nicely rather than relying on out of date nonce later on.
+	for (auto const& h: _blocks)
+		clog(ClientTrace) << "Live block:" << h;
+
+	if (auto h = m_host.lock())
+		h->noteNewBlocks();
+
+	for (auto const& h: _blocks)
+		appendFromBlock(h, BlockPolarity::Live, io_changed);
+}
