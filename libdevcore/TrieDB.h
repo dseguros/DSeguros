@@ -754,4 +754,22 @@ template <class KeyType, class DB> typename SpecificTrieDB<KeyType, DB>::iterato
 	return ret;
 }
 
+template <class DB> void GenericTrieDB<DB>::insert(bytesConstRef _key, bytesConstRef _value)
+{
+#if ETH_PARANOIA
+	tdebug << "Insert" << toHex(_key.cropped(0, 4)) << "=>" << toHex(_value);
+#endif
+
+	std::string rootValue = node(m_root);
+	assert(rootValue.size());
+	bytes b = mergeAt(RLP(rootValue), m_root, NibbleSlice(_key), _value);
+
+	// mergeAt won't attempt to delete the node if it's less than 32 bytes
+	// However, we know it's the root node and thus always hashed.
+	// So, if it's less than 32 (and thus should have been deleted but wasn't) then we delete it here.
+	if (rootValue.size() < 32)
+		forceKillNode(m_root);
+	m_root = forceInsertNode(&b);
+}
+
 }
