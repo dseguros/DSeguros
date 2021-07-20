@@ -507,5 +507,142 @@ template <class DB> typename GenericTrieDB<DB>::iterator::value_type GenericTrie
 	return std::make_pair(bytesConstRef(b.key).cropped(1), rlp[rlp.itemCount() == 2 ? 1 : 16].payload());
 }
 
+template <class DB> void GenericTrieDB<DB>::iterator::next(NibbleSlice _key)
+{
+	NibbleSlice k = _key;
+	while (true)
+	{
+		if (m_trail.empty())
+		{
+			m_that = nullptr;
+			return;
+		}
+
+		Node const& b = m_trail.back();
+		RLP rlp(b.rlp);
+
+		if (m_trail.back().child == 255)
+		{
+			// Entering. Look for first...
+			if (rlp.isEmpty())
+			{
+				// Kill our search as soon as we hit an empty node.
+				k.clear();
+				m_trail.pop_back();
+				continue;
+			}
+			if (!rlp.isList() || (rlp.itemCount() != 2 && rlp.itemCount() != 17))
+			{
+#if ETH_PARANOIA
+				cwarn << "BIG FAT ERROR. STATE TRIE CORRUPTED!!!!!";
+				cwarn << b.rlp.size() << toHex(b.rlp);
+				cwarn << rlp;
+				auto c = rlp.itemCount();
+				cwarn << c;
+				BOOST_THROW_EXCEPTION(InvalidTrie());
+#else
+				m_that = nullptr;
+				return;
+#endif
+			}
+			if (rlp.itemCount() == 2)
+			{
+				// Just turn it into a valid Branch
+				auto keyOfRLP = keyOf(rlp);
+
+				// TODO: do something different depending on how keyOfRLP compares to k.mid(0, std::min(k.size(), keyOfRLP.size()));
+				// if == all is good - continue descent.
+				// if > discard key and continue descent.
+				// if < discard key and skip node.
+
+				if (!k.contains(keyOfRLP))
+				{
+					if (!k.isEarlierThan(keyOfRLP))
+					{
+						k.clear();
+						m_trail.pop_back();
+						continue;
+					}
+					k.clear();
+				}
+
+				k = k.mid(std::min(k.size(), keyOfRLP.size()));
+				m_trail.back().key = hexPrefixEncode(keyOf(m_trail.back().key), keyOfRLP, false);
+				if (isLeaf(rlp))
+				{
+					// leaf - exit now.
+					if (k.empty())
+					{
+						m_trail.back().child = 0;
+						return;
+					}
+					// Still data in key we're supposed to be looking for when we're at a leaf. Go for next one.
+					k.clear();
+					m_trail.pop_back();
+					continue;
+				}
+
+				// enter child.
+				m_trail.back().rlp = m_that->deref(rlp[1]);
+				// no need to set .child as 255 - it's already done.
+				continue;
+			}
+			else
+			{
+				// Already a branch - look for first valid.
+				if (k.size())
+				{
+					m_trail.back().setChild(k[0]);
+					k = k.mid(1);
+				}
+				else
+					m_trail.back().setChild(16);
+				// run through to...
+			}
+		}
+		else
+		{
+			// Continuing/exiting. Look for next...
+			if (!(rlp.isList() && rlp.itemCount() == 17))
+			{
+				k.clear();
+				m_trail.pop_back();
+				continue;
+			}
+			// else run through to...
+			m_trail.back().incrementChild();
+		}
+
+		// ...here. should only get here if we're a list.
+		assert(rlp.isList() && rlp.itemCount() == 17);
+		for (;; m_trail.back().incrementChild())
+			if (m_trail.back().child == 17)
+			{
+				// finished here.
+				k.clear();
+				m_trail.pop_back();
+				break;
+			}
+			else if (!rlp[m_trail.back().child].isEmpty())
+			{
+				if (m_trail.back().child == 16)
+					return;	// have a value at this node - exit now.
+				else
+				{
+					// lead-on to another node - enter child.
+					// fixed so that Node passed into push_back is constructed *before* m_trail is potentially resized (which invalidates back and rlp)
+					Node const& back = m_trail.back();
+					m_trail.push_back(Node{
+						m_that->deref(rlp[back.child]),
+						 hexPrefixEncode(keyOf(back.key), NibbleSlice(bytesConstRef(&back.child, 1), 1), false),
+						 255
+						});
+					break;
+				}
+			}
+		else
+			k.clear();
+	}
+}
 
 }
