@@ -472,3 +472,362 @@ void Client::onNewBlocks(h256s const& _blocks, h256Hash& io_changed)
 	for (auto const& h: _blocks)
 		appendFromBlock(h, BlockPolarity::Live, io_changed);
 }
+
+void Client::resyncStateFromChain()
+{
+	// RESTART MINING
+
+//	ctrace << "resyncStateFromChain()";
+
+	if (!isMajorSyncing())
+	{
+		bool preChanged = false;
+		Block newPreMine(chainParams().accountStartNonce);
+		DEV_READ_GUARDED(x_preSeal)
+			newPreMine = m_preSeal;
+
+		// TODO: use m_postSeal to avoid re-evaluating our own blocks.
+		preChanged = newPreMine.sync(bc());
+
+		if (preChanged || m_postSeal.author() != m_preSeal.author())
+		{
+			DEV_WRITE_GUARDED(x_preSeal)
+				m_preSeal = newPreMine;
+			DEV_WRITE_GUARDED(x_working)
+				m_working = newPreMine;
+			DEV_READ_GUARDED(x_postSeal)
+				if (!m_postSeal.isSealed() || m_postSeal.info().hash() != newPreMine.info().parentHash())
+					for (auto const& t: m_postSeal.pending())
+					{
+						clog(ClientTrace) << "Resubmitting post-seal transaction " << t;
+//						ctrace << "Resubmitting post-seal transaction " << t;
+						auto ir = m_tq.import(t, IfDropped::Retry);
+						if (ir != ImportResult::Success)
+							onTransactionQueueReady();
+					}
+			DEV_READ_GUARDED(x_working) DEV_WRITE_GUARDED(x_postSeal)
+				m_postSeal = m_working;
+
+			onPostStateChanged();
+		}
+
+		// Quick hack for now - the TQ at this point already has the prior pending transactions in it;
+		// we should resync with it manually until we are stricter about what constitutes "knowing".
+		onTransactionQueueReady();
+	}
+}
+
+void Client::resetState()
+{
+	Block newPreMine(chainParams().accountStartNonce);
+	DEV_READ_GUARDED(x_preSeal)
+		newPreMine = m_preSeal;
+
+	DEV_WRITE_GUARDED(x_working)
+		m_working = newPreMine;
+	DEV_READ_GUARDED(x_working) DEV_WRITE_GUARDED(x_postSeal)
+		m_postSeal = m_working;
+
+	onPostStateChanged();
+	onTransactionQueueReady();
+}
+
+void Client::onChainChanged(ImportRoute const& _ir)
+{
+//	ctrace << "onChainChanged()";
+	h256Hash changeds;
+	onDeadBlocks(_ir.deadBlocks, changeds);
+	for (auto const& t: _ir.goodTranactions)
+	{
+		clog(ClientTrace) << "Safely dropping transaction " << t.sha3();
+		m_tq.dropGood(t);
+	}
+	onNewBlocks(_ir.liveBlocks, changeds);
+	resyncStateFromChain();
+	noteChanged(changeds);
+}
+
+bool Client::remoteActive() const
+{
+	return chrono::system_clock::now() - m_lastGetWork < chrono::seconds(30);
+}
+
+void Client::onPostStateChanged()
+{
+	clog(ClientTrace) << "Post state changed.";
+	m_signalled.notify_all();
+	m_remoteWorking = false;
+}
+
+void Client::startSealing()
+{
+	if (m_wouldSeal == true)
+		return;
+	clog(ClientNote) << "Mining Beneficiary: " << author();
+	if (author())
+	{
+		m_wouldSeal = true;
+		m_signalled.notify_all();
+	}
+	else
+		clog(ClientNote) << "You need to set an author in order to seal!";
+}
+
+void Client::rejigSealing()
+{
+	if ((wouldSeal() || remoteActive()) && !isMajorSyncing())
+	{
+		if (sealEngine()->shouldSeal(this))
+		{
+			m_wouldButShouldnot = false;
+
+			clog(ClientTrace) << "Rejigging seal engine...";
+			DEV_WRITE_GUARDED(x_working)
+			{
+				if (m_working.isSealed())
+				{
+					clog(ClientNote) << "Tried to seal sealed block...";
+					return;
+				}
+				m_working.commitToSeal(bc(), m_extraData);
+			}
+			DEV_READ_GUARDED(x_working)
+			{
+				DEV_WRITE_GUARDED(x_postSeal)
+					m_postSeal = m_working;
+				m_sealingInfo = m_working.info();
+			}
+
+			if (wouldSeal())
+			{
+				sealEngine()->onSealGenerated([=](bytes const& header){
+					if (!this->submitSealed(header))
+						clog(ClientNote) << "Submitting block failed...";
+				});
+				ctrace << "Generating seal on" << m_sealingInfo.hash(WithoutSeal) << "#" << m_sealingInfo.number();
+				sealEngine()->generateSeal(m_sealingInfo);
+			}
+		}
+		else
+			m_wouldButShouldnot = true;
+	}
+	if (!m_wouldSeal)
+		sealEngine()->cancelGeneration();
+}
+
+void Client::noteChanged(h256Hash const& _filters)
+{
+	Guard l(x_filtersWatches);
+	if (_filters.size())
+		filtersStreamOut(cwatch << "noteChanged:", _filters);
+	// accrue all changes left in each filter into the watches.
+	for (auto& w: m_watches)
+		if (_filters.count(w.second.id))
+		{
+			if (m_filters.count(w.second.id))
+			{
+				cwatch << "!!!" << w.first << w.second.id.abridged();
+				w.second.changes += m_filters.at(w.second.id).changes;
+			}
+			else if (m_specialFilters.count(w.second.id))
+				for (h256 const& hash: m_specialFilters.at(w.second.id))
+				{
+					cwatch << "!!!" << w.first << LogTag::Special << (w.second.id == PendingChangedFilter ? "pending" : w.second.id == ChainChangedFilter ? "chain" : "???");
+					w.second.changes.push_back(LocalisedLogEntry(SpecialLogEntry, hash));
+				}
+		}
+	// clear the filters now.
+	for (auto& i: m_filters)
+		i.second.changes.clear();
+	for (auto& i: m_specialFilters)
+		i.second.clear();
+}
+
+void Client::doWork(bool _doWait)
+{
+	bool t = true;
+	if (m_syncBlockQueue.compare_exchange_strong(t, false))
+		syncBlockQueue();
+
+	if (m_needStateReset)
+	{
+		resetState();
+		m_needStateReset = false;
+	}
+
+	t = true;
+	bool isSealed = false;
+	DEV_READ_GUARDED(x_working)
+		isSealed = m_working.isSealed();
+	if (!isSealed && !isSyncing() && !m_remoteWorking && m_syncTransactionQueue.compare_exchange_strong(t, false))
+		syncTransactionQueue();
+
+	tick();
+
+	rejigSealing();
+
+	callQueuedFunctions();
+
+	DEV_READ_GUARDED(x_working)
+		isSealed = m_working.isSealed();
+	// If the block is sealed, we have to wait for it to tickle through the block queue
+	// (which only signals as wanting to be synced if it is ready).
+	if (!m_syncBlockQueue && !m_syncTransactionQueue && (_doWait || isSealed))
+	{
+		std::unique_lock<std::mutex> l(x_signalled);
+		m_signalled.wait_for(l, chrono::seconds(1));
+	}
+}
+
+void Client::tick()
+{
+	if (chrono::system_clock::now() - m_lastTick > chrono::seconds(1))
+	{
+		m_report.ticks++;
+		checkWatchGarbage();
+		m_bq.tick();
+		m_lastTick = chrono::system_clock::now();
+		if (m_report.ticks == 15)
+			clog(ClientTrace) << activityReport();
+	}
+}
+
+void Client::checkWatchGarbage()
+{
+	if (chrono::system_clock::now() - m_lastGarbageCollection > chrono::seconds(5))
+	{
+		// watches garbage collection
+		vector<unsigned> toUninstall;
+		DEV_GUARDED(x_filtersWatches)
+			for (auto key: keysOf(m_watches))
+				if (m_watches[key].lastPoll != chrono::system_clock::time_point::max() && chrono::system_clock::now() - m_watches[key].lastPoll > chrono::seconds(20))
+				{
+					toUninstall.push_back(key);
+					clog(ClientTrace) << "GC: Uninstall" << key << "(" << chrono::duration_cast<chrono::seconds>(chrono::system_clock::now() - m_watches[key].lastPoll).count() << "s old)";
+				}
+		for (auto i: toUninstall)
+			uninstallWatch(i);
+
+		// blockchain GC
+		bc().garbageCollect();
+
+		m_lastGarbageCollection = chrono::system_clock::now();
+	}
+}
+
+void Client::prepareForTransaction()
+{
+	startWorking();
+}
+
+Block Client::block(h256 const& _block) const
+{
+	try
+	{
+		Block ret(bc(), m_stateDB);
+		ret.populateFromChain(bc(), _block);
+		return ret;
+	}
+	catch (Exception& ex)
+	{
+		ex << errinfo_block(bc().block(_block));
+		onBadBlock(ex);
+		return Block(bc());
+	}
+}
+
+Block Client::block(h256 const& _blockHash, PopulationStatistics* o_stats) const
+{
+	try
+	{
+		Block ret(bc(), m_stateDB);
+		PopulationStatistics s = ret.populateFromChain(bc(), _blockHash);
+		if (o_stats)
+			swap(s, *o_stats);
+		return ret;
+	}
+	catch (Exception& ex)
+	{
+		ex << errinfo_block(bc().block(_blockHash));
+		onBadBlock(ex);
+		return Block(bc());
+	}
+}
+
+State Client::state(unsigned _txi, h256 const& _blockHash) const
+{
+	try
+	{
+		return block(_blockHash).fromPending(_txi);
+	}
+	catch (Exception& ex)
+	{
+		ex << errinfo_block(bc().block(_blockHash));
+		onBadBlock(ex);
+		return State(chainParams().accountStartNonce);
+	}
+}
+
+eth::State Client::state(unsigned _txi) const
+{
+	DEV_READ_GUARDED(x_postSeal)
+		return m_postSeal.fromPending(_txi);
+	assert(false);
+	return State(chainParams().accountStartNonce);
+}
+
+void Client::flushTransactions()
+{
+	doWork();
+}
+
+SyncStatus Client::syncStatus() const
+{
+	auto h = m_host.lock();
+	if (!h)
+		return SyncStatus();
+	SyncStatus status = h->status();
+	status.majorSyncing = isMajorSyncing();
+	return status;
+}
+
+bool Client::submitSealed(bytes const& _header)
+{
+	bytes newBlock;
+	{
+		UpgradableGuard l(x_working);
+		{
+			UpgradeGuard l2(l);
+			if (!m_working.sealBlock(_header))
+				return false;
+		}
+		DEV_WRITE_GUARDED(x_postSeal)
+			m_postSeal = m_working;
+		newBlock = m_working.blockData();
+	}
+
+	// OPTIMISE: very inefficient to not utilise the existing OverlayDB in m_postSeal that contains all trie changes.
+	return m_bq.import(&newBlock, true) == ImportResult::Success;
+}
+
+void Client::rewind(unsigned _n)
+{
+	executeInMainThread([=]() {
+		bc().rewind(_n);
+		onChainChanged(ImportRoute());
+	});
+
+	for (unsigned i = 0; i < 10; ++i)
+	{
+		u256 n;
+		DEV_READ_GUARDED(x_working)
+			n = m_working.info().number();
+		if (n == _n + 1)
+			break;
+		this_thread::sleep_for(std::chrono::milliseconds(50));
+	}
+	auto h = m_host.lock();
+	if (h)
+		h->reset();
+}
+
