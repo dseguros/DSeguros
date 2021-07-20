@@ -744,4 +744,14 @@ template <class DB> void GenericTrieDB<DB>::iterator::next()
 	}
 }
 
+template <class KeyType, class DB> typename SpecificTrieDB<KeyType, DB>::iterator::value_type SpecificTrieDB<KeyType, DB>::iterator::at() const
+{
+	auto p = Super::at();
+	value_type ret;
+	assert(p.first.size() == sizeof(KeyType));
+	memcpy(&ret.first, p.first.data(), sizeof(KeyType));
+	ret.second = p.second;
+	return ret;
+}
+
 }
