@@ -772,4 +772,9 @@ template <class DB> void GenericTrieDB<DB>::insert(bytesConstRef _key, bytesCons
 	m_root = forceInsertNode(&b);
 }
 
+template <class DB> std::string GenericTrieDB<DB>::at(bytesConstRef _key) const
+{
+	return atAux(RLP(node(m_root)), _key);
+}
+
 }
