@@ -777,4 +777,36 @@ template <class DB> std::string GenericTrieDB<DB>::at(bytesConstRef _key) const
 	return atAux(RLP(node(m_root)), _key);
 }
 
+template <class DB> std::string GenericTrieDB<DB>::atAux(RLP const& _here, NibbleSlice _key) const
+{
+	if (_here.isEmpty() || _here.isNull())
+		// not found.
+		return std::string();
+	unsigned itemCount = _here.itemCount();
+	assert(_here.isList() && (itemCount == 2 || itemCount == 17));
+	if (itemCount == 2)
+	{
+		auto k = keyOf(_here);
+		if (_key == k && isLeaf(_here))
+			// reached leaf and it's us
+			return _here[1].toString();
+		else if (_key.contains(k) && !isLeaf(_here))
+			// not yet at leaf and it might yet be us. onwards...
+			return atAux(_here[1].isList() ? _here[1] : RLP(node(_here[1].toHash<h256>())), _key.mid(k.size()));
+		else
+			// not us.
+			return std::string();
+	}
+	else
+	{
+		if (_key.size() == 0)
+			return _here[16].toString();
+		auto n = _here[_key[0]];
+		if (n.isEmpty())
+			return std::string();
+		else
+			return atAux(n.isList() ? n : RLP(node(n.toHash<h256>())), _key.mid(1));
+	}
+}
+
 }
