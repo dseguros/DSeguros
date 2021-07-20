@@ -344,3 +344,54 @@ void Client::appendFromBlock(h256 const& _block, BlockPolarity _polarity, h256Ha
 		}
 	}
 }
+
+ExecutionResult Client::call(Address _dest, bytes const& _data, u256 _gas, u256 _value, u256 _gasPrice, Address const& _from)
+{
+	ExecutionResult ret;
+	try
+	{
+		Block temp(chainParams().accountStartNonce);
+		clog(ClientDetail) << "Nonce at " << _dest << " pre:" << m_preSeal.transactionsFrom(_dest) << " post:" << m_postSeal.transactionsFrom(_dest);
+		DEV_READ_GUARDED(x_postSeal)
+			temp = m_postSeal;
+		temp.mutableState().addBalance(_from, _value + _gasPrice * _gas);
+		Executive e(temp);
+		e.setResultRecipient(ret);
+		if (!e.call(_dest, _from, _value, _gasPrice, &_data, _gas))
+			e.go();
+		e.finalize();
+	}
+	catch (...)
+	{
+		cwarn << "Client::call failed: " << boost::current_exception_diagnostic_information();
+	}
+	return ret;
+}
+
+unsigned static const c_syncMin = 1;
+unsigned static const c_syncMax = 1000;
+double static const c_targetDuration = 1;
+
+void Client::syncBlockQueue()
+{
+//	cdebug << "syncBlockQueue()";
+
+	ImportRoute ir;
+	unsigned count;
+	Timer t;
+	tie(ir, m_syncBlockQueue, count) = bc().sync(m_bq, m_stateDB, m_syncAmount);
+	double elapsed = t.elapsed();
+
+	if (count)
+	{
+		clog(ClientNote) << count << "blocks imported in" << unsigned(elapsed * 1000) << "ms (" << (count / elapsed) << "blocks/s) in #" << bc().number();
+	}
+
+	if (elapsed > c_targetDuration * 1.1 && count > c_syncMin)
+		m_syncAmount = max(c_syncMin, count * 9 / 10);
+	else if (count == m_syncAmount && elapsed < c_targetDuration * 0.9 && m_syncAmount < c_syncMax)
+		m_syncAmount = min(c_syncMax, m_syncAmount * 11 / 10 + 1);
+	if (ir.liveBlocks.empty())
+		return;
+	onChainChanged(ir);
+}
