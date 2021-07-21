@@ -1043,4 +1043,174 @@ template <class DB> bytes GenericTrieDB<DB>::deleteAt(RLP const& _orig, NibbleSl
 
 }
 
+template <class DB> bool GenericTrieDB<DB>::deleteAtAux(RLPStream& _out, RLP const& _orig, NibbleSlice _k)
+{
+
+	bytes b = _orig.isEmpty() ? bytes() : deleteAt(_orig.isList() ? _orig : RLP(node(_orig.toHash<h256>())), _k);
+
+	if (!b.size())	// not found - no change.
+		return false;
+
+/*	if (_orig.isList())
+		killNode(_orig);
+	else
+		killNode(_orig.toHash<h256>());*/
+
+	streamNode(_out, b);
+	return true;
+}
+
+template <class DB> bytes GenericTrieDB<DB>::place(RLP const& _orig, NibbleSlice _k, bytesConstRef _s)
+{
+#if ETH_PARANOIA
+	tdebug << "place " << _orig << _k;
+#endif
+
+	killNode(_orig);
+	if (_orig.isEmpty())
+		return rlpList(hexPrefixEncode(_k, true), _s);
+
+	assert(_orig.isList() && (_orig.itemCount() == 2 || _orig.itemCount() == 17));
+	if (_orig.itemCount() == 2)
+		return rlpList(_orig[0], _s);
+
+	auto s = RLPStream(17);
+	for (unsigned i = 0; i < 16; ++i)
+		s << _orig[i];
+	s << _s;
+	return s.out();
+}
+
+// in1: [K, S] (DEL)
+// out1: null
+// in2: [V0, ..., V15, S] (DEL)
+// out2: [V0, ..., V15, null] iff exists i: !!Vi  -- OR --  null otherwise
+template <class DB> bytes GenericTrieDB<DB>::remove(RLP const& _orig)
+{
+#if ETH_PARANOIA
+	tdebug << "kill " << _orig;
+#endif
+
+	killNode(_orig);
+
+	assert(_orig.isList() && (_orig.itemCount() == 2 || _orig.itemCount() == 17));
+	if (_orig.itemCount() == 2)
+		return RLPNull;
+	RLPStream r(17);
+	for (unsigned i = 0; i < 16; ++i)
+		r << _orig[i];
+	r << "";
+	return r.out();
+}
+
+template <class DB> RLPStream& GenericTrieDB<DB>::streamNode(RLPStream& _s, bytes const& _b)
+{
+	if (_b.size() < 32)
+		_s.appendRaw(_b);
+	else
+		_s.append(forceInsertNode(&_b));
+	return _s;
+}
+
+template <class DB> bytes GenericTrieDB<DB>::cleve(RLP const& _orig, unsigned _s)
+{
+#if ETH_PARANOIA
+	tdebug << "cleve " << _orig << _s;
+#endif
+
+	killNode(_orig);
+	assert(_orig.isList() && _orig.itemCount() == 2);
+	auto k = keyOf(_orig);
+	assert(_s && _s <= k.size());
+
+	RLPStream bottom(2);
+	bottom << hexPrefixEncode(k, isLeaf(_orig), /*ugh*/(int)_s) << _orig[1];
+
+	RLPStream top(2);
+	top << hexPrefixEncode(k, false, 0, /*ugh*/(int)_s);
+	streamNode(top, bottom.out());
+
+	return top.out();
+}
+
+template <class DB> bytes GenericTrieDB<DB>::graft(RLP const& _orig)
+{
+#if ETH_PARANOIA
+	tdebug << "graft " << _orig;
+#endif
+
+	assert(_orig.isList() && _orig.itemCount() == 2);
+	std::string s;
+	RLP n;
+	if (_orig[1].isList())
+		n = _orig[1];
+	else
+	{
+		// remove second item from the trie after derefrencing it into s & n.
+		auto lh = _orig[1].toHash<h256>();
+		s = node(lh);
+		forceKillNode(lh);
+		n = RLP(s);
+	}
+	assert(n.itemCount() == 2);
+
+	return rlpList(hexPrefixEncode(keyOf(_orig), keyOf(n), isLeaf(n)), n[1]);
+//	auto ret =
+//	std::cout << keyOf(_orig) << " ++ " << keyOf(n) << " == " << keyOf(RLP(ret)) << std::endl;
+//	return ret;
+}
+
+template <class DB> bytes GenericTrieDB<DB>::merge(RLP const& _orig, byte _i)
+{
+#if ETH_PARANOIA
+	tdebug << "merge " << _orig << (int)_i;
+#endif
+
+	assert(_orig.isList() && _orig.itemCount() == 17);
+	RLPStream s(2);
+	if (_i != 16)
+	{
+		assert(!_orig[_i].isEmpty());
+		s << hexPrefixEncode(bytesConstRef(&_i, 1), false, 1, 2, 0);
+	}
+	else
+		s << hexPrefixEncode(bytes(), true);
+	s << _orig[_i];
+	return s.out();
+}
+
+template <class DB> bytes GenericTrieDB<DB>::branch(RLP const& _orig)
+{
+#if ETH_PARANOIA
+	tdebug << "branch " << _orig;
+#endif
+
+	assert(_orig.isList() && _orig.itemCount() == 2);
+	killNode(_orig);
+
+	auto k = keyOf(_orig);
+	RLPStream r(17);
+	if (k.size() == 0)
+	{
+		assert(isLeaf(_orig));
+		for (unsigned i = 0; i < 16; ++i)
+			r << "";
+		r << _orig[1];
+	}
+	else
+	{
+		byte b = k[0];
+		for (unsigned i = 0; i < 16; ++i)
+			if (i == b)
+				if (isLeaf(_orig) || k.size() > 1)
+					streamNode(r, rlpList(hexPrefixEncode(k.mid(1), isLeaf(_orig)), _orig[1]));
+				else
+					r << _orig[1];
+			else
+				r << "";
+		r << "";
+	}
+	return r.out();
+}
+
 }
