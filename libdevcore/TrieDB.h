@@ -891,4 +891,43 @@ template <class DB> bytes GenericTrieDB<DB>::mergeAt(RLP const& _orig, h256 cons
 
 }
 
+
+template <class DB> void GenericTrieDB<DB>::mergeAtAux(RLPStream& _out, RLP const& _orig, NibbleSlice _k, bytesConstRef _v)
+{
+	RLP r = _orig;
+	std::string s;
+	// _orig is always a segment of a node's RLP - removing it alone is pointless. However, if may be a hash, in which case we deref and we know it is removable.
+	bool isRemovable = false;
+	if (!r.isList() && !r.isEmpty())
+	{
+		s = node(_orig.toHash<h256>());
+		r = RLP(s);
+		assert(!r.isNull());
+		isRemovable = true;
+	}
+	bytes b = mergeAt(r, _k, _v, !isRemovable);
+	streamNode(_out, b);
+}
+
+template <class DB> void GenericTrieDB<DB>::remove(bytesConstRef _key)
+{
+#if ETH_PARANOIA
+	tdebug << "Remove" << toHex(_key.cropped(0, 4).toBytes());
+#endif
+
+	std::string rv = node(m_root);
+	bytes b = deleteAt(RLP(rv), NibbleSlice(_key));
+	if (b.size())
+	{
+		if (rv.size() < 32)
+			forceKillNode(m_root);
+		m_root = forceInsertNode(&b);
+	}
+}
+
+template <class DB> bool GenericTrieDB<DB>::isTwoItemNode(RLP const& _n) const
+{
+	return (_n.isData() && RLP(node(_n.toHash<h256>())).itemCount() == 2)
+			|| (_n.isList() && _n.itemCount() == 2);
+}
 }
