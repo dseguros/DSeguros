@@ -930,4 +930,117 @@ template <class DB> bool GenericTrieDB<DB>::isTwoItemNode(RLP const& _n) const
 	return (_n.isData() && RLP(node(_n.toHash<h256>())).itemCount() == 2)
 			|| (_n.isList() && _n.itemCount() == 2);
 }
+
+template <class DB> std::string GenericTrieDB<DB>::deref(RLP const& _n) const
+{
+	return _n.isList() ? _n.data().toString() : node(_n.toHash<h256>());
+}
+
+template <class DB> bytes GenericTrieDB<DB>::deleteAt(RLP const& _orig, NibbleSlice _k)
+{
+#if ETH_PARANOIA
+	tdebug << "deleteAt " << _orig << _k << sha3(_orig.data());
+#endif
+
+	// The caller will make sure that the bytes are inserted properly.
+	// - This might mean inserting an entry into m_over
+	// We will take care to ensure that (our reference to) _orig is killed.
+
+	// Empty - not found - no change.
+	if (_orig.isEmpty())
+		return bytes();
+
+	assert(_orig.isList() && (_orig.itemCount() == 2 || _orig.itemCount() == 17));
+	if (_orig.itemCount() == 2)
+	{
+		// pair...
+		NibbleSlice k = keyOf(_orig);
+
+		// exactly our node - return null.
+		if (k == _k && isLeaf(_orig))
+		{
+			killNode(_orig);
+			return RLPNull;
+		}
+
+		// partial key is our key - move down.
+		if (_k.contains(k))
+		{
+			RLPStream s;
+			s.appendList(2) << _orig[0];
+			if (!deleteAtAux(s, _orig[1], _k.mid(k.size())))
+				return bytes();
+			killNode(_orig);
+			RLP r(s.out());
+			if (isTwoItemNode(r[1]))
+				return graft(r);
+			return s.out();
+		}
+		else
+			// not found - no change.
+			return bytes();
+	}
+	else
+	{
+		// branch...
+
+		// exactly our node - remove and rejig.
+		if (_k.size() == 0 && !_orig[16].isEmpty())
+		{
+			// Kill the node.
+			killNode(_orig);
+
+			byte used = uniqueInUse(_orig, 16);
+			if (used != 255)
+				if (isTwoItemNode(_orig[used]))
+				{
+					auto merged = merge(_orig, used);
+					return graft(RLP(merged));
+				}
+				else
+					return merge(_orig, used);
+			else
+			{
+				RLPStream r(17);
+				for (byte i = 0; i < 16; ++i)
+					r << _orig[i];
+				r << "";
+				return r.out();
+			}
+		}
+		else
+		{
+			// not exactly our node - delve to next level at the correct index.
+			RLPStream r(17);
+			byte n = _k[0];
+			for (byte i = 0; i < 17; ++i)
+				if (i == n)
+					if (!deleteAtAux(r, _orig[i], _k.mid(1)))	// bomb out if the key didn't turn up.
+						return bytes();
+					else {}
+				else
+					r << _orig[i];
+
+			// Kill the node.
+			killNode(_orig);
+
+			// check if we ended up leaving the node invalid.
+			RLP rlp(r.out());
+			byte used = uniqueInUse(rlp, 255);
+			if (used == 255)	// no - all ok.
+				return r.out();
+
+			// yes; merge
+			if (isTwoItemNode(rlp[used]))
+			{
+				auto merged = merge(rlp, used);
+				return graft(RLP(merged));
+			}
+			else
+				return merge(rlp, used);
+		}
+	}
+
+}
+
 }
