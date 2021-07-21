@@ -42,5 +42,13 @@ struct ClientWatch
 	mutable std::chrono::system_clock::time_point lastPoll = std::chrono::system_clock::now();
 };
 
+struct WatchChannel: public LogChannel { static const char* name(); static const int verbosity = 7; };
+#define cwatch LogOutputStream<WatchChannel, true>()
+struct WorkInChannel: public LogChannel { static const char* name(); static const int verbosity = 16; };
+struct WorkOutChannel: public LogChannel { static const char* name(); static const int verbosity = 16; };
+struct WorkChannel: public LogChannel { static const char* name(); static const int verbosity = 21; };
+#define cwork LogOutputStream<WorkChannel, true>()
+#define cworkin LogOutputStream<WorkInChannel, true>()
+#define cworkout LogOutputStream<WorkOutChannel, true>()
 
 }}
