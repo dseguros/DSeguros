@@ -809,4 +809,86 @@ template <class DB> std::string GenericTrieDB<DB>::atAux(RLP const& _here, Nibbl
 	}
 }
 
+
+template <class DB> bytes GenericTrieDB<DB>::mergeAt(RLP const& _orig, NibbleSlice _k, bytesConstRef _v, bool _inLine)
+{
+	return mergeAt(_orig, sha3(_orig.data()), _k, _v, _inLine);
+}
+
+template <class DB> bytes GenericTrieDB<DB>::mergeAt(RLP const& _orig, h256 const& _origHash, NibbleSlice _k, bytesConstRef _v, bool _inLine)
+{
+#if ETH_PARANOIA
+	tdebug << "mergeAt " << _orig << _k << sha3(_orig.data());
+#endif
+
+	// The caller will make sure that the bytes are inserted properly.
+	// - This might mean inserting an entry into m_over
+	// We will take care to ensure that (our reference to) _orig is killed.
+
+	// Empty - just insert here
+	if (_orig.isEmpty())
+		return place(_orig, _k, _v);
+
+	unsigned itemCount = _orig.itemCount();
+	assert(_orig.isList() && (itemCount == 2 || itemCount == 17));
+	if (itemCount == 2)
+	{
+		// pair...
+		NibbleSlice k = keyOf(_orig);
+
+		// exactly our node - place value in directly.
+		if (k == _k && isLeaf(_orig))
+			return place(_orig, _k, _v);
+
+		// partial key is our key - move down.
+		if (_k.contains(k) && !isLeaf(_orig))
+		{
+			if (!_inLine)
+				killNode(_orig, _origHash);
+			RLPStream s(2);
+			s.append(_orig[0]);
+			mergeAtAux(s, _orig[1], _k.mid(k.size()), _v);
+			return s.out();
+		}
+
+		auto sh = _k.shared(k);
+//		std::cout << _k << " sh " << k << " = " << sh << std::endl;
+		if (sh)
+		{
+			// shared stuff - cleve at disagreement.
+			auto cleved = cleve(_orig, sh);
+			return mergeAt(RLP(cleved), _k, _v, true);
+		}
+		else
+		{
+			// nothing shared - branch
+			auto branched = branch(_orig);
+			return mergeAt(RLP(branched), _k, _v, true);
+		}
+	}
+	else
+	{
+		// branch...
+
+		// exactly our node - place value.
+		if (_k.size() == 0)
+			return place(_orig, _k, _v);
+
+		// Kill the node.
+		if (!_inLine)
+			killNode(_orig, _origHash);
+
+		// not exactly our node - delve to next level at the correct index.
+		byte n = _k[0];
+		RLPStream r(17);
+		for (byte i = 0; i < 17; ++i)
+			if (i == n)
+				mergeAtAux(r, _orig[i], _k.mid(1), _v);
+			else
+				r.append(_orig[i]);
+		return r.out();
+	}
+
+}
+
 }
