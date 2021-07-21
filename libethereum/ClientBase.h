@@ -13,5 +13,13 @@ namespace dev
 namespace eth
 {
 
+struct InstalledFilter
+{
+	InstalledFilter(LogFilter const& _f): filter(_f) {}
+
+	LogFilter filter;
+	unsigned refCount = 1;
+	LocalisedLogEntries changes;
+};
 
 }}
