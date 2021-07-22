@@ -83,6 +83,51 @@ public:
 	using Interface::codeHashAt;
 	using Interface::storageAt;
 
+	virtual u256 balanceAt(Address _a, BlockNumber _block) const override;
+	virtual u256 countAt(Address _a, BlockNumber _block) const override;
+	virtual u256 stateAt(Address _a, u256 _l, BlockNumber _block) const override;
+	virtual h256 stateRootAt(Address _a, BlockNumber _block) const override;
+	virtual bytes codeAt(Address _a, BlockNumber _block) const override;
+	virtual h256 codeHashAt(Address _a, BlockNumber _block) const override;
+	virtual std::map<h256, std::pair<u256, u256>> storageAt(Address _a, BlockNumber _block) const override;
+
+	virtual LocalisedLogEntries logs(unsigned _watchId) const override;
+	virtual LocalisedLogEntries logs(LogFilter const& _filter) const override;
+	virtual void prependLogsFromBlock(LogFilter const& _filter, h256 const& _blockHash, BlockPolarity _polarity, LocalisedLogEntries& io_logs) const;
+
+	/// Install, uninstall and query watches.
+	virtual unsigned installWatch(LogFilter const& _filter, Reaping _r = Reaping::Automatic) override;
+	virtual unsigned installWatch(h256 _filterId, Reaping _r = Reaping::Automatic) override;
+	virtual bool uninstallWatch(unsigned _watchId) override;
+	virtual LocalisedLogEntries peekWatch(unsigned _watchId) const override;
+	virtual LocalisedLogEntries checkWatch(unsigned _watchId) override;
+
+	virtual h256 hashFromNumber(BlockNumber _number) const override;
+	virtual BlockNumber numberFromHash(h256 _blockHash) const override;
+	virtual int compareBlockHashes(h256 _h1, h256 _h2) const override;
+	virtual BlockHeader blockInfo(h256 _hash) const override;
+	virtual BlockDetails blockDetails(h256 _hash) const override;
+	virtual Transaction transaction(h256 _transactionHash) const override;
+	virtual LocalisedTransaction localisedTransaction(h256 const& _transactionHash) const override;
+	virtual Transaction transaction(h256 _blockHash, unsigned _i) const override;
+	virtual LocalisedTransaction localisedTransaction(h256 const& _blockHash, unsigned _i) const override;
+	virtual TransactionReceipt transactionReceipt(h256 const& _transactionHash) const override;
+	virtual LocalisedTransactionReceipt localisedTransactionReceipt(h256 const& _transactionHash) const override;
+	virtual std::pair<h256, unsigned> transactionLocation(h256 const& _transactionHash) const override;
+	virtual Transactions transactions(h256 _blockHash) const override;
+	virtual TransactionHashes transactionHashes(h256 _blockHash) const override;
+	virtual BlockHeader uncle(h256 _blockHash, unsigned _i) const override;
+	virtual UncleHashes uncleHashes(h256 _blockHash) const override;
+	virtual unsigned transactionCount(h256 _blockHash) const override;
+	virtual unsigned uncleCount(h256 _blockHash) const override;
+	virtual unsigned number() const override;
+	virtual Transactions pending() const override;
+	virtual h256s pendingHashes() const override;
+	virtual BlockHeader pendingInfo() const override;
+	virtual BlockDetails pendingDetails() const override;
+
 }
+
+
 
 }}
