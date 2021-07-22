@@ -126,6 +126,32 @@ public:
 	virtual BlockHeader pendingInfo() const override;
 	virtual BlockDetails pendingDetails() const override;
 
+	virtual EVMSchedule evmSchedule() const override { return sealEngine()->evmSchedule(EnvInfo(pendingInfo())); }
+
+	virtual ImportResult injectTransaction(bytes const& _rlp, IfDropped _id = IfDropped::Ignore) override { prepareForTransaction(); return m_tq.import(_rlp, _id); }
+	virtual ImportResult injectBlock(bytes const& _block) override;
+
+	using Interface::addresses;
+	virtual Addresses addresses(BlockNumber _block) const override;
+	virtual u256 gasLimitRemaining() const override;
+	virtual u256 gasBidPrice() const override { return DefaultGasPrice; }
+
+	/// Get the block author
+	virtual Address author() const override;
+
+	virtual bool isKnown(h256 const& _hash) const override;
+	virtual bool isKnown(BlockNumber _block) const override;
+	virtual bool isKnownTransaction(h256 const& _transactionHash) const override;
+	virtual bool isKnownTransaction(h256 const& _blockHash, unsigned _i) const override;
+
+	virtual void startSealing() override { BOOST_THROW_EXCEPTION(InterfaceNotSupported("ClientBase::startSealing")); }
+	virtual void stopSealing() override { BOOST_THROW_EXCEPTION(InterfaceNotSupported("ClientBase::stopSealing")); }
+	virtual bool wouldSeal() const override { BOOST_THROW_EXCEPTION(InterfaceNotSupported("ClientBase::wouldSeal")); }
+
+	virtual SyncStatus syncStatus() const override { BOOST_THROW_EXCEPTION(InterfaceNotSupported("ClientBase::syncStatus")); }
+
+	Block block(BlockNumber _h) const;
+	TransactionQueue& transactionQueue(){return m_tq;}
 }
 
 
