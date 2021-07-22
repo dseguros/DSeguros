@@ -138,6 +138,19 @@ void hash256aux(HexMap const& _s, HexMap::const_iterator _begin, HexMap::const_i
 	}
 }
 
+bytes rlp256(BytesMap const& _s)
+{
+	// build patricia tree.
+	if (_s.empty())
+		return rlp("");
+	HexMap hexMap;
+	for (auto i = _s.rbegin(); i != _s.rend(); ++i)
+		hexMap[asNibbles(bytesConstRef(&i->first))] = i->second;
+	RLPStream s;
+	hash256rlp(hexMap, hexMap.cbegin(), hexMap.cend(), 0, s);
+	return s.out();
+}
+
 }
 
 #endif // ETH_EMSCRIPTEN
