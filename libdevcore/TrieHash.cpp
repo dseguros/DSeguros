@@ -117,6 +117,27 @@ void hash256rlp(HexMap const& _s, HexMap::const_iterator _begin, HexMap::const_i
 #endif
 }
 
+void hash256aux(HexMap const& _s, HexMap::const_iterator _begin, HexMap::const_iterator _end, unsigned _preLen, RLPStream& _rlp)
+{
+	RLPStream rlp;
+	hash256rlp(_s, _begin, _end, _preLen, rlp);
+	if (rlp.out().size() < 32)
+	{
+		// RECURSIVE RLP
+#if ENABLE_DEBUG_PRINT
+		cerr << "[INLINE: " << dec << rlp.out().size() << " < 32]" << endl;
+#endif
+		_rlp.APPEND_CHILD(rlp.out());
+	}
+	else
+	{
+#if ENABLE_DEBUG_PRINT
+		cerr << "[HASH: " << dec << rlp.out().size() << " >= 32]" << endl;
+#endif
+		_rlp << sha3(rlp.out());
+	}
+}
+
 }
 
 #endif // ETH_EMSCRIPTEN
