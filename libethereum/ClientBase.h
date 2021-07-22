@@ -154,6 +154,26 @@ public:
 	TransactionQueue& transactionQueue(){return m_tq;}
 }
 
+protected:
+	/// The interface that must be implemented in any class deriving this.
+	/// {
+	virtual BlockChain& bc() = 0;
+	virtual BlockChain const& bc() const = 0;
+	virtual Block block(h256 const& _h) const = 0;
+	virtual Block preSeal() const = 0;
+	virtual Block postSeal() const = 0;
+	virtual void prepareForTransaction() = 0;
+	/// }
+
+	TransactionQueue m_tq;							///< Maintains a list of incoming transactions not yet in a block on the blockchain.
+
+	// filters
+	mutable Mutex x_filtersWatches;							///< Our lock.
+	std::unordered_map<h256, InstalledFilter> m_filters;	///< The dictionary of filters that are active.
+	std::unordered_map<h256, h256s> m_specialFilters = std::unordered_map<h256, std::vector<h256>>{{PendingChangedFilter, {}}, {ChainChangedFilter, {}}};
+															///< The dictionary of special filters and their additional data
+	std::map<unsigned, ClientWatch> m_watches;				///< Each and every watch - these reference a filter.
+};
 
 
 }}
