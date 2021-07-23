@@ -156,6 +156,14 @@ h256 hash256(BytesMap const& _s)
 	return sha3(rlp256(_s));
 }
 
+h256 orderedTrieRoot(std::vector<bytes> const& _data)
+{
+	BytesMap m;
+	unsigned j = 0;
+	for (auto i: _data)
+		m[rlp(j++)] = i;
+	return hash256(m);
+}
 
 }
 
