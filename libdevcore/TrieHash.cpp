@@ -165,6 +165,14 @@ h256 orderedTrieRoot(std::vector<bytes> const& _data)
 	return hash256(m);
 }
 
+h256 orderedTrieRoot(std::vector<bytesConstRef> const& _data)
+{
+	BytesMap m;
+	unsigned j = 0;
+	for (auto i: _data)
+		m[rlp(j++)] = i.toBytes();
+	return hash256(m);
+}
 }
 
 #endif // ETH_EMSCRIPTEN
