@@ -151,6 +151,12 @@ bytes rlp256(BytesMap const& _s)
 	return s.out();
 }
 
+h256 hash256(BytesMap const& _s)
+{
+	return sha3(rlp256(_s));
+}
+
+
 }
 
 #endif // ETH_EMSCRIPTEN
