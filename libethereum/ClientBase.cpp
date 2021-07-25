@@ -56,3 +56,24 @@ ExecutionResult ClientBase::call(Address const& _from, u256 _value, Address _des
 	}
 	return ret;
 }
+
+ExecutionResult ClientBase::create(Address const& _from, u256 _value, bytes const& _data, u256 _gas, u256 _gasPrice, BlockNumber _blockNumber, FudgeFactor _ff)
+{
+	ExecutionResult ret;
+	try
+	{
+		Block temp = block(_blockNumber);
+		u256 n = temp.transactionsFrom(_from);
+		//	cdebug << "Nonce at " << toAddress(_secret) << " pre:" << m_preSeal.transactionsFrom(toAddress(_secret)) << " post:" << m_postSeal.transactionsFrom(toAddress(_secret));
+		Transaction t(_value, _gasPrice, _gas, _data, n);
+		t.forceSender(_from);
+		if (_ff == FudgeFactor::Lenient)
+			temp.mutableState().addBalance(_from, (u256)(t.gas() * t.gasPrice() + t.value()));
+		ret = temp.execute(bc().lastHashes(), t, Permanence::Reverted);
+	}
+	catch (...)
+	{
+		// TODO: Some sort of notification of failure.
+	}
+	return ret;
+}
