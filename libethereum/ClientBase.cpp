@@ -15,3 +15,21 @@ const char* WorkChannel::name() { return EthOrange "⚒" EthWhite "  "; }
 
 static const int64_t c_maxGasEstimate = 50000000;
 
+pair<h256, Address> ClientBase::submitTransaction(TransactionSkeleton const& _t, Secret const& _secret)
+{
+	prepareForTransaction();
+	
+	TransactionSkeleton ts(_t);
+	ts.from = toAddress(_secret);
+	if (_t.nonce == Invalid256)
+		ts.nonce = max<u256>(postSeal().transactionsFrom(ts.from), m_tq.maxNonce(ts.from));
+	if (ts.gasPrice == Invalid256)
+		ts.gasPrice = gasBidPrice();
+	if (ts.gas == Invalid256)
+		ts.gas = min<u256>(gasLimitRemaining() / 5, balanceAt(ts.from) / ts.gasPrice);
+
+	Transaction t(ts, _secret);
+	m_tq.import(t.rlp());
+	
+	return make_pair(t.sha3(), toAddress(ts.from, ts.nonce));
+}
