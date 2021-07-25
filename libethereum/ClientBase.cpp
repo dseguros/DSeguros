@@ -77,3 +77,58 @@ ExecutionResult ClientBase::create(Address const& _from, u256 _value, bytes cons
 	}
 	return ret;
 }
+
+std::pair<u256, ExecutionResult> ClientBase::estimateGas(Address const& _from, u256 _value, Address _dest, bytes const& _data, int64_t _maxGas, u256 _gasPrice, BlockNumber _blockNumber, GasEstimationCallback const& _callback)
+{
+	try
+	{
+		int64_t upperBound = _maxGas;
+		if (upperBound == Invalid256 || upperBound > c_maxGasEstimate)
+			upperBound = c_maxGasEstimate;
+		int64_t lowerBound = Transaction::baseGasRequired(!_dest, &_data, EVMSchedule());
+		Block bk = block(_blockNumber);
+		u256 gasPrice = _gasPrice == Invalid256 ? gasBidPrice() : _gasPrice;
+		ExecutionResult er;
+		ExecutionResult lastGood;
+		bool good = false;
+		while (upperBound != lowerBound)
+		{
+			int64_t mid = (lowerBound + upperBound) / 2;
+			u256 n = bk.transactionsFrom(_from);
+			Transaction t;
+			if (_dest)
+				t = Transaction(_value, gasPrice, mid, _dest, _data, n);
+			else
+				t = Transaction(_value, gasPrice, mid, _data, n);
+			t.forceSender(_from);
+			EnvInfo env(bk.info(), bc().lastHashes(), 0);
+			env.setGasLimit(mid);
+			State tempState(bk.state());
+			tempState.addBalance(_from, (u256)(t.gas() * t.gasPrice() + t.value()));
+			er = tempState.execute(env, *bc().sealEngine(), t, Permanence::Reverted).first;
+			if (er.excepted == TransactionException::OutOfGas ||
+				er.excepted == TransactionException::OutOfGasBase ||
+				er.excepted == TransactionException::OutOfGasIntrinsic ||
+				er.codeDeposit == CodeDeposit::Failed ||
+				er.excepted == TransactionException::BadJumpDestination)
+					lowerBound = lowerBound == mid ? upperBound : mid;
+			else
+			{
+				lastGood = er;
+				upperBound = upperBound == mid ? lowerBound : mid;
+				good = true;
+			}
+
+			if (_callback)
+				_callback(GasEstimationProgress { lowerBound, upperBound });
+		}
+		if (_callback)
+			_callback(GasEstimationProgress { lowerBound, upperBound });
+		return make_pair(upperBound, good ? lastGood : er);
+	}
+	catch (...)
+	{
+		// TODO: Some sort of notification of failure.
+		return make_pair(u256(), ExecutionResult());
+	}
+}
