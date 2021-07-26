@@ -252,4 +252,145 @@ LocalisedLogEntries ClientBase::logs(LogFilter const& _f) const
 	return ret;
 }
 
+void ClientBase::prependLogsFromBlock(LogFilter const& _f, h256 const& _blockHash, BlockPolarity _polarity, LocalisedLogEntries& io_logs) const
+{
+	auto receipts = bc().receipts(_blockHash).receipts;
+	for (size_t i = 0; i < receipts.size(); i++)
+	{
+		TransactionReceipt receipt = receipts[i];
+		auto th = transaction(_blockHash, i).sha3();
+		LogEntries le = _f.matches(receipt);
+		for (unsigned j = 0; j < le.size(); ++j)
+			io_logs.insert(io_logs.begin(), LocalisedLogEntry(le[j], _blockHash, (BlockNumber)bc().number(_blockHash), th, i, 0, _polarity));
+	}
+}
+
+unsigned ClientBase::installWatch(LogFilter const& _f, Reaping _r)
+{
+	h256 h = _f.sha3();
+	{
+		Guard l(x_filtersWatches);
+		if (!m_filters.count(h))
+		{
+			cwatch << "FFF" << _f << h;
+			m_filters.insert(make_pair(h, _f));
+		}
+	}
+	return installWatch(h, _r);
+}
+
+unsigned ClientBase::installWatch(h256 _h, Reaping _r)
+{
+	unsigned ret;
+	{
+		Guard l(x_filtersWatches);
+		ret = m_watches.size() ? m_watches.rbegin()->first + 1 : 0;
+		m_watches[ret] = ClientWatch(_h, _r);
+		cwatch << "+++" << ret << _h;
+	}
+#if INITIAL_STATE_AS_CHANGES
+	auto ch = logs(ret);
+	if (ch.empty())
+		ch.push_back(InitialChange);
+	{
+		Guard l(x_filtersWatches);
+		swap(m_watches[ret].changes, ch);
+	}
+#endif
+	return ret;
+}
+
+bool ClientBase::uninstallWatch(unsigned _i)
+{
+	cwatch << "XXX" << _i;
+	
+	Guard l(x_filtersWatches);
+	
+	auto it = m_watches.find(_i);
+	if (it == m_watches.end())
+		return false;
+	auto id = it->second.id;
+	m_watches.erase(it);
+	
+	auto fit = m_filters.find(id);
+	if (fit != m_filters.end())
+		if (!--fit->second.refCount)
+		{
+			cwatch << "*X*" << fit->first << ":" << fit->second.filter;
+			m_filters.erase(fit);
+		}
+	return true;
+}
+
+LocalisedLogEntries ClientBase::peekWatch(unsigned _watchId) const
+{
+	Guard l(x_filtersWatches);
+	
+//	cwatch << "peekWatch" << _watchId;
+	auto& w = m_watches.at(_watchId);
+//	cwatch << "lastPoll updated to " << chrono::duration_cast<chrono::seconds>(chrono::system_clock::now().time_since_epoch()).count();
+	if (w.lastPoll != chrono::system_clock::time_point::max())
+		w.lastPoll = chrono::system_clock::now();
+	return w.changes;
+}
+
+LocalisedLogEntries ClientBase::checkWatch(unsigned _watchId)
+{
+	Guard l(x_filtersWatches);
+	LocalisedLogEntries ret;
+	
+//	cwatch << "checkWatch" << _watchId;
+	auto& w = m_watches.at(_watchId);
+//	cwatch << "lastPoll updated to " << chrono::duration_cast<chrono::seconds>(chrono::system_clock::now().time_since_epoch()).count();
+	std::swap(ret, w.changes);
+	if (w.lastPoll != chrono::system_clock::time_point::max())
+		w.lastPoll = chrono::system_clock::now();
+
+	return ret;
+}
+
+BlockHeader ClientBase::blockInfo(h256 _hash) const
+{
+	if (_hash == PendingBlockHash)
+		return preSeal().info();
+	return BlockHeader(bc().block(_hash));
+}
+
+BlockDetails ClientBase::blockDetails(h256 _hash) const
+{
+	return bc().details(_hash);
+}
+
+Transaction ClientBase::transaction(h256 _transactionHash) const
+{
+	return Transaction(bc().transaction(_transactionHash), CheckTransaction::Cheap);
+}
+
+LocalisedTransaction ClientBase::localisedTransaction(h256 const& _transactionHash) const
+{
+	std::pair<h256, unsigned> tl = bc().transactionLocation(_transactionHash);
+	return localisedTransaction(tl.first, tl.second);
+}
+
+Transaction ClientBase::transaction(h256 _blockHash, unsigned _i) const
+{
+	auto bl = bc().block(_blockHash);
+	RLP b(bl);
+	if (_i < b[1].itemCount())
+		return Transaction(b[1][_i].data(), CheckTransaction::Cheap);
+	else
+		return Transaction();
+}
+
+LocalisedTransaction ClientBase::localisedTransaction(h256 const& _blockHash, unsigned _i) const
+{
+	Transaction t = Transaction(bc().transaction(_blockHash, _i), CheckTransaction::Cheap);
+	return LocalisedTransaction(t, _blockHash, _i, numberFromHash(_blockHash));
+}
+
+TransactionReceipt ClientBase::transactionReceipt(h256 const& _transactionHash) const
+{
+	return bc().transactionReceipt(_transactionHash);
+}
+
 }
