@@ -393,4 +393,178 @@ TransactionReceipt ClientBase::transactionReceipt(h256 const& _transactionHash) 
 	return bc().transactionReceipt(_transactionHash);
 }
 
+LocalisedTransactionReceipt ClientBase::localisedTransactionReceipt(h256 const& _transactionHash) const
+{
+	std::pair<h256, unsigned> tl = bc().transactionLocation(_transactionHash);
+	Transaction t = Transaction(bc().transaction(tl.first, tl.second), CheckTransaction::Cheap);
+	TransactionReceipt tr = bc().transactionReceipt(tl.first, tl.second);
+	return LocalisedTransactionReceipt(
+		tr,
+		t.sha3(),
+		tl.first,
+		numberFromHash(tl.first),
+		tl.second,
+		toAddress(t.from(), t.nonce()));
+}
+
+pair<h256, unsigned> ClientBase::transactionLocation(h256 const& _transactionHash) const
+{
+	return bc().transactionLocation(_transactionHash);
+}
+
+Transactions ClientBase::transactions(h256 _blockHash) const
+{
+	auto bl = bc().block(_blockHash);
+	RLP b(bl);
+	Transactions res;
+	for (unsigned i = 0; i < b[1].itemCount(); i++)
+		res.emplace_back(b[1][i].data(), CheckTransaction::Cheap);
+	return res;
+}
+
+TransactionHashes ClientBase::transactionHashes(h256 _blockHash) const
+{
+	return bc().transactionHashes(_blockHash);
+}
+
+BlockHeader ClientBase::uncle(h256 _blockHash, unsigned _i) const
+{
+	auto bl = bc().block(_blockHash);
+	RLP b(bl);
+	if (_i < b[2].itemCount())
+		return BlockHeader(b[2][_i].data(), HeaderData);
+	else
+		return BlockHeader();
+}
+
+UncleHashes ClientBase::uncleHashes(h256 _blockHash) const
+{
+	return bc().uncleHashes(_blockHash);
+}
+
+unsigned ClientBase::transactionCount(h256 _blockHash) const
+{
+	auto bl = bc().block(_blockHash);
+	RLP b(bl);
+	return b[1].itemCount();
+}
+
+unsigned ClientBase::uncleCount(h256 _blockHash) const
+{
+	auto bl = bc().block(_blockHash);
+	RLP b(bl);
+	return b[2].itemCount();
+}
+
+unsigned ClientBase::number() const
+{
+	return bc().number();
+}
+
+Transactions ClientBase::pending() const
+{
+	return postSeal().pending();
+}
+
+h256s ClientBase::pendingHashes() const
+{
+	return h256s() + postSeal().pendingHashes();
+}
+
+BlockHeader ClientBase::pendingInfo() const
+{
+	return postSeal().info();
+}
+
+BlockDetails ClientBase::pendingDetails() const
+{
+	auto pm = postSeal().info();
+	auto li = Interface::blockDetails(LatestBlock);
+	return BlockDetails((unsigned)pm.number(), li.totalDifficulty + pm.difficulty(), pm.parentHash(), h256s{});
+}
+
+Addresses ClientBase::addresses(BlockNumber _block) const
+{
+	Addresses ret;
+	for (auto const& i: block(_block).addresses())
+		ret.push_back(i.first);
+	return ret;
+}
+
+u256 ClientBase::gasLimitRemaining() const
+{
+	return postSeal().gasLimitRemaining();
+}
+
+Address ClientBase::author() const
+{
+	return preSeal().author();
+}
+
+h256 ClientBase::hashFromNumber(BlockNumber _number) const
+{
+	if (_number == PendingBlock)
+		return h256();
+	if (_number == LatestBlock)
+		return bc().currentHash();
+	return bc().numberHash(_number);
+}
+
+BlockNumber ClientBase::numberFromHash(h256 _blockHash) const
+{
+	if (_blockHash == PendingBlockHash)
+		return bc().number() + 1;
+	else if (_blockHash == LatestBlockHash)
+		return bc().number();
+	else if (_blockHash == EarliestBlockHash)
+		return 0;
+	return bc().number(_blockHash);
+}
+
+int ClientBase::compareBlockHashes(h256 _h1, h256 _h2) const
+{
+	BlockNumber n1 = numberFromHash(_h1);
+	BlockNumber n2 = numberFromHash(_h2);
+
+	if (n1 > n2)
+		return 1;
+	else if (n1 == n2)
+		return 0;
+	return -1;
+}
+
+bool ClientBase::isKnown(h256 const& _hash) const
+{
+	return _hash == PendingBlockHash ||
+		_hash == LatestBlockHash ||
+		_hash == EarliestBlockHash ||
+		bc().isKnown(_hash);
+}
+
+bool ClientBase::isKnown(BlockNumber _block) const
+{
+	return _block == PendingBlock ||
+		_block == LatestBlock ||
+		bc().numberHash(_block) != h256();
+}
+
+bool ClientBase::isKnownTransaction(h256 const& _transactionHash) const
+{
+	return bc().isKnownTransaction(_transactionHash);
+}
+
+bool ClientBase::isKnownTransaction(h256 const& _blockHash, unsigned _i) const
+{
+	return isKnown(_blockHash) && block(_blockHash).pending().size() > _i;
+}
+
+Block ClientBase::block(BlockNumber _h) const
+{
+	if (_h == PendingBlock)
+		return postSeal();
+	else if (_h == LatestBlock)
+		return preSeal();
+	return block(bc().numberHash(_h));
+}
+
 }
