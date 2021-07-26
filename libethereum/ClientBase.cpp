@@ -163,4 +163,93 @@ bytes ClientBase::codeAt(Address _a, BlockNumber _block) const
 	return block(_block).code(_a);
 }
 
+h256 ClientBase::codeHashAt(Address _a, BlockNumber _block) const
+{
+	return block(_block).codeHash(_a);
+}
+
+map<h256, pair<u256, u256>> ClientBase::storageAt(Address _a, BlockNumber _block) const
+{
+	return block(_block).storage(_a);
+}
+
+// TODO: remove try/catch, allow exceptions
+LocalisedLogEntries ClientBase::logs(unsigned _watchId) const
+{
+	LogFilter f;
+	try
+	{
+		Guard l(x_filtersWatches);
+		f = m_filters.at(m_watches.at(_watchId).id).filter;
+	}
+	catch (...)
+	{
+		return LocalisedLogEntries();
+	}
+	return logs(f);
+}
+
+LocalisedLogEntries ClientBase::logs(LogFilter const& _f) const
+{
+	LocalisedLogEntries ret;
+	unsigned begin = min(bc().number() + 1, (unsigned)numberFromHash(_f.latest()));
+	unsigned end = min(bc().number(), min(begin, (unsigned)numberFromHash(_f.earliest())));
+	
+	// Handle pending transactions differently as they're not on the block chain.
+	if (begin > bc().number())
+	{
+		Block temp = postSeal();
+		for (unsigned i = 0; i < temp.pending().size(); ++i)
+		{
+			// Might have a transaction that contains a matching log.
+			TransactionReceipt const& tr = temp.receipt(i);
+			LogEntries le = _f.matches(tr);
+			for (unsigned j = 0; j < le.size(); ++j)
+				ret.insert(ret.begin(), LocalisedLogEntry(le[j]));
+		}
+		begin = bc().number();
+	}
+
+	// Handle reverted blocks
+	// There are not so many, so let's iterate over them
+	h256s blocks;
+	h256 ancestor;
+	unsigned ancestorIndex;
+	tie(blocks, ancestor, ancestorIndex) = bc().treeRoute(_f.earliest(), _f.latest(), false);
+
+	for (size_t i = 0; i < ancestorIndex; i++)
+		prependLogsFromBlock(_f, blocks[i], BlockPolarity::Dead, ret);
+
+	// cause end is our earliest block, let's compare it with our ancestor
+	// if ancestor is smaller let's move our end to it
+	// example:
+	//
+	// 3b -> 2b -> 1b
+	//                -> g
+	// 3a -> 2a -> 1a
+	//
+	// if earliest is at 2a and latest is a 3b, coverting them to numbers
+	// will give us pair (2, 3)
+	// and we want to get all logs from 1 (ancestor + 1) to 3
+	// so we have to move 2a to g + 1
+	end = min(end, (unsigned)numberFromHash(ancestor) + 1);
+
+	// Handle blocks from main chain
+	set<unsigned> matchingBlocks;
+	if (!_f.isRangeFilter())
+		for (auto const& i: _f.bloomPossibilities())
+			for (auto u: bc().withBlockBloom(i, end, begin))
+				matchingBlocks.insert(u);
+	else
+		// if it is a range filter, we want to get all logs from all blocks in given range
+		for (unsigned i = end; i <= begin; i++)
+			matchingBlocks.insert(i);
+
+	for (auto n: matchingBlocks)
+		prependLogsFromBlock(_f, bc().numberHash(n), BlockPolarity::Live, ret);
+
+	reverse(ret.begin(), ret.end());
+	return ret;
+}
+
 }
