@@ -131,4 +131,36 @@ std::pair<u256, ExecutionResult> ClientBase::estimateGas(Address const& _from, u
 		// TODO: Some sort of notification of failure.
 		return make_pair(u256(), ExecutionResult());
 	}
+
+
+ImportResult ClientBase::injectBlock(bytes const& _block)
+{
+	return bc().attemptImport(_block, preSeal().db()).first;
+}
+
+u256 ClientBase::balanceAt(Address _a, BlockNumber _block) const
+{
+	return block(_block).balance(_a);
+}
+
+u256 ClientBase::countAt(Address _a, BlockNumber _block) const
+{
+	return block(_block).transactionsFrom(_a);
+}
+
+u256 ClientBase::stateAt(Address _a, u256 _l, BlockNumber _block) const
+{
+	return block(_block).storage(_a, _l);
+}
+
+h256 ClientBase::stateRootAt(Address _a, BlockNumber _block) const
+{
+	return block(_block).storageRoot(_a);
+}
+
+bytes ClientBase::codeAt(Address _a, BlockNumber _block) const
+{
+	return block(_block).code(_a);
+}
+
 }
