@@ -32,6 +32,15 @@ public:
 	void rewindToBlock(unsigned _number);
 	bool addBlock(std::string const& _rlp);
 	bool completeSync();
+
+protected:
+	unsigned m_blocksToMine;
+	virtual void onNewBlocks(h256s const& _blocks, h256Hash& io_changed) override;
 };
+
+ClientTest& asClientTest(Interface& _c);
+ClientTest* asClientTest(Interface* _c);
+
+}
 
 }
