@@ -89,5 +89,26 @@ public:
 		s_cleanseCounter = (uint8_t)count;
 		memset((uint8_t*)begin(), 0, len);
 	}
+
+	_T* begin() { return m_data; }
+	_T* end() { return m_data + m_count; }
+	_T const* begin() const { return m_data; }
+	_T const* end() const { return m_data + m_count; }
+
+	_T& operator[](size_t _i) { assert(m_data); assert(_i < m_count); return m_data[_i]; }
+	_T const& operator[](size_t _i) const { assert(m_data); assert(_i < m_count); return m_data[_i]; }
+
+	bool operator==(vector_ref<_T> const& _cmp) const { return m_data == _cmp.m_data && m_count == _cmp.m_count; }
+	bool operator!=(vector_ref<_T> const& _cmp) const { return !operator==(_cmp); }
+
+#if DEV_LDB
+	operator ldb::Slice() const { return ldb::Slice((char const*)m_data, m_count * sizeof(_T)); }
+#endif
+
+	void reset() { m_data = nullptr; m_count = 0; }
+
+private:
+	_T* m_data;
+	size_t m_count;
 };
 }
