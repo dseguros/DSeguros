@@ -55,3 +55,53 @@ bool ClientTest::addBlock(string const& _rlp)
 	RLP blockRLP(rlpBytes);
 	return (m_bq.import(blockRLP.data(), true) == ImportResult::Success);
 }
+
+void ClientTest::modifyTimestamp(u256 const& _timestamp)
+{
+	Block block(chainParams().accountStartNonce);
+	DEV_READ_GUARDED(x_preSeal)
+		block = m_preSeal;
+
+	Transactions transactions;
+	DEV_READ_GUARDED(x_postSeal)
+		transactions = m_postSeal.pending();
+	block.resetCurrent(_timestamp);
+
+	DEV_WRITE_GUARDED(x_preSeal)
+		m_preSeal = block;
+
+	auto lastHashes = bc().lastHashes();
+	for (auto const& t: transactions)
+		block.execute(lastHashes, t);
+
+	DEV_WRITE_GUARDED(x_working)
+		m_working = block;
+	DEV_READ_GUARDED(x_postSeal)
+		m_postSeal = block;
+
+	onPostStateChanged();
+}
+
+void ClientTest::mineBlocks(unsigned _count)
+{
+	m_blocksToMine = _count;
+	startSealing();
+}
+
+void ClientTest::onNewBlocks(h256s const& _blocks, h256Hash& io_changed)
+{
+	Client::onNewBlocks(_blocks, io_changed);
+
+	if(--m_blocksToMine <= 0)
+		stopSealing();
+}
+
+bool ClientTest::completeSync()
+{
+	auto h = m_host.lock();
+	if (!h)
+		return false;
+
+	h->completeSync();
+	return true;
+}
