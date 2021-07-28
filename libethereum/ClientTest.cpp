@@ -27,3 +27,31 @@ ClientTest::ClientTest(
 ):
 	Client(_params, _networkID, _host, _gpForAdoption, _dbPath, _forceAction, _limits)
 {}
+
+void ClientTest::setChainParams(string const& _genesis)
+{
+	ChainParams params;
+	try
+	{
+		params = params.loadConfig(_genesis);
+		if (params.sealEngineName != "NoProof")
+			BOOST_THROW_EXCEPTION(ChainParamsNotNoProof() << errinfo_comment("Provided configuration is not well formatted."));
+
+		reopenChain(params, WithExisting::Kill);
+		setAuthor(params.author); //for some reason author is not being set
+	}
+	catch (...)
+	{
+		BOOST_THROW_EXCEPTION(ChainParamsInvalid() << errinfo_comment("Provided configuration is not well formatted."));
+	}
+}
+
+bool ClientTest::addBlock(string const& _rlp)
+{
+	if (auto h = m_host.lock())
+		h->noteNewBlocks();
+
+	bytes rlpBytes = fromHex(_rlp, WhenError::Throw);
+	RLP blockRLP(rlpBytes);
+	return (m_bq.import(blockRLP.data(), true) == ImportResult::Success);
+}
