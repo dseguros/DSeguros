@@ -9,5 +9,12 @@
 namespace dev
 {
 
+enum class IfRunning
+{
+	Fail,
+	Join,
+	Detach
+};
+
 
 }
