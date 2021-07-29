@@ -16,5 +16,13 @@ enum class IfRunning
 	Detach
 };
 
+enum class WorkerState
+{
+	Starting,
+	Started,
+	Stopping,
+	Stopped,
+	Killing
+};
 
 }
