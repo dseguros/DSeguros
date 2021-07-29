@@ -67,5 +67,27 @@ protected:
 	
 	/// Called when is to be stopped, just prior to thread being joined.
 	virtual void doneWorking() {}
+private:
+	/// Stop and never start again.
+	void terminate();
+
+	std::string m_name;
+
+	unsigned m_idleWaitMs = 0;
+	
+	mutable Mutex x_work;						///< Lock for the network existance.
+	std::unique_ptr<std::thread> m_work;		///< The network thread.
+	std::atomic<WorkerState> m_state = {WorkerState::Starting};
+private:
+	/// Stop and never start again.
+	void terminate();
+
+	std::string m_name;
+
+	unsigned m_idleWaitMs = 0;
+	
+	mutable Mutex x_work;						///< Lock for the network existance.
+	std::unique_ptr<std::thread> m_work;		///< The network thread.
+	std::atomic<WorkerState> m_state = {WorkerState::Starting};
 };
 }
