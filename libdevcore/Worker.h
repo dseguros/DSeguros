@@ -41,5 +41,31 @@ protected:
 		return *this;
 	}
 
+	virtual ~Worker() { terminate(); }
+
+	/// Allows changing worker name if work is stopped.
+	void setName(std::string _n) { if (!isWorking()) m_name = _n; }
+
+	/// Starts worker thread; causes startedWorking() to be called.
+	void startWorking();
+	
+	/// Stop worker thread; causes call to stopWorking().
+	void stopWorking();
+
+	/// Returns if worker thread is present.
+	bool isWorking() const { Guard l(x_work); return m_state == WorkerState::Started; }
+	
+	/// Called after thread is started from startWorking().
+	virtual void startedWorking() {}
+	
+	/// Called continuously following sleep for m_idleWaitMs.
+	virtual void doWork() {}
+
+	/// Overrides doWork(); should call shouldStop() often and exit when true.
+	virtual void workLoop();
+	bool shouldStop() const { return m_state != WorkerState::Started; }
+	
+	/// Called when is to be stopped, just prior to thread being joined.
+	virtual void doneWorking() {}
 };
 }
