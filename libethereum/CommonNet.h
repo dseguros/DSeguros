@@ -75,5 +75,15 @@ enum class SyncState
 	Size		/// Must be kept last
 };
 
+struct SyncStatus
+{
+	SyncState state = SyncState::Idle;
+	unsigned protocolVersion = 0;
+	unsigned startBlockNumber;
+	unsigned currentBlockNumber;
+	unsigned highestBlockNumber;
+	bool majorSyncing = false;
+};
+
 }
 }
