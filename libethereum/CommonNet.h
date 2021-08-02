@@ -53,5 +53,15 @@ enum SubprotocolPacketType: byte
 	PacketCount
 };
 
+enum class Asking
+{
+	State,
+	BlockHeaders,
+	BlockBodies,
+	NodeData,
+	Receipts,
+	Nothing
+};
+
 }
 }
