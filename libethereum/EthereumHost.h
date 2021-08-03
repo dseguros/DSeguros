@@ -21,4 +21,15 @@
 namespace dev
 {
 
+class RLPStream;
+
+namespace eth
+{
+
+class TransactionQueue;
+class BlockQueue;
+class BlockChainSync;
+
+}
+
 }
