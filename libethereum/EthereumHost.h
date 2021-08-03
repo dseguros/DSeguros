@@ -30,6 +30,32 @@ class TransactionQueue;
 class BlockQueue;
 class BlockChainSync;
 
+struct EthereumHostTrace: public LogChannel { static const char* name(); static const int verbosity = 6; };
+
+/**
+ * @brief The EthereumHost class
+ * @warning None of this is thread-safe. You have been warned.
+ * @doWork Syncs to peers and sends new blocks and transactions.
+ */
+class EthereumHost: public p2p::HostCapability<EthereumPeer>, Worker
+{
+public:
+	/// Start server, but don't listen.
+	EthereumHost(BlockChain const& _ch, OverlayDB const& _db, TransactionQueue& _tq, BlockQueue& _bq, u256 _networkId);
+
+	/// Will block on network process events.
+	virtual ~EthereumHost();
+
+	unsigned protocolVersion() const { return c_protocolVersion; }
+	u256 networkId() const { return m_networkId; }
+	void setNetworkId(u256 _n) { m_networkId = _n; }
+
+	void reset();
+	/// Don't sync further - used only in test mode
+	void completeSync();
+
+};
+
 }
 
 }
