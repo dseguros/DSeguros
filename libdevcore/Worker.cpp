@@ -60,3 +60,17 @@ void Worker::startWorking()
 		while (m_state == WorkerState::Starting)
 			this_thread::sleep_for(chrono::microseconds(20));
 }
+
+void Worker::stopWorking()
+{
+	DEV_GUARDED(x_work)
+		if (m_work)
+		{
+			WorkerState ex = WorkerState::Started;
+			m_state.compare_exchange_strong(ex, WorkerState::Stopping);
+
+			DEV_TIMED_ABOVE("Stop worker", 100)
+				while (m_state != WorkerState::Stopped)
+					this_thread::sleep_for(chrono::microseconds(20));
+		}
+}
