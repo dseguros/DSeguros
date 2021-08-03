@@ -74,3 +74,18 @@ void Worker::stopWorking()
 					this_thread::sleep_for(chrono::microseconds(20));
 		}
 }
+
+void Worker::terminate()
+{
+//	cnote << "stopWorking for thread" << m_name;
+	DEV_GUARDED(x_work)
+		if (m_work)
+		{
+			m_state.exchange(WorkerState::Killing);
+
+			DEV_TIMED_ABOVE("Terminate worker", 100)
+				m_work->join();
+
+			m_work.reset();
+		}
+}
