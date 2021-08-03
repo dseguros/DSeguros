@@ -89,3 +89,13 @@ void Worker::terminate()
 			m_work.reset();
 		}
 }
+
+void Worker::workLoop()
+{
+	while (m_state == WorkerState::Started)
+	{
+		if (m_idleWaitMs)
+			this_thread::sleep_for(chrono::milliseconds(m_idleWaitMs));
+		doWork();
+	}
+}
