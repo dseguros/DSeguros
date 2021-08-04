@@ -68,6 +68,13 @@ public:
 	SyncStatus status() const;
 	h256 latestBlockSent() { return m_latestBlockSent; }
 	static char const* stateName(SyncState _s) { return s_stateNames[static_cast<int>(_s)]; }
+
+	static unsigned const c_oldProtocolVersion;
+	void foreachPeer(std::function<bool(std::shared_ptr<EthereumPeer>)> const& _f) const;
+
+protected:
+	std::shared_ptr<p2p::Capability> newPeerCapability(std::shared_ptr<p2p::SessionFace> const& _s, unsigned _idOffset, p2p::CapDesc const& _cap, uint16_t _capID) override;
+
 };
 
 }
