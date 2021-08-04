@@ -54,6 +54,20 @@ public:
 	/// Don't sync further - used only in test mode
 	void completeSync();
 
+	bool isSyncing() const;
+	bool isBanned(p2p::NodeID const& _id) const { return !!m_banned.count(_id); }
+
+	void noteNewTransactions() { m_newTransactions = true; }
+	void noteNewBlocks() { m_newBlocks = true; }
+	void onBlockImported(BlockHeader const& _info) { m_sync->onBlockImported(_info); }
+
+	BlockChain const& chain() const { return m_chain; }
+	OverlayDB const& db() const { return m_db; }
+	BlockQueue& bq() { return m_bq; }
+	BlockQueue const& bq() const { return m_bq; }
+	SyncStatus status() const;
+	h256 latestBlockSent() { return m_latestBlockSent; }
+	static char const* stateName(SyncState _s) { return s_stateNames[static_cast<int>(_s)]; }
 };
 
 }
