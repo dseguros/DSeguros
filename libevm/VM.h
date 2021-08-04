@@ -21,5 +21,11 @@ inline Address asAddress(u256 _item)
 	return right160(h256(_item));
 }
 
+inline u256 fromAddress(Address _a)
+{
+	return (u160)_a;
+}
+
+
 }
 }
