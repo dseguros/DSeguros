@@ -75,6 +75,21 @@ public:
 protected:
 	std::shared_ptr<p2p::Capability> newPeerCapability(std::shared_ptr<p2p::SessionFace> const& _s, unsigned _idOffset, p2p::CapDesc const& _cap, uint16_t _capID) override;
 
+private:
+	static char const* const s_stateNames[static_cast<int>(SyncState::Size)];
+
+	std::tuple<std::vector<std::shared_ptr<EthereumPeer>>, std::vector<std::shared_ptr<EthereumPeer>>, std::vector<std::shared_ptr<p2p::SessionFace>>> randomSelection(unsigned _percent = 25, std::function<bool(EthereumPeer*)> const& _allow = [](EthereumPeer const*){ return true; });
+
+	/// Sync with the BlockChain. It might contain one of our mined blocks, we might have new candidates from the network.
+	virtual void doWork() override;
+
+	void maintainTransactions();
+	void maintainBlocks(h256 const& _currentBlock);
+	void onTransactionImported(ImportResult _ir, h256 const& _h, h512 const& _nodeId);
+
+	///	Check to see if the network peer-state initialisation has happened.
+	bool isInitialised() const { return (bool)m_latestBlockSent; }
+
 };
 
 }
