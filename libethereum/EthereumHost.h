@@ -90,6 +90,35 @@ private:
 	///	Check to see if the network peer-state initialisation has happened.
 	bool isInitialised() const { return (bool)m_latestBlockSent; }
 
+
+	/// Initialises the network peer-state, doing the stuff that needs to be once-only. @returns true if it really was first.
+	bool ensureInitialised();
+
+	virtual void onStarting() override { startWorking(); }
+	virtual void onStopping() override { stopWorking(); }
+
+	BlockChain const& m_chain;
+	OverlayDB const& m_db;					///< References to DB, needed for some of the Ethereum Protocol responses.
+	TransactionQueue& m_tq;					///< Maintains a list of incoming transactions not yet in a block on the blockchain.
+	BlockQueue& m_bq;						///< Maintains a list of incoming blocks not yet on the blockchain (to be imported).
+
+	u256 m_networkId;
+
+	h256 m_latestBlockSent;
+	h256Hash m_transactionsSent;
+
+	std::unordered_set<p2p::NodeID> m_banned;
+
+	bool m_newTransactions = false;
+	bool m_newBlocks = false;
+
+	mutable RecursiveMutex x_sync;
+	mutable Mutex x_transactions;
+	std::unique_ptr<BlockChainSync> m_sync;
+	std::atomic<time_t> m_lastTick = { 0 };
+
+	std::shared_ptr<EthereumHostDataFace> m_hostData;
+	std::shared_ptr<EthereumPeerObserverFace> m_peerObserver;
 };
 
 }
