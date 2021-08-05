@@ -130,6 +130,33 @@ public:
 	void throwBadJumpDestination();
 	void throwBadStack(unsigned _removed, unsigned _added);
 	void throwRevertInstruction(owning_bytes_ref&& _output);
+
+	std::vector<uint64_t> m_beginSubs;
+	std::vector<uint64_t> m_jumpDests;
+	int64_t verifyJumpDest(u256 const& _dest, bool _throw = true);
+
+	int poolConstant(const u256&);
+
+	void onOperation();
+	void adjustStack(unsigned _removed, unsigned _added);
+	uint64_t gasForMem(u512 _size);
+	void updateIOGas();
+	void updateGas();
+	void updateMem(uint64_t _newMem);
+	void logGasMem();
+	void fetchInstruction();
+	
+	uint64_t decodeJumpDest(const byte* const _code, uint64_t& _pc);
+	uint64_t decodeJumpvDest(const byte* const _code, uint64_t& _pc, byte _voff);
+
+	template<class T> uint64_t toInt63(T v)
+	{
+		// check for overflow
+		if (v > 0x7FFFFFFFFFFFFFFF)
+			throwOutOfGas();
+		uint64_t w = uint64_t(v);
+		return w;
+	}
 };
 
 }
