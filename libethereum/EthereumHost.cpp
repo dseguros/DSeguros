@@ -101,6 +101,36 @@ public:
 			m_sync.restartSync();
 		}
 	}
+
+	void onPeerNewHashes(std::shared_ptr<EthereumPeer> _peer, std::vector<std::pair<h256, u256>> const& _hashes) override
+	{
+		RecursiveGuard l(m_syncMutex);
+		try
+		{
+			m_sync.onPeerNewHashes(_peer, _hashes);
+		}
+		catch (FailedInvariant const&)
+		{
+			// "fix" for https://github.com/ethereum/webthree-umbrella/issues/300
+			clog(NetWarn) << "Failed invariant during sync, restarting sync";
+			m_sync.restartSync();
+		}
+	}
+
+	void onPeerNewBlock(std::shared_ptr<EthereumPeer> _peer, RLP const& _r) override
+	{
+		RecursiveGuard l(m_syncMutex);
+		try
+		{
+			m_sync.onPeerNewBlock(_peer, _r);
+		}
+		catch (FailedInvariant const&)
+		{
+			// "fix" for https://github.com/ethereum/webthree-umbrella/issues/300
+			clog(NetWarn) << "Failed invariant during sync, restarting sync";
+			m_sync.restartSync();
+		}
+	}
 };
 
 }
