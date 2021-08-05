@@ -143,6 +143,11 @@ public:
 		unsigned itemCount = _r.itemCount();
 		clog(EthereumHostTrace) << "Receipts (" << dec << itemCount << "entries)";
 	}
+
+private:
+	BlockChainSync& m_sync;
+	RecursiveMutex& m_syncMutex;
+	TransactionQueue& m_tq;
 };
 
 }
