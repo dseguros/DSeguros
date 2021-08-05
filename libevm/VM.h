@@ -51,6 +51,85 @@ public:
 		return stack;
 	};
 
+	private:
+
+	u256* m_io_gas_p = 0;
+	uint64_t m_io_gas = 0;
+	ExtVMFace* m_ext = 0;
+	OnOpFunc m_onOp;
+
+	static std::array<InstructionMetric, 256> c_metrics;
+	static void initMetrics();
+	static u256 exp256(u256 _base, u256 _exponent);
+	void copyCode(int);
+	const void* const* c_jumpTable = 0;
+	bool m_caseInit = false;
+	
+	typedef void (VM::*MemFnPtr)();
+	MemFnPtr m_bounce = 0;
+	MemFnPtr m_onFail = 0;
+	uint64_t m_nSteps = 0;
+	EVMSchedule const* m_schedule = nullptr;
+
+	// return bytes
+	owning_bytes_ref m_output;
+
+	// space for memory
+	bytes m_mem;
+
+	// space for code
+	bytes m_code;
+
+	// space for data stack, grows towards smaller addresses from the end
+	u256 m_stack[1024];
+	u256 *m_stackEnd = &m_stack[1024];
+	size_t stackSize() { return m_stackEnd - m_SP; }
+	
+#if EVM_JUMPS_AND_SUBS
+	// space for return stack
+	uint64_t m_return[1024];
+	
+	// mark PCs with frame size to detect cycles and stack mismatch
+	std::vector<size_t> m_frameSize;
+#endif
+
+	// constant pool
+	u256 m_pool[256];
+
+	// interpreter state
+	Instruction m_OP;                   // current operation
+	uint64_t    m_PC    = 0;            // program counter
+	u256*       m_SP    = m_stackEnd;   // stack pointer
+	u256*       m_SPP   = m_SP;         // stack pointer prime (next SP)
+#if EVM_JUMPS_AND_SUBS
+	uint64_t*   m_RP    = m_return - 1; // return pointer
+#endif
+
+	// metering and memory state
+	uint64_t m_runGas = 0;
+	uint64_t m_newMemSize = 0;
+	uint64_t m_copyMemSize = 0;
+
+	// initialize interpreter
+	void initEntry();
+	void optimize();
+
+	// interpreter loop & switch
+	void interpretCases();
+
+	// interpreter cases that call out
+	void caseCreate();
+	bool caseCallSetup(CallParameters*, bytesRef& o_output);
+	void caseCall();
+
+	void copyDataToMemory(bytesConstRef _data, u256*_sp);
+	uint64_t memNeed(u256 _offset, u256 _size);
+
+	void throwOutOfGas();
+	void throwBadInstruction();
+	void throwBadJumpDestination();
+	void throwBadStack(unsigned _removed, unsigned _added);
+	void throwRevertInstruction(owning_bytes_ref&& _output);
 };
 
 }
