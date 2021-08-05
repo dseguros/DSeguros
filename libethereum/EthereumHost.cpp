@@ -71,6 +71,36 @@ public:
 		}
 	}
 
+
+	void onPeerBlockHeaders(std::shared_ptr<EthereumPeer> _peer, RLP const& _headers) override
+	{
+		RecursiveGuard l(m_syncMutex);
+		try
+		{
+			m_sync.onPeerBlockHeaders(_peer, _headers);
+		}
+		catch (FailedInvariant const&)
+		{
+			// "fix" for https://github.com/ethereum/webthree-umbrella/issues/300
+			clog(NetWarn) << "Failed invariant during sync, restarting sync";
+			m_sync.restartSync();
+		}
+	}
+
+	void onPeerBlockBodies(std::shared_ptr<EthereumPeer> _peer, RLP const& _r) override
+	{
+		RecursiveGuard l(m_syncMutex);
+		try
+		{
+			m_sync.onPeerBlockBodies(_peer, _r);
+		}
+		catch (FailedInvariant const&)
+		{
+			// "fix" for https://github.com/ethereum/webthree-umbrella/issues/300
+			clog(NetWarn) << "Failed invariant during sync, restarting sync";
+			m_sync.restartSync();
+		}
+	}
 };
 
 }
