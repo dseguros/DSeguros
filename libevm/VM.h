@@ -26,6 +26,12 @@ inline u256 fromAddress(Address _a)
 	return (u160)_a;
 }
 
+struct InstructionMetric
+{
+	Tier gasPriceTier;
+	int args;
+	int ret;
+};
 
 }
 }
