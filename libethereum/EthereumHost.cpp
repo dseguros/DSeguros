@@ -30,4 +30,47 @@ const char* EthereumHostTrace::name() { return EthPurple "⧫" EthGray " "; }
 
 namespace
 {
+
+class EthereumPeerObserver: public EthereumPeerObserverFace
+{
+public:
+	EthereumPeerObserver(BlockChainSync& _sync, RecursiveMutex& _syncMutex, TransactionQueue& _tq): m_sync(_sync), m_syncMutex(_syncMutex), m_tq(_tq) {}
+
+	void onPeerStatus(std::shared_ptr<EthereumPeer> _peer) override
+	{
+		RecursiveGuard l(m_syncMutex);
+		try
+		{
+			m_sync.onPeerStatus(_peer);
+		}
+		catch (FailedInvariant const&)
+		{
+			// "fix" for https://github.com/ethereum/webthree-umbrella/issues/300
+			clog(NetWarn) << "Failed invariant during sync, restarting sync";
+			m_sync.restartSync();
+		}
+	}
+
+	void onPeerTransactions(std::shared_ptr<EthereumPeer> _peer, RLP const& _r) override
+	{
+		unsigned itemCount = _r.itemCount();
+		clog(EthereumHostTrace) << "Transactions (" << dec << itemCount << "entries)";
+		m_tq.enqueue(_r, _peer->id());
+	}
+
+	void onPeerAborting() override
+	{
+		RecursiveGuard l(m_syncMutex);
+		try
+		{
+			m_sync.onPeerAborting();
+		}
+		catch (Exception&)
+		{
+			cwarn << "Exception on peer destruciton: " << boost::current_exception_diagnostic_information();
+		}
+	}
+
+};
+
 }
