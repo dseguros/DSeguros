@@ -131,6 +131,18 @@ public:
 			m_sync.restartSync();
 		}
 	}
+
+	void onPeerNodeData(std::shared_ptr<EthereumPeer> /* _peer */, RLP const& _r) override
+	{
+		unsigned itemCount = _r.itemCount();
+		clog(EthereumHostTrace) << "Node Data (" << dec << itemCount << "entries)";
+	}
+
+	void onPeerReceipts(std::shared_ptr<EthereumPeer> /* _peer */, RLP const& _r) override
+	{
+		unsigned itemCount = _r.itemCount();
+		clog(EthereumHostTrace) << "Receipts (" << dec << itemCount << "entries)";
+	}
 };
 
 }
