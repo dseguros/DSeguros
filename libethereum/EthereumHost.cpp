@@ -389,3 +389,205 @@ void EthereumHost::doWork()
 	// TODO: Figure out what to do with netChange.
 	(void)netChange;
 }
+
+void EthereumHost::maintainTransactions()
+{
+	// Send any new transactions.
+	unordered_map<std::shared_ptr<EthereumPeer>, std::vector<size_t>> peerTransactions;
+	auto ts = m_tq.topTransactions(c_maxSendTransactions);
+	{
+		Guard l(x_transactions);
+		for (size_t i = 0; i < ts.size(); ++i)
+		{
+			auto const& t = ts[i];
+			bool unsent = !m_transactionsSent.count(t.sha3());
+			auto peers = get<1>(randomSelection(0, [&](EthereumPeer* p) { return p->m_requireTransactions || (unsent && !p->m_knownTransactions.count(t.sha3())); }));
+			for (auto const& p: peers)
+				peerTransactions[p].push_back(i);
+		}
+		for (auto const& t: ts)
+			m_transactionsSent.insert(t.sha3());
+	}
+	foreachPeer([&](shared_ptr<EthereumPeer> _p)
+	{
+		bytes b;
+		unsigned n = 0;
+		for (auto const& i: peerTransactions[_p])
+		{
+			_p->m_knownTransactions.insert(ts[i].sha3());
+			b += ts[i].rlp();
+			++n;
+		}
+
+		_p->clearKnownTransactions();
+
+		if (n || _p->m_requireTransactions)
+		{
+			RLPStream ts;
+			_p->prep(ts, TransactionsPacket, n).appendRaw(b, n);
+			_p->sealAndSend(ts);
+			clog(EthereumHostTrace) << "Sent" << n << "transactions to " << _p->session()->info().clientVersion;
+		}
+		_p->m_requireTransactions = false;
+		return true;
+	});
+}
+
+void EthereumHost::foreachPeer(std::function<bool(std::shared_ptr<EthereumPeer>)> const& _f) const
+{
+	//order peers by protocol, rating, connection age
+	auto sessions = peerSessions();
+	auto sessionLess = [](std::pair<std::shared_ptr<SessionFace>, std::shared_ptr<Peer>> const& _left, std::pair<std::shared_ptr<SessionFace>, std::shared_ptr<Peer>> const& _right)
+		{ return _left.first->rating() == _right.first->rating() ? _left.first->connectionTime() < _right.first->connectionTime() : _left.first->rating() > _right.first->rating(); };
+
+	std::sort(sessions.begin(), sessions.end(), sessionLess);
+	for (auto s: sessions)
+		if (!_f(capabilityFromSession<EthereumPeer>(*s.first)))
+			return;
+
+	sessions = peerSessions(c_oldProtocolVersion); //TODO: remove once v61+ is common
+	std::sort(sessions.begin(), sessions.end(), sessionLess);
+	for (auto s: sessions)
+		if (!_f(capabilityFromSession<EthereumPeer>(*s.first, c_oldProtocolVersion)))
+			return;
+}
+
+tuple<vector<shared_ptr<EthereumPeer>>, vector<shared_ptr<EthereumPeer>>, vector<shared_ptr<SessionFace>>> EthereumHost::randomSelection(unsigned _percent, std::function<bool(EthereumPeer*)> const& _allow)
+{
+	vector<shared_ptr<EthereumPeer>> chosen;
+	vector<shared_ptr<EthereumPeer>> allowed;
+	vector<shared_ptr<SessionFace>> sessions;
+
+	size_t peerCount = 0;
+	foreachPeer([&](std::shared_ptr<EthereumPeer> _p)
+	{
+		if (_allow(_p.get()))
+		{
+			allowed.push_back(_p);
+			sessions.push_back(_p->session());
+		}
+		++peerCount;
+		return true;
+	});
+
+	size_t chosenSize = (peerCount * _percent + 99) / 100;
+	chosen.reserve(chosenSize);
+	for (unsigned i = chosenSize; i && allowed.size(); i--)
+	{
+		unsigned n = rand() % allowed.size();
+		chosen.push_back(std::move(allowed[n]));
+		allowed.erase(allowed.begin() + n);
+	}
+	return make_tuple(move(chosen), move(allowed), move(sessions));
+}
+
+void EthereumHost::maintainBlocks(h256 const& _currentHash)
+{
+	// Send any new blocks.
+	auto detailsFrom = m_chain.details(m_latestBlockSent);
+	auto detailsTo = m_chain.details(_currentHash);
+	if (detailsFrom.totalDifficulty < detailsTo.totalDifficulty)
+	{
+		if (diff(detailsFrom.number, detailsTo.number) < 20)
+		{
+			// don't be sending more than 20 "new" blocks. if there are any more we were probably waaaay behind.
+			clog(EthereumHostTrace) << "Sending a new block (current is" << _currentHash << ", was" << m_latestBlockSent << ")";
+
+			h256s blocks = get<0>(m_chain.treeRoute(m_latestBlockSent, _currentHash, false, false, true));
+
+			auto s = randomSelection(25, [&](EthereumPeer* p){
+				DEV_GUARDED(p->x_knownBlocks)
+					return !p->m_knownBlocks.count(_currentHash);
+				return false;
+			});
+			for (shared_ptr<EthereumPeer> const& p: get<0>(s))
+				for (auto const& b: blocks)
+				{
+					RLPStream ts;
+					p->prep(ts, NewBlockPacket, 2).appendRaw(m_chain.block(b), 1).append(m_chain.details(b).totalDifficulty);
+
+					Guard l(p->x_knownBlocks);
+					p->sealAndSend(ts);
+					p->m_knownBlocks.clear();
+				}
+			for (shared_ptr<EthereumPeer> const& p: get<1>(s))
+			{
+				RLPStream ts;
+				p->prep(ts, NewBlockHashesPacket, blocks.size());
+				for (auto const& b: blocks)
+				{
+					ts.appendList(2);
+					ts.append(b);
+					ts.append(m_chain.number(b));
+				}
+
+				Guard l(p->x_knownBlocks);
+				p->sealAndSend(ts);
+				p->m_knownBlocks.clear();
+			}
+		}
+		m_latestBlockSent = _currentHash;
+	}
+}
+
+bool EthereumHost::isSyncing() const
+{
+	return m_sync->isSyncing();
+}
+
+SyncStatus EthereumHost::status() const
+{
+	RecursiveGuard l(x_sync);
+	return m_sync->status();
+}
+
+void EthereumHost::onTransactionImported(ImportResult _ir, h256 const& _h, h512 const& _nodeId)
+{
+	auto session = host()->peerSession(_nodeId);
+	if (!session)
+		return;
+
+	std::shared_ptr<EthereumPeer> peer = capabilityFromSession<EthereumPeer>(*session);
+	if (!peer)
+		peer = capabilityFromSession<EthereumPeer>(*session, c_oldProtocolVersion);
+	if (!peer)
+		return;
+
+	Guard l(peer->x_knownTransactions);
+	peer->m_knownTransactions.insert(_h);
+	switch (_ir)
+	{
+	case ImportResult::Malformed:
+		peer->addRating(-100);
+		break;
+	case ImportResult::AlreadyKnown:
+		// if we already had the transaction, then don't bother sending it on.
+		DEV_GUARDED(x_transactions)
+			m_transactionsSent.insert(_h);
+		peer->addRating(0);
+		break;
+	case ImportResult::Success:
+		peer->addRating(100);
+		break;
+	default:;
+	}
+}
+
+shared_ptr<Capability> EthereumHost::newPeerCapability(shared_ptr<SessionFace> const& _s, unsigned _idOffset, p2p::CapDesc const& _cap, uint16_t _capID)
+{
+	auto ret = HostCapability<EthereumPeer>::newPeerCapability(_s, _idOffset, _cap, _capID);
+
+	auto cap = capabilityFromSession<EthereumPeer>(*_s, _cap.second);
+	assert(cap);
+	cap->init(
+		protocolVersion(),
+		m_networkId,
+		m_chain.details().totalDifficulty,
+		m_chain.currentHash(),
+		m_chain.genesisHash(),
+		m_hostData,
+		m_peerObserver
+	);
+
+	return ret;
+}
