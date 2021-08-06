@@ -54,3 +54,67 @@ uint64_t VM::decodeJumpvDest(const byte* const _code, uint64_t& _pc, byte _voff)
 	return dest;
 }
 
+//
+// for tracing, checking, metering, measuring ...
+//
+void VM::onOperation()
+{
+	if (m_onOp)
+		(m_onOp)(++m_nSteps, m_PC, m_OP,
+			m_newMemSize > m_mem.size() ? (m_newMemSize - m_mem.size()) / 32 : uint64_t(0),
+			m_runGas, m_io_gas, this, m_ext);
+}
+#if EVM_HACK_ON_OPERATION
+	#define onOperation()
+#endif
+
+//
+// set current SP to SP', adjust SP' per _removed and _added items
+//
+void VM::adjustStack(unsigned _removed, unsigned _added)
+{
+	m_SP = m_SPP;
+#if EVM_HACK_STACK
+	m_SPP += _removed;
+	m_SPP -= _added;
+#else
+	// adjust stack and check bounds
+	m_SPP += _removed;
+	if (m_stackEnd < m_SPP)
+		throwBadStack(_removed, _added);
+	m_SPP -= _added;
+	if (m_SPP < m_stack)
+		throwBadStack(_removed, _added);
+#endif
+}
+
+
+uint64_t VM::gasForMem(u512 _size)
+{
+	u512 s = _size / 32;
+	return toInt63((u512)m_schedule->memoryGas * s + s * s / m_schedule->quadCoeffDiv);
+}
+
+void VM::updateIOGas()
+{
+	if (m_io_gas < m_runGas)
+		throwOutOfGas();
+	m_io_gas -= m_runGas;
+}
+
+void VM::updateGas()
+{
+	if (m_newMemSize > m_mem.size())
+		m_runGas += toInt63(gasForMem(m_newMemSize) - gasForMem(m_mem.size()));
+	m_runGas += (m_schedule->copyGas * ((m_copyMemSize + 31) / 32));
+	if (m_io_gas < m_runGas)
+		throwOutOfGas();
+}
+
+void VM::updateMem(uint64_t _newMem)
+{
+	m_newMemSize = (_newMem + 31) / 32 * 32;
+	updateGas();
+	if (m_newMemSize > m_mem.size())
+		m_mem.resize(m_newMemSize);
+}
