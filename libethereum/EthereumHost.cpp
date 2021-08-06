@@ -223,6 +223,85 @@ public:
 				blockHash = {};
 		}
 
+pair<bytes, unsigned> blockBodies(RLP const& _blockHashes) const override
+	{
+		unsigned const count = static_cast<unsigned>(_blockHashes.itemCount());
+
+		bytes rlp;
+		unsigned n = 0;
+		auto numBodiesToSend = std::min(count, c_maxBlocks);
+		for (unsigned i = 0; i < numBodiesToSend && rlp.size() < c_maxPayload; ++i)
+		{
+			auto h = _blockHashes[i].toHash<h256>();
+			if (m_chain.isKnown(h))
+			{
+				bytes blockBytes = m_chain.block(h);
+				RLP block{blockBytes};
+				RLPStream body;
+				body.appendList(2);
+				body.appendRaw(block[1].data()); // transactions
+				body.appendRaw(block[2].data()); // uncles
+				auto bodyBytes = body.out();
+				rlp.insert(rlp.end(), bodyBytes.begin(), bodyBytes.end());
+				++n;
+			}
+		}
+		if (count > 20 && n == 0)
+			clog(NetWarn) << "all" << count << "unknown blocks requested; peer on different chain?";
+		else
+			clog(NetMessageSummary) << n << "blocks known and returned;" << (numBodiesToSend - n) << "blocks unknown;" << (count > c_maxBlocks ? count - c_maxBlocks : 0) << "blocks ignored";
+
+		return make_pair(rlp, n);
+	}
+
+	strings nodeData(RLP const& _dataHashes) const override
+	{
+		unsigned const count = static_cast<unsigned>(_dataHashes.itemCount());
+
+		strings data;
+		size_t payloadSize = 0;
+		auto numItemsToSend = std::min(count, c_maxNodes);
+		for (unsigned i = 0; i < numItemsToSend && payloadSize < c_maxPayload; ++i)
+		{
+			auto h = _dataHashes[i].toHash<h256>();
+			auto node = m_db.lookup(h);
+			if (!node.empty())
+			{
+				payloadSize += node.length();
+				data.push_back(move(node));
+			}
+		}
+		clog(NetMessageSummary) << data.size() << " nodes known and returned;" << (numItemsToSend - data.size()) << " unknown;" << (count > c_maxNodes ? count - c_maxNodes : 0) << " ignored";
+
+		return data;
+	}
+
+	pair<bytes, unsigned> receipts(RLP const& _blockHashes) const override
+	{
+		unsigned const count = static_cast<unsigned>(_blockHashes.itemCount());
+
+		bytes rlp;
+		unsigned n = 0;
+		auto numItemsToSend = std::min(count, c_maxReceipts);
+		for (unsigned i = 0; i < numItemsToSend && rlp.size() < c_maxPayload; ++i)
+		{
+			auto h = _blockHashes[i].toHash<h256>();
+			if (m_chain.isKnown(h))
+			{
+				auto const receipts = m_chain.receipts(h);
+				auto receiptsRlpList = receipts.rlp();
+				rlp.insert(rlp.end(), receiptsRlpList.begin(), receiptsRlpList.end());
+				++n;
+			}
+		}
+		clog(NetMessageSummary) << n << " receipt lists known and returned;" << (numItemsToSend - n) << " unknown;" << (count > c_maxReceipts ? count - c_maxReceipts : 0) << " ignored";
+
+		return make_pair(rlp, n);
+	}
+
+private:
+	BlockChain const& m_chain;
+	OverlayDB const& m_db;
 };
 
 }
