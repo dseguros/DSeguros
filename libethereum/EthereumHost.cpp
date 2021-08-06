@@ -305,3 +305,87 @@ private:
 };
 
 }
+
+EthereumHost::EthereumHost(BlockChain const& _ch, OverlayDB const& _db, TransactionQueue& _tq, BlockQueue& _bq, u256 _networkId):
+	HostCapability<EthereumPeer>(),
+	Worker		("ethsync"),
+	m_chain		(_ch),
+	m_db(_db),
+	m_tq		(_tq),
+	m_bq		(_bq),
+	m_networkId	(_networkId),
+	m_hostData(make_shared<EthereumHostData>(m_chain, m_db))
+{
+	// TODO: Composition would be better. Left like that to avoid initialization
+	//       issues as BlockChainSync accesses other EthereumHost members.
+	m_sync.reset(new BlockChainSync(*this));
+	m_peerObserver = make_shared<EthereumPeerObserver>(*m_sync, x_sync, m_tq);
+	m_latestBlockSent = _ch.currentHash();
+	m_tq.onImport([this](ImportResult _ir, h256 const& _h, h512 const& _nodeId) { onTransactionImported(_ir, _h, _nodeId); });
+}
+
+EthereumHost::~EthereumHost()
+{
+}
+
+bool EthereumHost::ensureInitialised()
+{
+	if (!m_latestBlockSent)
+	{
+		// First time - just initialise.
+		m_latestBlockSent = m_chain.currentHash();
+		clog(EthereumHostTrace) << "Initialising: latest=" << m_latestBlockSent;
+
+		Guard l(x_transactions);
+		m_transactionsSent = m_tq.knownTransactions();
+		return true;
+	}
+	return false;
+}
+
+void EthereumHost::reset()
+{
+	RecursiveGuard l(x_sync);
+	m_sync->abortSync();
+
+	m_latestBlockSent = h256();
+	Guard tl(x_transactions);
+	m_transactionsSent.clear();
+}
+
+void EthereumHost::completeSync()
+{
+	RecursiveGuard l(x_sync);
+	m_sync->completeSync();
+}
+
+void EthereumHost::doWork()
+{
+	bool netChange = ensureInitialised();
+	auto h = m_chain.currentHash();
+	// If we've finished our initial sync (including getting all the blocks into the chain so as to reduce invalid transactions), start trading transactions & blocks
+	if (!isSyncing() && m_chain.isKnown(m_latestBlockSent))
+	{
+		if (m_newTransactions)
+		{
+			m_newTransactions = false;
+			maintainTransactions();
+		}
+		if (m_newBlocks)
+		{
+			m_newBlocks = false;
+			maintainBlocks(h);
+		}
+	}
+
+	time_t  now = std::chrono::system_clock::to_time_t(chrono::system_clock::now());
+	if (now - m_lastTick >= 1)
+	{
+		m_lastTick = now;
+		foreachPeer([](std::shared_ptr<EthereumPeer> _p) { _p->tick(); return true; });
+	}
+
+//	return netChange;
+	// TODO: Figure out what to do with netChange.
+	(void)netChange;
+}
