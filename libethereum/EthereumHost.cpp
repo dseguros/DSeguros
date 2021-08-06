@@ -150,4 +150,79 @@ private:
 	TransactionQueue& m_tq;
 };
 
+class EthereumHostData: public EthereumHostDataFace
+{
+public:
+	EthereumHostData(BlockChain const& _chain, OverlayDB const& _db): m_chain(_chain), m_db(_db) {}
+
+	pair<bytes, unsigned> blockHeaders(RLP const& _blockId, unsigned _maxHeaders, u256 _skip, bool _reverse) const override
+	{
+		auto numHeadersToSend = _maxHeaders;
+
+		auto step = static_cast<unsigned>(_skip) + 1;
+		assert(step > 0 && "step must not be 0");
+
+		h256 blockHash;
+		if (_blockId.size() == 32) // block id is a hash
+		{
+			blockHash = _blockId.toHash<h256>();
+			clog(NetMessageSummary) << "GetBlockHeaders (block (hash): " << blockHash
+				<< ", maxHeaders: " << _maxHeaders
+				<< ", skip: " << _skip << ", reverse: " << _reverse << ")";
+
+			if (!m_chain.isKnown(blockHash))
+				blockHash = {};
+			else if (!_reverse)
+			{
+				auto n = m_chain.number(blockHash);
+				if (numHeadersToSend == 0)
+					blockHash = {};
+				else if (n != 0 || blockHash == m_chain.genesisHash())
+				{
+					auto top = n + uint64_t(step) * numHeadersToSend - 1;
+					auto lastBlock = m_chain.number();
+					if (top > lastBlock)
+					{
+						numHeadersToSend = (lastBlock - n) / step + 1;
+						top = n + step * (numHeadersToSend - 1);
+					}
+					assert(top <= lastBlock && "invalid top block calculated");
+					blockHash = m_chain.numberHash(static_cast<unsigned>(top)); // override start block hash with the hash of the top block we have
+				}
+				else
+					blockHash = {};
+			}
+		}
+		else // block id is a number
+		{
+			auto n = _blockId.toInt<bigint>();
+			clog(NetMessageSummary) << "GetBlockHeaders (" << n
+			<< "max: " << _maxHeaders
+			<< "skip: " << _skip << (_reverse ? "reverse" : "") << ")";
+
+			if (!_reverse)
+			{
+				auto lastBlock = m_chain.number();
+				if (n > lastBlock || numHeadersToSend == 0)
+					blockHash = {};
+				else
+				{
+					bigint top = n + uint64_t(step) * (numHeadersToSend - 1);
+					if (top > lastBlock)
+					{
+						numHeadersToSend = (lastBlock - static_cast<unsigned>(n)) / step + 1;
+						top = n + step * (numHeadersToSend - 1);
+					}
+					assert(top <= lastBlock && "invalid top block calculated");
+					blockHash = m_chain.numberHash(static_cast<unsigned>(top)); // override start block hash with the hash of the top block we have
+				}
+			}
+			else if (n <= std::numeric_limits<unsigned>::max())
+				blockHash = m_chain.numberHash(static_cast<unsigned>(n));
+			else
+				blockHash = {};
+		}
+
+};
+
 }
