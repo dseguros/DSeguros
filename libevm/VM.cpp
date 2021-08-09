@@ -118,3 +118,29 @@ void VM::updateMem(uint64_t _newMem)
 	if (m_newMemSize > m_mem.size())
 		m_mem.resize(m_newMemSize);
 }
+
+void VM::logGasMem()
+{
+	unsigned n = (unsigned)m_OP - (unsigned)Instruction::LOG0;
+	m_runGas = toInt63(m_schedule->logGas + m_schedule->logTopicGas * n + u512(m_schedule->logDataGas) * m_SP[1]);
+	updateMem(memNeed(m_SP[0], m_SP[1]));
+}
+
+void VM::fetchInstruction()
+{
+	m_OP = Instruction(m_code[m_PC]);
+	const InstructionMetric& metric = c_metrics[static_cast<size_t>(m_OP)];
+	adjustStack(metric.args, metric.ret);
+
+	// FEES...
+	m_runGas = toInt63(m_schedule->tierStepGas[static_cast<unsigned>(metric.gasPriceTier)]);
+	m_newMemSize = m_mem.size();
+	m_copyMemSize = 0;
+}
+
+#if EVM_HACK_ON_OPERATION
+	#define onOperation()
+#endif
+#if EVM_HACK_UPDATE_IO_GAS
+	#define updateIOGas()
+#endif
