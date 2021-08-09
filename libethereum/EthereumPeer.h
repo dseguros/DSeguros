@@ -40,5 +40,19 @@ public:
 	virtual void onPeerAborting() = 0;
 };
 
+class EthereumHostDataFace
+{
+public:
+	virtual ~EthereumHostDataFace() {}
+
+	virtual std::pair<bytes, unsigned> blockHeaders(RLP const& _blockId, unsigned _maxHeaders, u256 _skip, bool _reverse) const = 0;
+
+	virtual std::pair<bytes, unsigned> blockBodies(RLP const& _blockHashes) const = 0;
+
+	virtual strings nodeData(RLP const& _dataHashes) const = 0;
+
+	virtual std::pair<bytes, unsigned> receipts(RLP const& _blockHashes) const = 0;
+};
+
 }
 }
