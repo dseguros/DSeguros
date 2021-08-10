@@ -156,6 +156,24 @@ private:
 	/// When we asked for it. Allows a time out.
 	std::atomic<time_t> m_lastAsk;
 
+	/// These are determined through either a Status message or from NewBlock.
+	h256 m_latestHash;						///< Peer's latest block's hash that we know about or default null value if no need to sync.
+	u256 m_totalDifficulty;					///< Peer's latest block's total difficulty.
+	h256 m_genesisHash;						///< Peer's genesis hash
+
+	u256 const m_peerCapabilityVersion;			///< Protocol version this peer supports received as capability
+	/// Have we received a GetTransactions packet that we haven't yet answered?
+	bool m_requireTransactions = false;
+
+	Mutex x_knownBlocks;
+	h256Hash m_knownBlocks;					///< Blocks that the peer already knows about (that don't need to be sent to them).
+	Mutex x_knownTransactions;
+	h256Hash m_knownTransactions;			///< Transactions that the peer already knows of.
+	unsigned m_unknownNewBlocks = 0;		///< Number of unknown NewBlocks received from this peer
+	unsigned m_lastAskedHeaders = 0;		///< Number of hashes asked
+
+	std::shared_ptr<EthereumPeerObserverFace> m_observer;
+	std::shared_ptr<EthereumHostDataFace> m_hostData;
 };
 }
 }
