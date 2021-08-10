@@ -87,6 +87,27 @@ public:
 	/// Abort sync and reset fetch
 	void setIdle();
 
+	/// Request hashes for given parent hash.
+	void requestBlockHeaders(h256 const& _startHash, unsigned _count, unsigned _skip, bool _reverse);
+	void requestBlockHeaders(unsigned _startNumber, unsigned _count, unsigned _skip, bool _reverse);
+
+	/// Request specified blocks from peer.
+	void requestBlockBodies(h256s const& _blocks);
+
+	/// Request values for specified keys from peer.
+	void requestNodeData(h256s const& _hashes);
+
+	/// Request receipts for specified blocks from peer.
+	void requestReceipts(h256s const& _blocks);
+
+	/// Check if this node is rude.
+	bool isRude() const;
+
+	/// Set that it's a rude node.
+	void setRude();
+
+	/// Abort the sync operation.
+	void abortSync();
 };
 
 }
