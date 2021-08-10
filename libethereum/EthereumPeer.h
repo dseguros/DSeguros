@@ -54,5 +54,40 @@ public:
 	virtual std::pair<bytes, unsigned> receipts(RLP const& _blockHashes) const = 0;
 };
 
+/**
+ * @brief The EthereumPeer class
+ * @todo Document fully.
+ * @todo make state transitions thread-safe.
+ */
+class EthereumPeer: public p2p::Capability
+{
+	friend class EthereumHost; //TODO: remove this
+	friend class BlockChainSync; //TODO: remove this
+
+public:
+	/// Basic constructor.
+	EthereumPeer(std::shared_ptr<p2p::SessionFace> _s, p2p::HostCapabilityFace* _h, unsigned _i, p2p::CapDesc const& _cap, uint16_t _capID);
+
+	/// Basic destructor.
+	virtual ~EthereumPeer();
+
+	/// What is our name?
+	static std::string name() { return "eth"; }
+
+	/// What is our version?
+	static u256 version() { return c_protocolVersion; }
+
+	/// How many message types do we have?
+	static unsigned messageCount() { return PacketCount; }
+
+	void init(unsigned _hostProtocolVersion, u256 _hostNetworkId, u256 _chainTotalDifficulty, h256 _chainCurrentHash, h256 _chainGenesisHash, std::shared_ptr<EthereumHostDataFace> _hostData, std::shared_ptr<EthereumPeerObserverFace> _observer);
+
+	p2p::NodeID id() const { return session()->id(); }
+
+	/// Abort sync and reset fetch
+	void setIdle();
+
+};
+
 }
 }
