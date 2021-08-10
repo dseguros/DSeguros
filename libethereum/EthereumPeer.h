@@ -110,5 +110,52 @@ public:
 	void abortSync();
 };
 
+private:
+	using p2p::Capability::sealAndSend;
+
+	/// Figure out the amount of blocks we should be asking for.
+	unsigned askOverride() const;
+
+	/// Interpret an incoming message.
+	virtual bool interpret(unsigned _id, RLP const& _r);
+
+	/// Request status. Called from constructor
+	void requestStatus(u256 _hostNetworkId, u256 _chainTotalDifficulty, h256 _chainCurrentHash, h256 _chainGenesisHash);
+
+	/// Clear all known transactions.
+	void clearKnownTransactions() { std::lock_guard<std::mutex> l(x_knownTransactions); m_knownTransactions.clear(); }
+
+	// Request of type _packetType with _hashes as input parameters
+	void requestByHashes(h256s const& _hashes, Asking _asking, SubprotocolPacketType _packetType);
+
+	/// Update our asking state.
+	void setAsking(Asking _g);
+
+	/// Do we presently need syncing with this peer?
+	bool needsSyncing() const { return !isRude() && !!m_latestHash; }
+
+	/// Are we presently in the process of communicating with this peer?
+	bool isConversing() const;
+
+	/// Are we presently in a critical part of the syncing process with this peer?
+	bool isCriticalSyncing() const;
+
+	/// Runs period checks to check up on the peer.
+	void tick();
+
+	unsigned m_hostProtocolVersion = 0;
+
+	/// Peer's protocol version.
+	unsigned m_protocolVersion;
+
+	/// Peer's network id.
+	u256 m_networkId;
+
+	/// What, if anything, we last asked the other peer for.
+	Asking m_asking = Asking::Nothing;
+	/// When we asked for it. Allows a time out.
+	std::atomic<time_t> m_lastAsk;
+
+};
 }
 }
