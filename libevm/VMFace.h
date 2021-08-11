@@ -33,5 +33,16 @@ private:
 	owning_bytes_ref m_output;
 };
 
+class VMFace
+{
+public:
+	VMFace() = default;
+	virtual ~VMFace() = default;
+	VMFace(VMFace const&) = delete;
+	VMFace& operator=(VMFace const&) = delete;
+
+	/// VM implementation
+	virtual owning_bytes_ref exec(u256& io_gas, ExtVMFace& _ext, OnOpFunc const& _onOp) = 0;
+};
 }
 }
