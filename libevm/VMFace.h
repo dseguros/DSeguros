@@ -25,6 +25,12 @@ struct RevertInstruction: VMException
 	RevertInstruction& operator=(RevertInstruction const&) = delete;
 	RevertInstruction& operator=(RevertInstruction&&) = default;
 
+	char const* what() const noexcept override { return "Revert instruction"; }
+
+	owning_bytes_ref&& output() { return std::move(m_output); }
+
+private:
+	owning_bytes_ref m_output;
 };
 
 }
