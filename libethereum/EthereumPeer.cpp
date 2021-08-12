@@ -29,3 +29,28 @@ static string toString(Asking _a)
 	}
 	return "?";
 }
+
+EthereumPeer::EthereumPeer(std::shared_ptr<SessionFace> _s, HostCapabilityFace* _h, unsigned _i, CapDesc const& _cap, uint16_t _capID):
+	Capability(_s, _h, _i, _capID),
+	m_peerCapabilityVersion(_cap.second)
+{
+	session()->addNote("manners", isRude() ? "RUDE" : "nice");
+}
+
+EthereumPeer::~EthereumPeer()
+{
+	if (m_asking != Asking::Nothing)
+	{
+		clog(NetAllDetail) << "Peer aborting while being asked for " << ::toString(m_asking);
+		setRude();
+	}
+	abortSync();
+}
+
+void EthereumPeer::init(unsigned _hostProtocolVersion, u256 _hostNetworkId, u256 _chainTotalDifficulty, h256 _chainCurrentHash, h256 _chainGenesisHash, shared_ptr<EthereumHostDataFace> _hostData, shared_ptr<EthereumPeerObserverFace> _observer)
+{
+	m_hostData = _hostData;
+	m_observer = _observer;
+	m_hostProtocolVersion = _hostProtocolVersion;
+	requestStatus(_hostNetworkId, _chainTotalDifficulty, _chainCurrentHash, _chainGenesisHash);
+}
