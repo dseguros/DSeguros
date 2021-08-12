@@ -86,3 +86,52 @@ void EthereumPeer::setRude()
 	s->repMan().noteRude(*s, name());
 	session()->addNote("manners", "RUDE");
 }
+
+void EthereumPeer::requestBlockHeaders(h256 const& _startHash, unsigned _count, unsigned _skip, bool _reverse)
+{
+	if (m_asking != Asking::Nothing)
+	{
+		clog(NetWarn) << "Asking headers while requesting " << ::toString(m_asking);
+	}
+	setAsking(Asking::BlockHeaders);
+	RLPStream s;
+	prep(s, GetBlockHeadersPacket, 4) << _startHash << _count << _skip << (_reverse ? 1 : 0);
+	clog(NetMessageDetail) << "Requesting " << _count << " block headers starting from " << _startHash << (_reverse ? " in reverse" : "");
+	m_lastAskedHeaders = _count;
+	sealAndSend(s);
+}
+
+
+void EthereumPeer::requestBlockBodies(h256s const& _blocks)
+{
+	requestByHashes(_blocks, Asking::BlockBodies, GetBlockBodiesPacket);
+}
+
+void EthereumPeer::requestNodeData(h256s const& _hashes)
+{
+	requestByHashes(_hashes, Asking::NodeData, GetNodeDataPacket);
+}
+
+void EthereumPeer::requestReceipts(h256s const& _blocks)
+{
+	requestByHashes(_blocks, Asking::Receipts, GetReceiptsPacket);
+}
+
+void EthereumPeer::requestByHashes(h256s const& _hashes, Asking _asking, SubprotocolPacketType _packetType)
+{
+	if (m_asking != Asking::Nothing)
+	{
+		clog(NetWarn) << "Asking "<< ::toString(_asking) << " while requesting " << ::toString(m_asking);
+	}
+	setAsking(_asking);
+	if (_hashes.size())
+	{
+		RLPStream s;
+		prep(s, _packetType, _hashes.size());
+		for (auto const& i: _hashes)
+			s << i;
+		sealAndSend(s);
+	}
+	else
+		setIdle();
+}
