@@ -7,3 +7,15 @@
 #include "SmartVM.h"
 #endif
 
+
+namespace dev
+{
+namespace eth
+{
+namespace
+{
+	auto g_kind = VMKind::Interpreter;
+}
+
+}
+}
