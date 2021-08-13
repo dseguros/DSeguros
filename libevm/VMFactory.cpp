@@ -15,6 +15,11 @@ namespace eth
 namespace
 {
 	auto g_kind = VMKind::Interpreter;
+
+	void VMFactory::setKind(VMKind _kind)
+{
+	g_kind = _kind;
+}
 }
 
 }
