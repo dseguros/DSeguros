@@ -20,6 +20,30 @@ namespace
 {
 	g_kind = _kind;
 }
+
+std::unique_ptr<VMFace> VMFactory::create()
+{
+	return create(g_kind);
+}
+
+std::unique_ptr<VMFace> VMFactory::create(VMKind _kind)
+{
+#if ETH_EVMJIT
+	switch (_kind)
+	{
+	default:
+	case VMKind::Interpreter:
+		return std::unique_ptr<VMFace>(new VM);
+	case VMKind::JIT:
+		return std::unique_ptr<VMFace>(new JitVM);
+	case VMKind::Smart:
+		return std::unique_ptr<VMFace>(new SmartVM);
+	}
+#else
+	asserts(_kind == VMKind::Interpreter && "JIT disabled in build configuration");
+	return std::unique_ptr<VMFace>(new VM);
+#endif
+}
 }
 
 }
