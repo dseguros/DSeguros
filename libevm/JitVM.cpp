@@ -124,6 +124,41 @@ void evm_query(
 	}
 }
 
+void evm_update(
+	evm_env* _opaqueEnv,
+	evm_update_key _key,
+	evm_variant const* _arg1,
+	evm_variant const* _arg2
+) noexcept
+{
+	auto &env = *reinterpret_cast<ExtVMFace*>(_opaqueEnv);
+	switch (_key)
+	{
+	case EVM_SSTORE:
+	{
+		auto index = asUint(_arg1->uint256be);
+		auto value = asUint(_arg2->uint256be);
+		if (value == 0 && env.store(index) != 0)                   // If delete
+			env.sub.refunds += env.evmSchedule().sstoreRefundGas;  // Increase refund counter
+
+		env.setStore(index, value);    // Interface uses native endianness
+		break;
+	}
+	case EVM_LOG:
+	{
+		size_t numTopics = _arg2->data_size / sizeof(h256);
+		h256 const* pTopics = reinterpret_cast<h256 const*>(_arg2->data);
+		env.log({pTopics, pTopics + numTopics}, {_arg1->data, _arg1->data_size});
+		break;
+	}
+	case EVM_SELFDESTRUCT:
+		// Register selfdestruction beneficiary.
+		env.suicide(fromEvmC(_arg1->address));
+		break;
+	}
+}
+
+
 }
 
 }
