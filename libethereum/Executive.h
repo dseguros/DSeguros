@@ -143,6 +143,30 @@ public:
 
 	/// Revert all changes made to the state by this execution.
 	void revert();
+
+	private:
+	State& m_s;							///< The state to which this operation/transaction is applied.
+	// TODO: consider changign to EnvInfo const& to avoid LastHashes copy at every CALL/CREATE
+	EnvInfo m_envInfo;					///< Information on the runtime environment.
+	std::shared_ptr<ExtVM> m_ext;		///< The VM externality object for the VM execution or null if no VM is required. shared_ptr used only to allow ExtVM forward reference. This field does *NOT* survive this object.
+	owning_bytes_ref m_output;			///< Execution output.
+	ExecutionResult* m_res = nullptr;	///< Optional storage for execution results.
+
+	unsigned m_depth = 0;				///< The context's call-depth.
+	TransactionException m_excepted = TransactionException::None;	///< Details if the VM's execution resulted in an exception.
+	int64_t m_baseGasRequired;			///< The base amount of gas requried for executing this transaction.
+	u256 m_gas = 0;						///< The gas for EVM code execution. Initial amount before go() execution, final amount after go() execution.
+	u256 m_refunded = 0;				///< The amount of gas refunded.
+
+	Transaction m_t;					///< The original transaction. Set by setup().
+	LogEntries m_logs;					///< The log entries created by this transaction. Set by finalize().
+
+	u256 m_gasCost;
+	SealEngineFace const& m_sealEngine;
+
+	bool m_isCreation = false;
+	Address m_newAddress;
+	size_t m_savepoint = 0;
 };
 
 }
