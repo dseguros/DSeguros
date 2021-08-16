@@ -73,6 +73,41 @@ public:
 	 */
 	Executive(Block& _s, BlockChain const& _bc, unsigned _level = 0);
 
+/** LastHashes-split constructor.
+	 * Creates executive to operate on the state of end of the given block, populating environment
+	 * info accordingly, with last hashes given explicitly.
+	 */
+	Executive(Block& _s, LastHashes const& _lh = LastHashes(), unsigned _level = 0);
+
+	/** Previous-state constructor.
+	 * Creates executive to operate on the state of a particular transaction in the given block,
+	 * populating environment info from the given Block and the LastHashes portion from the BlockChain.
+	 * State is assigned the resultant value, but otherwise unused.
+	 */
+	Executive(State& _s, Block const& _block, unsigned _txIndex, BlockChain const& _bc, unsigned _level = 0);
+
+	Executive(Executive const&) = delete;
+	void operator=(Executive) = delete;
+
+	/// Initializes the executive for evaluating a transaction. You must call finalize() at some point following this.
+	void initialize(bytesConstRef _transaction) { initialize(Transaction(_transaction, CheckTransaction::None)); }
+	void initialize(Transaction const& _transaction);
+	/// Finalise a transaction previously set up with initialize().
+	/// @warning Only valid after initialize() and execute(), and possibly go().
+	void finalize();
+	/// Begins execution of a transaction. You must call finalize() following this.
+	/// @returns true if the transaction is done, false if go() must be called.
+	bool execute();
+	/// @returns the transaction from initialize().
+	/// @warning Only valid after initialize().
+	Transaction const& t() const { return m_t; }
+	/// @returns the log entries created by this operation.
+	/// @warning Only valid after finalise().
+	LogEntries const& logs() const { return m_logs; }
+	/// @returns total gas used in the transaction/operation.
+	/// @warning Only valid after finalise().
+	u256 gasUsed() const;
+
 }
 
 }
