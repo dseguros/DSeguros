@@ -29,6 +29,21 @@ inline Address fromEvmC(evm_uint160be _addr)
 static_assert(sizeof(h256) == sizeof(evm_uint256be), "Hash types size mismatch");
 static_assert(alignof(h256) == alignof(evm_uint256be), "Hash types alignment mismatch");
 
+inline evm_uint256be toEvmC(h256 _h)
+{
+	return *reinterpret_cast<evm_uint256be*>(&_h);
+}
+
+inline u256 asUint(evm_uint256be _n)
+{
+	return fromBigEndian<u256>(_n.bytes);
+}
+
+inline h256 asHash(evm_uint256be _n)
+{
+	return h256(&_n.bytes[0], h256::ConstructFromPointer);
+}
+
 }
 
 }
