@@ -21,6 +21,13 @@ inline evm_uint160be toEvmC(Address _addr)
 	return *reinterpret_cast<evm_uint160be*>(&_addr);
 }
 
+inline Address fromEvmC(evm_uint160be _addr)
+{
+	return *reinterpret_cast<Address*>(&_addr);
+}
+
+static_assert(sizeof(h256) == sizeof(evm_uint256be), "Hash types size mismatch");
+static_assert(alignof(h256) == alignof(evm_uint256be), "Hash types alignment mismatch");
 
 }
 
