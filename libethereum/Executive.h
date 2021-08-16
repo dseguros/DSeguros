@@ -108,7 +108,42 @@ public:
 	/// @warning Only valid after finalise().
 	u256 gasUsed() const;
 
-}
+	owning_bytes_ref takeOutput() { return std::move(m_output); }
+
+	/// Set up the executive for evaluating a bare CREATE (contract-creation) operation.
+	/// @returns false iff go() must be called (and thus a VM execution in required).
+	bool create(Address _txSender, u256 _endowment, u256 _gasPrice, u256 _gas, bytesConstRef _code, Address _originAddress);
+	/// Set up the executive for evaluating a bare CALL (message call) operation.
+	/// @returns false iff go() must be called (and thus a VM execution in required).
+	bool call(Address _receiveAddress, Address _txSender, u256 _txValue, u256 _gasPrice, bytesConstRef _txData, u256 _gas);
+	bool call(CallParameters const& _cp, u256 const& _gasPrice, Address const& _origin);
+	/// Finalise an operation through accruing the substate into the parent context.
+	void accrueSubState(SubState& _parentContext);
+
+	/// Executes (or continues execution of) the VM.
+	/// @returns false iff go() must be called again to finish the transaction.
+	bool go(OnOpFunc const& _onOp = OnOpFunc());
+
+	/// Operation function for providing a simple trace of the VM execution.
+	static OnOpFunc simpleTrace();
+
+	/// Operation function for providing a simple trace of the VM execution.
+	static OnOpFunc standardTrace(std::ostream& o_output);
+
+	/// @returns gas remaining after the transaction/operation. Valid after the transaction has been executed.
+	u256 gas() const { return m_gas; }
+
+	/// @returns the new address for the created contract in the CREATE operation.
+	Address newAddress() const { return m_newAddress; }
+	/// @returns true iff the operation ended with a VM exception.
+	bool excepted() const { return m_excepted != TransactionException::None; }
+
+	/// Collect execution results in the result storage provided.
+	void setResultRecipient(ExecutionResult& _res) { m_res = &_res; }
+
+	/// Revert all changes made to the state by this execution.
+	void revert();
+};
 
 }
 }
