@@ -350,6 +350,14 @@ evm_mode JitVM::scheduleToMode(EVMSchedule const& _schedule)
 		return EVM_ANTI_DOS;
 	return _schedule.haveDelegateCall ? EVM_HOMESTEAD : EVM_FRONTIER;
 }
+bool JitVM::isCodeReady(evm_mode _mode, h256 _codeHash)
+{
+	return getJit().isCodeReady(_mode, _codeHash);
+}
+
+void JitVM::compile(evm_mode _mode, bytesConstRef _code, h256 _codeHash)
+{
+	getJit().compile(_mode, _code, _codeHash);
 }
 
 }
