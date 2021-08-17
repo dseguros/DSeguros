@@ -158,6 +158,58 @@ void evm_update(
 	}
 }
 
+int64_t evm_call(
+	evm_env* _opaqueEnv,
+	evm_call_kind _kind,
+	int64_t _gas,
+	evm_uint160be const* _address,
+	evm_uint256be const* _value,
+	uint8_t const* _inputData,
+	size_t _inputSize,
+	uint8_t* _outputData,
+	size_t _outputSize
+) noexcept
+{
+	assert(_gas >= 0 && "Invalid gas value");
+	auto &env = *reinterpret_cast<ExtVMFace*>(_opaqueEnv);
+	auto value = asUint(*_value);
+	bytesConstRef input{_inputData, _inputSize};
+
+	if (_kind == EVM_CREATE)
+	{
+		assert(_outputSize == 20);
+		u256 gas = _gas;
+		auto addr = env.create(value, gas, input, {});
+		auto gasLeft = static_cast<decltype(_gas)>(gas);
+		if (addr)
+			std::memcpy(_outputData, addr.data(), 20);
+		else
+			gasLeft |= EVM_CALL_FAILURE;
+		return gasLeft;
+	}
+
+	CallParameters params;
+	params.gas = _gas;
+	params.apparentValue = _kind == EVM_DELEGATECALL ? env.value : value;
+	params.valueTransfer = _kind == EVM_DELEGATECALL ? 0 : params.apparentValue;
+	params.senderAddress = _kind == EVM_DELEGATECALL ? env.caller : env.myAddress;
+	params.codeAddress = fromEvmC(*_address);
+	params.receiveAddress = _kind == EVM_CALL ? params.codeAddress : env.myAddress;
+	params.data = input;
+	params.onOp = {};
+
+	auto output = env.call(params);
+	auto gasLeft = static_cast<int64_t>(params.gas);
+
+	if (output.second)
+		output.second.copyTo({_outputData, _outputSize});
+	
+	if (!output.first)
+		// Add failure indicator.
+		gasLeft |= EVM_CALL_FAILURE;
+
+	return gasLeft;
+}
 
 }
 
