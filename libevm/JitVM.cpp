@@ -211,6 +211,134 @@ int64_t evm_call(
 	return gasLeft;
 }
 
+/// RAII wrapper for an evm instance.
+class EVM
+{
+public:
+	EVM(evm_query_fn _queryFn, evm_update_fn _updateFn, evm_call_fn _callFn)
+	{
+		auto factory = evmjit_get_factory();
+		m_instance = factory.create(_queryFn, _updateFn, _callFn);
+	}
+
+	~EVM()
+	{
+		m_instance->destroy(m_instance);
+	}
+
+	EVM(EVM const&) = delete;
+	EVM& operator=(EVM) = delete;
+
+	class Result
+	{
+	public:
+		explicit Result(evm_result const& _result):
+			m_result(_result)
+		{}
+
+		~Result()
+		{
+			if (m_result.release)
+				m_result.release(&m_result);
+		}
+
+		Result(Result&& _other):
+			m_result(_other.m_result)
+		{
+			// Disable releaser of the rvalue object.
+			_other.m_result.release = nullptr;
+		}
+
+		Result(Result const&) = delete;
+		Result& operator=(Result const&) = delete;
+
+		evm_result_code code() const
+		{
+			return m_result.code;
+		}
+
+		int64_t gasLeft() const
+		{
+			return m_result.gas_left;
+		}
+
+		bytesConstRef output() const
+		{
+			return {m_result.output_data, m_result.output_size};
+		}
+
+	private:
+		evm_result m_result;
+	};
+
+	/// Handy wrapper for evm_execute().
+	Result execute(ExtVMFace& _ext, int64_t gas)
+	{
+		auto env = reinterpret_cast<evm_env*>(&_ext);
+		auto mode = JitVM::scheduleToMode(_ext.evmSchedule());
+		return Result{m_instance->execute(
+			m_instance, env, mode, toEvmC(_ext.codeHash), _ext.code.data(),
+			_ext.code.size(), gas, _ext.data.data(), _ext.data.size(),
+			toEvmC(_ext.value)
+		)};
+	}
+
+	bool isCodeReady(evm_mode _mode, h256 _codeHash)
+	{
+		return m_instance->get_code_status(m_instance, _mode, toEvmC(_codeHash)) == EVM_READY;
+	}
+
+	void compile(evm_mode _mode, bytesConstRef _code, h256 _codeHash)
+	{
+		m_instance->prepare_code(
+			m_instance, _mode, toEvmC(_codeHash), _code.data(), _code.size()
+		);
+	}
+
+private:
+	/// The VM instance created with m_interface.create().
+	evm_instance* m_instance = nullptr;
+};
+
+EVM& getJit()
+{
+	// Create EVM JIT instance by using EVM-C interface.
+	static EVM jit(evm_query, evm_update, evm_call);
+	return jit;
+}
+
+}
+
+owning_bytes_ref JitVM::exec(u256& io_gas, ExtVMFace& _ext, OnOpFunc const& _onOp)
+{
+	auto rejected = false;
+	// TODO: Rejecting transactions with gas limit > 2^63 can be used by attacker to take JIT out of scope
+	rejected |= io_gas > std::numeric_limits<int64_t>::max(); // Do not accept requests with gas > 2^63 (int64 max)
+	rejected |= _ext.envInfo().number() > std::numeric_limits<int64_t>::max();
+	rejected |= _ext.envInfo().timestamp() > std::numeric_limits<int64_t>::max();
+	rejected |= _ext.envInfo().gasLimit() > std::numeric_limits<int64_t>::max();
+	if (rejected)
+	{
+		cwarn << "Execution rejected by EVM JIT (gas limit: " << io_gas << "), executing with interpreter";
+		return VMFactory::create(VMKind::Interpreter)->exec(io_gas, _ext, _onOp);
+	}
+
+	auto gas = static_cast<int64_t>(io_gas);
+	auto r = getJit().execute(_ext, gas);
+
+	// TODO: Add EVM-C result codes mapping with exception types.
+	if (r.code() == EVM_FAILURE)
+		BOOST_THROW_EXCEPTION(OutOfGas());
+
+	io_gas = r.gasLeft();
+	// FIXME: Copy the output for now, but copyless version possible.
+	owning_bytes_ref output{r.output().toVector(), 0, r.output().size()};
+
+	if (r.code() == EVM_REVERT)
+		throw RevertInstruction(std::move(output));
+
+	return output;
+}
 }
 
 }
