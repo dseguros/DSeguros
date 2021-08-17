@@ -118,3 +118,32 @@ void StandardTrace::operator()(uint64_t _steps, uint64_t PC, Instruction inst, b
 
 	m_trace.append(r);
 }
+
+string StandardTrace::json(bool _styled) const
+{
+	return _styled ? Json::StyledWriter().write(m_trace) : Json::FastWriter().write(m_trace);
+}
+
+Executive::Executive(Block& _s, BlockChain const& _bc, unsigned _level):
+	m_s(_s.mutableState()),
+	m_envInfo(_s.info(), _bc.lastHashes(_s.info().parentHash())),
+	m_depth(_level),
+	m_sealEngine(*_bc.sealEngine())
+{
+}
+
+Executive::Executive(Block& _s, LastHashes const& _lh, unsigned _level):
+	m_s(_s.mutableState()),
+	m_envInfo(_s.info(), _lh),
+	m_depth(_level),
+	m_sealEngine(*_s.sealEngine())
+{
+}
+
+Executive::Executive(State& _s, Block const& _block, unsigned _txIndex, BlockChain const& _bc, unsigned _level):
+	m_s(_s = _block.fromPending(_txIndex)),
+	m_envInfo(_block.info(), _bc.lastHashes(_block.info().parentHash()), _txIndex ? _block.receipt(_txIndex - 1).gasUsed() : 0),
+	m_depth(_level),
+	m_sealEngine(*_bc.sealEngine())
+{
+}
