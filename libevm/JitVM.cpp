@@ -339,6 +339,17 @@ owning_bytes_ref JitVM::exec(u256& io_gas, ExtVMFace& _ext, OnOpFunc const& _onO
 
 	return output;
 }
+
+evm_mode JitVM::scheduleToMode(EVMSchedule const& _schedule)
+{
+	if (_schedule.haveRevert)
+		return EVM_METROPOLIS;
+	if (_schedule.eip158Mode)
+		return EVM_CLEARING;
+	if (_schedule.eip150Mode)
+		return EVM_ANTI_DOS;
+	return _schedule.haveDelegateCall ? EVM_HOMESTEAD : EVM_FRONTIER;
+}
 }
 
 }
