@@ -23,3 +23,23 @@ StandardTrace::StandardTrace():
 	m_trace(Json::arrayValue)
 {}
 
+bool changesMemory(Instruction _inst)
+{
+	return
+		_inst == Instruction::MSTORE ||
+		_inst == Instruction::MSTORE8 ||
+		_inst == Instruction::MLOAD ||
+		_inst == Instruction::CREATE ||
+		_inst == Instruction::CALL ||
+		_inst == Instruction::CALLCODE ||
+		_inst == Instruction::SHA3 ||
+		_inst == Instruction::CALLDATACOPY ||
+		_inst == Instruction::CODECOPY ||
+		_inst == Instruction::EXTCODECOPY ||
+		_inst == Instruction::DELEGATECALL;
+}
+
+bool changesStorage(Instruction _inst)
+{
+	return _inst == Instruction::SSTORE;
+}
