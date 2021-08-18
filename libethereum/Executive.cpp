@@ -147,3 +147,94 @@ Executive::Executive(State& _s, Block const& _block, unsigned _txIndex, BlockCha
 	m_sealEngine(*_bc.sealEngine())
 {
 }
+
+u256 Executive::gasUsed() const
+{
+	return m_t.gas() - m_gas;
+}
+
+void Executive::accrueSubState(SubState& _parentContext)
+{
+	if (m_ext)
+		_parentContext += m_ext->sub;
+}
+
+void Executive::initialize(Transaction const& _transaction)
+{
+	m_t = _transaction;
+
+	try
+	{
+		m_sealEngine.verifyTransaction(ImportRequirements::Everything, _transaction, m_envInfo);
+	}
+	catch (Exception const& ex)
+	{
+		m_excepted = toTransactionException(ex);
+		throw;
+	}
+
+	// Avoid transactions that would take us beyond the block gas limit.
+	u256 startGasUsed = m_envInfo.gasUsed();
+	if (startGasUsed + (bigint)m_t.gas() > m_envInfo.gasLimit())
+	{
+		clog(ExecutiveWarnChannel) << "Cannot fit tx in block" << m_envInfo.number() << ": Require <" << (m_envInfo.gasLimit() - startGasUsed) << " Got" << m_t.gas();
+		m_excepted = TransactionException::BlockGasLimitReached;
+		BOOST_THROW_EXCEPTION(BlockGasLimitReached() << RequirementError((bigint)(m_envInfo.gasLimit() - startGasUsed), (bigint)m_t.gas()));
+	}
+
+	// Check gas cost is enough.
+	m_baseGasRequired = m_t.baseGasRequired(m_sealEngine.evmSchedule(m_envInfo));
+	if (m_baseGasRequired > m_t.gas())
+	{
+		clog(ExecutiveWarnChannel) << "Not enough gas to pay for the transaction: Require >" << m_baseGasRequired << " Got" << m_t.gas();
+		m_excepted = TransactionException::OutOfGasBase;
+		BOOST_THROW_EXCEPTION(OutOfGasBase() << RequirementError((bigint)m_baseGasRequired, (bigint)m_t.gas()));
+	}
+
+	if (!m_t.hasZeroSignature())
+	{
+		// Avoid invalid transactions.
+		u256 nonceReq;
+		try
+		{
+			nonceReq = m_s.getNonce(m_t.sender());
+		}
+		catch (InvalidSignature const&)
+		{
+			clog(ExecutiveWarnChannel) << "Invalid Signature";
+			m_excepted = TransactionException::InvalidSignature;
+			throw;
+		}
+		if (m_t.nonce() != nonceReq)
+		{
+			clog(ExecutiveWarnChannel) << "Invalid Nonce: Require" << nonceReq << " Got" << m_t.nonce();
+			m_excepted = TransactionException::InvalidNonce;
+			BOOST_THROW_EXCEPTION(InvalidNonce() << RequirementError((bigint)nonceReq, (bigint)m_t.nonce()));
+		}
+
+		// Avoid unaffordable transactions.
+		bigint gasCost = (bigint)m_t.gas() * m_t.gasPrice();
+		bigint totalCost = m_t.value() + gasCost;
+		if (m_s.balance(m_t.sender()) < totalCost)
+		{
+			clog(ExecutiveWarnChannel) << "Not enough cash: Require >" << totalCost << "=" << m_t.gas() << "*" << m_t.gasPrice() << "+" << m_t.value() << " Got" << m_s.balance(m_t.sender()) << "for sender: " << m_t.sender();
+			m_excepted = TransactionException::NotEnoughCash;
+			BOOST_THROW_EXCEPTION(NotEnoughCash() << RequirementError(totalCost, (bigint)m_s.balance(m_t.sender())) << errinfo_comment(m_t.sender().abridged()));
+		}
+		m_gasCost = (u256)gasCost;  // Convert back to 256-bit, safe now.
+	}
+}
+
+bool Executive::execute()
+{
+	// Entry point for a user-executed transaction.
+
+	// Pay...
+	clog(StateDetail) << "Paying" << formatBalance(m_gasCost) << "from sender for gas (" << m_t.gas() << "gas at" << formatBalance(m_t.gasPrice()) << ")";
+	m_s.subBalance(m_t.sender(), m_gasCost);
+
+	if (m_t.isCreation())
+		return create(m_t.sender(), m_t.value(), m_t.gasPrice(), m_t.gas() - (u256)m_baseGasRequired, &m_t.data(), m_t.sender());
+	else
+		return call(m_t.receiveAddress(), m_t.sender(), m_t.value(), m_t.gasPrice(), bytesConstRef(&m_t.data()), m_t.gas() - (u256)m_baseGasRequired);
+}
