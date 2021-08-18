@@ -360,3 +360,136 @@ OnOpFunc Executive::simpleTrace()
 		dev::LogOutputStream<VMTraceChannel, false>() << " < " << dec << ext.depth << " : " << ext.myAddress << " : #" << steps << " : " << hex << setw(4) << setfill('0') << PC << " : " << instructionInfo(inst).name << " : " << dec << gas << " : -" << dec << gasCost << " : " << newMemSize << "x32" << " >";
 	};
 }
+
+bool Executive::go(OnOpFunc const& _onOp)
+{
+	if (m_ext)
+	{
+#if ETH_TIMED_EXECUTIONS
+		Timer t;
+#endif
+		try
+		{
+			// Create VM instance. Force Interpreter if tracing requested.
+			auto vm = _onOp ? VMFactory::create(VMKind::Interpreter) : VMFactory::create();
+			if (m_isCreation)
+			{
+				auto out = vm->exec(m_gas, *m_ext, _onOp);
+				if (m_res)
+				{
+					m_res->gasForDeposit = m_gas;
+					m_res->depositSize = out.size();
+				}
+				if (out.size() > m_ext->evmSchedule().maxCodeSize)
+					BOOST_THROW_EXCEPTION(OutOfGas());
+				else if (out.size() * m_ext->evmSchedule().createDataGas <= m_gas)
+				{
+					if (m_res)
+						m_res->codeDeposit = CodeDeposit::Success;
+					m_gas -= out.size() * m_ext->evmSchedule().createDataGas;
+				}
+				else
+				{
+					if (m_ext->evmSchedule().exceptionalFailedCodeDeposit)
+						BOOST_THROW_EXCEPTION(OutOfGas());
+					else
+					{
+						if (m_res)
+							m_res->codeDeposit = CodeDeposit::Failed;
+						out = {};
+					}
+				}
+				if (m_res)
+					m_res->output = out.toVector(); // copy output to execution result
+				m_s.setNewCode(m_ext->myAddress, out.toVector());
+			}
+			else
+				m_output = vm->exec(m_gas, *m_ext, _onOp);
+		}
+		catch (RevertInstruction& _e)
+		{
+			revert();
+			m_output = _e.output();
+			m_excepted = TransactionException::RevertInstruction;
+		}
+		catch (VMException const& _e)
+		{
+			clog(StateSafeExceptions) << "Safe VM Exception. " << diagnostic_information(_e);
+			m_gas = 0;
+			m_excepted = toTransactionException(_e);
+			revert();
+		}
+		catch (Exception const& _e)
+		{
+			// TODO: AUDIT: check that this can never reasonably happen. Consider what to do if it does.
+			cwarn << "Unexpected exception in VM. There may be a bug in this implementation. " << diagnostic_information(_e);
+			exit(1);
+			// Another solution would be to reject this transaction, but that also
+			// has drawbacks. Essentially, the amount of ram has to be increased here.
+		}
+		catch (std::exception const& _e)
+		{
+			// TODO: AUDIT: check that this can never reasonably happen. Consider what to do if it does.
+			cwarn << "Unexpected std::exception in VM. Not enough RAM? " << _e.what();
+			exit(1);
+			// Another solution would be to reject this transaction, but that also
+			// has drawbacks. Essentially, the amount of ram has to be increased here.
+		}
+
+		if (m_res && m_output)
+			// Copy full output:
+			m_res->output = m_output.toVector();
+
+#if ETH_TIMED_EXECUTIONS
+		cnote << "VM took:" << t.elapsed() << "; gas used: " << (sgas - m_endGas);
+#endif
+	}
+	return true;
+}
+
+void Executive::finalize()
+{
+	// Accumulate refunds for suicides.
+	if (m_ext)
+		m_ext->sub.refunds += m_ext->evmSchedule().suicideRefundGas * m_ext->sub.suicides.size();
+
+	// SSTORE refunds...
+	// must be done before the miner gets the fees.
+	m_refunded = m_ext ? min((m_t.gas() - m_gas) / 2, m_ext->sub.refunds) : 0;
+	m_gas += m_refunded;
+
+	if (m_t)
+	{
+		m_s.addBalance(m_t.sender(), m_gas * m_t.gasPrice());
+
+		u256 feesEarned = (m_t.gas() - m_gas) * m_t.gasPrice();
+		m_s.addBalance(m_envInfo.author(), feesEarned);
+	}
+
+	// Suicides...
+	if (m_ext)
+		for (auto a: m_ext->sub.suicides)
+			m_s.kill(a);
+
+	// Logs..
+	if (m_ext)
+		m_logs = m_ext->sub.logs;
+
+	if (m_res) // Collect results
+	{
+		m_res->gasUsed = gasUsed();
+		m_res->excepted = m_excepted; // TODO: m_except is used only in ExtVM::call
+		m_res->newAddress = m_newAddress;
+		m_res->gasRefunded = m_ext ? m_ext->sub.refunds : 0;
+	}
+}
+
+void Executive::revert()
+{
+	if (m_ext)
+		m_ext->sub.clear();
+
+	// Set result address to the null one.
+	m_newAddress = {};
+	m_s.rollback(m_savepoint);
+}
