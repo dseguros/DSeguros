@@ -306,3 +306,57 @@ bool Executive::call(CallParameters const& _p, u256 const& _gasPrice, Address co
 	m_s.transferBalance(_p.senderAddress, _p.receiveAddress, _p.valueTransfer);
 	return !m_ext;
 }
+
+bool Executive::create(Address _sender, u256 _endowment, u256 _gasPrice, u256 _gas, bytesConstRef _init, Address _origin)
+{
+	u256 nonce = m_s.getNonce(_sender);
+	if (_sender != MaxAddress) // EIP86
+		m_s.incNonce(_sender);
+
+	m_savepoint = m_s.savepoint();
+
+	m_isCreation = true;
+
+	// We can allow for the reverted state (i.e. that with which m_ext is constructed) to contain the m_orig.address, since
+	// we delete it explicitly if we decide we need to revert.
+	m_newAddress = right160(sha3(rlpList(_sender, nonce)));
+	m_gas = _gas;
+
+	// Transfer ether before deploying the code. This will also create new
+	// account if it does not exist yet.
+	m_s.transferBalance(_sender, m_newAddress, _endowment);
+
+	if (m_envInfo.number() >= m_sealEngine.chainParams().u256Param("EIP158ForkBlock"))
+		m_s.incNonce(m_newAddress);
+
+	// Schedule _init execution if not empty.
+	if (!_init.empty())
+		m_ext = make_shared<ExtVM>(m_s, m_envInfo, m_sealEngine, m_newAddress, _sender, _origin, _endowment, _gasPrice, bytesConstRef(), _init, sha3(_init), m_depth);
+	else if (m_s.addressHasCode(m_newAddress))
+		// Overwrite with empty code in case the account already has a code
+		// (address collision -- not real life case but we can check it with
+		// synthetic tests).
+		m_s.setNewCode(m_newAddress, {});
+
+	return !m_ext;
+}
+
+OnOpFunc Executive::simpleTrace()
+{
+	return [](uint64_t steps, uint64_t PC, Instruction inst, bigint newMemSize, bigint gasCost, bigint gas, VM* voidVM, ExtVMFace const* voidExt)
+	{
+		ExtVM const& ext = *static_cast<ExtVM const*>(voidExt);
+		VM& vm = *voidVM;
+
+		ostringstream o;
+		o << endl << "    STACK" << endl;
+		for (auto i: vm.stack())
+			o << (h256)i << endl;
+		o << "    MEMORY" << endl << ((vm.memory().size() > 1000) ? " mem size greater than 1000 bytes " : memDump(vm.memory()));
+		o << "    STORAGE" << endl;
+		for (auto const& i: ext.state().storage(ext.myAddress))
+			o << showbase << hex << i.second.first << ": " << i.second.second << endl;
+		dev::LogOutputStream<VMTraceChannel, false>() << o.str();
+		dev::LogOutputStream<VMTraceChannel, false>() << " < " << dec << ext.depth << " : " << ext.myAddress << " : #" << steps << " : " << hex << setw(4) << setfill('0') << PC << " : " << instructionInfo(inst).name << " : " << dec << gas << " : -" << dec << gasCost << " : " << newMemSize << "x32" << " >";
+	};
+}
