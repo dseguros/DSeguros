@@ -238,3 +238,71 @@ bool Executive::execute()
 	else
 		return call(m_t.receiveAddress(), m_t.sender(), m_t.value(), m_t.gasPrice(), bytesConstRef(&m_t.data()), m_t.gas() - (u256)m_baseGasRequired);
 }
+
+bool Executive::call(Address _receiveAddress, Address _senderAddress, u256 _value, u256 _gasPrice, bytesConstRef _data, u256 _gas)
+{
+	CallParameters params{_senderAddress, _receiveAddress, _receiveAddress, _value, _value, _gas, _data, {}};
+	return call(params, _gasPrice, _senderAddress);
+}
+
+bool Executive::call(CallParameters const& _p, u256 const& _gasPrice, Address const& _origin)
+{
+	// If external transaction.
+	if (m_t)
+	{
+		// FIXME: changelog contains unrevertable balance change that paid
+		//        for the transaction.
+		// Increment associated nonce for sender.
+		if (_p.senderAddress != MaxAddress) // EIP86
+			m_s.incNonce(_p.senderAddress);
+	}
+
+	m_savepoint = m_s.savepoint();
+
+	if (m_sealEngine.isPrecompiled(_p.codeAddress, m_envInfo.number()))
+	{
+		bigint g = m_sealEngine.costOfPrecompiled(_p.codeAddress, _p.data, m_envInfo.number());
+		if (_p.gas < g)
+		{
+			m_excepted = TransactionException::OutOfGasBase;
+			// Bail from exception.
+			
+			// Empty precompiled contracts need to be deleted even in case of OOG
+			// because the bug in both Geth and Parity led to deleting RIPEMD precompiled in this case
+			// see https://github.com/ethereum/go-ethereum/pull/3341/files#diff-2433aa143ee4772026454b8abd76b9dd
+			// We mark the account as touched here, so that is can be removed among other touched empty accounts (after tx finalization)
+			if (m_envInfo.number() >= m_sealEngine.chainParams().u256Param("EIP158ForkBlock"))
+				m_s.addBalance(_p.codeAddress, 0);
+			
+			return true;	// true actually means "all finished - nothing more to be done regarding go().
+		}
+		else
+		{
+			m_gas = (u256)(_p.gas - g);
+			bytes output;
+			bool success;
+			tie(success, output) = m_sealEngine.executePrecompiled(_p.codeAddress, _p.data, m_envInfo.number());
+			if (!success)
+			{
+				m_gas = 0;
+				m_excepted = TransactionException::OutOfGas;
+			}
+			size_t outputSize = output.size();
+			m_output = owning_bytes_ref{std::move(output), 0, outputSize};
+		}
+	}
+	else
+	{
+		m_gas = _p.gas;
+		if (m_s.addressHasCode(_p.codeAddress))
+		{
+			bytes const& c = m_s.code(_p.codeAddress);
+			h256 codeHash = m_s.codeHash(_p.codeAddress);
+			m_ext = make_shared<ExtVM>(m_s, m_envInfo, m_sealEngine, _p.receiveAddress, _p.senderAddress, _origin, _p.apparentValue, _gasPrice, _p.data, &c, codeHash, m_depth);
+		}
+	}
+
+	// Transfer ether.
+	m_s.transferBalance(_p.senderAddress, _p.receiveAddress, _p.valueTransfer);
+	return !m_ext;
+}
