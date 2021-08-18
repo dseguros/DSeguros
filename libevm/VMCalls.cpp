@@ -28,3 +28,17 @@ void VM::throwOutOfGas()
 		(this->*m_onFail)();
 	BOOST_THROW_EXCEPTION(OutOfGas());
 }
+
+void VM::throwBadInstruction()
+{
+	if (m_onFail)
+		(this->*m_onFail)();
+	BOOST_THROW_EXCEPTION(BadInstruction());
+}
+
+void VM::throwBadJumpDestination()
+{
+	if (m_onFail)
+		(this->*m_onFail)();
+	BOOST_THROW_EXCEPTION(BadJumpDestination());
+}
