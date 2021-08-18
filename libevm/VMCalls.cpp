@@ -19,3 +19,12 @@ void VM::copyDataToMemory(bytesConstRef _data, u256*_sp)
 	if (size > sizeToBeCopied)
 		std::memset(m_mem.data() + offset + sizeToBeCopied, 0, size - sizeToBeCopied);
 }
+
+// consolidate exception throws to avoid spraying boost code all over interpreter
+
+void VM::throwOutOfGas()
+{
+	if (m_onFail)
+		(this->*m_onFail)();
+	BOOST_THROW_EXCEPTION(OutOfGas());
+}
