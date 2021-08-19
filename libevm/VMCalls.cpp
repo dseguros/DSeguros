@@ -128,3 +128,78 @@ void VM::caseCall()
 	m_io_gas += uint64_t(callParams->gas);
 	++m_PC;
 }
+
+bool VM::caseCallSetup(CallParameters *callParams, bytesRef& o_output)
+{
+	m_runGas = toInt63(m_schedule->callGas);
+
+	if (m_OP == Instruction::CALL && !m_ext->exists(asAddress(m_SP[1])))
+		if (m_SP[2] > 0 || m_schedule->zeroValueTransferChargesNewAccountGas())
+			m_runGas += toInt63(m_schedule->callNewAccountGas);
+
+	if (m_OP != Instruction::DELEGATECALL && m_SP[2] > 0)
+		m_runGas += toInt63(m_schedule->callValueTransferGas);
+
+	size_t sizesOffset = m_OP == Instruction::DELEGATECALL ? 2 : 3;
+	u256 inputOffset  = m_SP[sizesOffset];
+	u256 inputSize    = m_SP[sizesOffset + 1];
+	u256 outputOffset = m_SP[sizesOffset + 2];
+	u256 outputSize   = m_SP[sizesOffset + 3];
+	uint64_t inputMemNeed = memNeed(inputOffset, inputSize);
+	uint64_t outputMemNeed = memNeed(outputOffset, outputSize);
+
+	m_newMemSize = std::max(inputMemNeed, outputMemNeed);
+	updateMem(m_newMemSize);
+	updateIOGas();
+
+	// "Static" costs already applied. Calculate call gas.
+	if (m_schedule->staticCallDepthLimit())
+	{
+		// With static call depth limit we just charge the provided gas amount.
+		callParams->gas = m_SP[0];
+	}
+	else
+	{
+		// Apply "all but one 64th" rule.
+		u256 maxAllowedCallGas = m_io_gas - m_io_gas / 64;
+		callParams->gas = std::min(m_SP[0], maxAllowedCallGas);
+	}
+
+	m_runGas = toInt63(callParams->gas);
+	ON_OP();
+	updateIOGas();
+
+	if (m_OP != Instruction::DELEGATECALL && m_SP[2] > 0)
+		callParams->gas += m_schedule->callStipend;
+
+	callParams->codeAddress = asAddress(m_SP[1]);
+
+	unsigned inOutOffset = 0;
+	if (m_OP == Instruction::DELEGATECALL)
+	{
+		callParams->apparentValue = m_ext->value;
+		callParams->valueTransfer = 0;
+	}
+	else
+	{
+		callParams->apparentValue = callParams->valueTransfer = m_SP[2];
+		inOutOffset = 1;
+	}
+
+	uint64_t inOff = (uint64_t)m_SP[inOutOffset + 2];
+	uint64_t inSize = (uint64_t)m_SP[inOutOffset + 3];
+	uint64_t outOff = (uint64_t)m_SP[inOutOffset + 4];
+	uint64_t outSize = (uint64_t)m_SP[inOutOffset + 5];
+
+	if (m_ext->balance(m_ext->myAddress) >= callParams->valueTransfer && m_ext->depth < 1024)
+	{
+		callParams->onOp = m_onOp;
+		callParams->senderAddress = m_OP == Instruction::DELEGATECALL ? m_ext->caller : m_ext->myAddress;
+		callParams->receiveAddress = m_OP == Instruction::CALL ? callParams->codeAddress : m_ext->myAddress;
+		callParams->data = bytesConstRef(m_mem.data() + inOff, inSize);
+		o_output = bytesRef(m_mem.data() + outOff, outSize);
+		return true;
+	}
+	else
+		return false;
+}
