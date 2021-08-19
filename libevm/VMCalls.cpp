@@ -81,3 +81,50 @@ int64_t VM::verifyJumpDest(u256 const& _dest, bool _throw)
 		throwBadJumpDestination();
 	return -1;
 }
+
+void VM::caseCreate()
+{
+	m_bounce = &VM::interpretCases;
+	m_runGas = toInt63(m_schedule->createGas);
+	updateMem(memNeed(m_SP[1], m_SP[2]));
+	ON_OP();
+	updateIOGas();
+
+	auto const& endowment = m_SP[0];
+	uint64_t initOff = (uint64_t)m_SP[1];
+	uint64_t initSize = (uint64_t)m_SP[2];
+
+	if (m_ext->balance(m_ext->myAddress) >= endowment && m_ext->depth < 1024)
+	{
+		*m_io_gas_p = m_io_gas;
+		u256 createGas = *m_io_gas_p;
+		if (!m_schedule->staticCallDepthLimit())
+			createGas -= createGas / 64;
+		u256 gas = createGas;
+		m_SPP[0] = (u160)m_ext->create(endowment, gas, bytesConstRef(m_mem.data() + initOff, initSize), m_onOp);
+		*m_io_gas_p -= (createGas - gas);
+		m_io_gas = uint64_t(*m_io_gas_p);
+	}
+	else
+		m_SPP[0] = 0;
+	++m_PC;
+}
+
+void VM::caseCall()
+{
+	m_bounce = &VM::interpretCases;
+	unique_ptr<CallParameters> callParams(new CallParameters());
+	bytesRef output;
+	if (caseCallSetup(callParams.get(), output))
+	{
+		std::pair<bool, owning_bytes_ref> callResult = m_ext->call(*callParams);
+		if (callResult.second)
+			callResult.second.copyTo(output);
+
+		m_SPP[0] = callResult.first ? 1 : 0;
+	}
+	else
+		m_SPP[0] = 0;
+	m_io_gas += uint64_t(callParams->gas);
+	++m_PC;
+}
