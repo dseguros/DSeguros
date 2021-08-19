@@ -59,3 +59,25 @@ void VM::throwBadStack(unsigned _removed, unsigned _added)
 		BOOST_THROW_EXCEPTION(OutOfStack() << RequirementError((bigint)(_added - _removed), size));
 	}
 }
+
+void VM::throwRevertInstruction(owning_bytes_ref&& _output)
+{
+	// We can't use BOOST_THROW_EXCEPTION here because it makes a copy of exception inside and RevertInstruction has no copy constructor 
+	throw RevertInstruction(move(_output));
+}
+
+int64_t VM::verifyJumpDest(u256 const& _dest, bool _throw)
+{
+	// check for overflow
+	if (_dest <= 0x7FFFFFFFFFFFFFFF) {
+
+		// check for within bounds and to a jump destination
+		// use binary search of array because hashtable collisions are exploitable
+		uint64_t pc = uint64_t(_dest);
+		if (std::binary_search(m_jumpDests.begin(), m_jumpDests.end(), pc))
+			return pc;
+	}
+	if (_throw)
+		throwBadJumpDestination();
+	return -1;
+}
