@@ -42,3 +42,20 @@ void VM::throwBadJumpDestination()
 		(this->*m_onFail)();
 	BOOST_THROW_EXCEPTION(BadJumpDestination());
 }
+
+void VM::throwBadStack(unsigned _removed, unsigned _added)
+{
+	bigint size = m_stackEnd - m_SPP;
+	if (size < _removed)
+	{
+		if (m_onFail)
+			(this->*m_onFail)();
+		BOOST_THROW_EXCEPTION(StackUnderflow() << RequirementError((bigint)_removed, size));
+	}
+	else
+	{
+		if (m_onFail)
+			(this->*m_onFail)();
+		BOOST_THROW_EXCEPTION(OutOfStack() << RequirementError((bigint)(_added - _removed), size));
+	}
+}
