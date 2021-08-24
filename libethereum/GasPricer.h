@@ -19,5 +19,18 @@ enum class TransactionPriority
 	Highest = 8
 };
 
+static const u256 DefaultGasPrice = 20 * shannon;
+
+class GasPricer
+{
+public:
+	GasPricer() = default;
+	virtual ~GasPricer() = default;
+
+	virtual u256 ask(Block const&) const = 0;
+	virtual u256 bid(TransactionPriority _p = TransactionPriority::Medium) const = 0;
+
+	virtual void update(BlockChain const&) {}
+};
 }
 }
