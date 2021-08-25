@@ -37,4 +37,38 @@ void VM::validate(ExtVMFace& _ext)
 	}
 }
 
+// we validate each subroutine individually, as if at top level
+// - PC is the offset in the code to start validating at
+// - RP is the top PC on return stack that RETURNSUB returns to
+// - SP = FP at the top level, so the stack size is also the frame size
+void VM::validateSubroutine(uint64_t _pc, uint64_t* _rp, u256* _sp)
+{
+	// set current interpreter state
+	m_PC = _pc, m_RP = _rp, m_SP = _sp;
+	
+	INIT_CASES
+	DO_CASES
+	{	
+		CASE(JUMPDEST)
+		{
+			// if frame size is set then we have been here before
+			ptrdiff_t frameSize = m_frameSize[m_PC];
+			if (0 <= frameSize)
+			{
+				// check for constant frame size
+				if (stackSize() != frameSize)
+					throwBadStack(stackSize(), frameSize, 0);
+
+				// return to break cycle in control flow graph
+				return;
+			}
+			// set frame size to check later
+			m_frameSize[m_PC] = stackSize();
+			++m_PC;
+		}
+		NEXT
+
+}
+
+
 #endif
