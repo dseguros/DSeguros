@@ -75,6 +75,17 @@ public:
 		resetTimer();
 		return true;
 	}
+	
+	/**
+	 * @brief Stop all mining activities.
+	 */
+	void stop()
+	{
+		WriteGuard l(x_minerWork);
+		m_miners.clear();
+		m_work.reset();
+		m_isMining = false;
+	}
 };
 
 }
