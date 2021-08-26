@@ -131,6 +131,48 @@ public:
 	void onSolutionFound(SolutionFound const& _handler) { m_onSolutionFound = _handler; }
 
 	WorkPackage work() const { ReadGuard l(x_minerWork); return m_work; }
+
+/**
+	 * @brief Called from a Miner to note a WorkPackage has a solution.
+	 * @param _p The solution.
+	 * @param _wp The WorkPackage that the Solution is for.
+	 * @return true iff the solution was good (implying that mining should be .
+	 */
+	bool submitProof(Solution const& _s, Miner* _m) override
+	{
+		if (m_onSolutionFound && m_onSolutionFound(_s))
+			if (x_minerWork.try_lock())
+			{
+				for (std::shared_ptr<Miner> const& m: m_miners)
+					if (m.get() != _m)
+						m->setWork();
+				m_work.reset();
+				x_minerWork.unlock();
+				return true;
+			}
+		return false;
+	}
+
+private:
+	void resetTimer()
+	{
+		m_lastStart = std::chrono::steady_clock::now();
+	}
+
+	mutable SharedMutex x_minerWork;
+	std::vector<std::shared_ptr<Miner>> m_miners;
+	WorkPackage m_work;
+
+	std::atomic<bool> m_isMining = {false};
+
+	mutable SharedMutex x_progress;
+	mutable WorkingProgress m_progress;
+	std::chrono::steady_clock::time_point m_lastStart;
+
+	SolutionFound m_onSolutionFound;
+
+	std::map<std::string, SealerDescriptor> m_sealers;
+	std::string m_lastSealer;
 };
 
 }
