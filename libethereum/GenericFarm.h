@@ -109,6 +109,17 @@ public:
 		m_progress = p;
 		return m_progress;
 	}
+
+	/**
+	 * @brief Reset the mining progess counter.
+	 */
+	void resetMiningProgress()
+	{
+		DEV_READ_GUARDED(x_minerWork)
+			for (auto const& i: m_miners)
+				i->resetHashCount();
+		resetTimer();
+	}
 };
 
 }
