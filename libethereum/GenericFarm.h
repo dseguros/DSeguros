@@ -86,6 +86,29 @@ public:
 		m_work.reset();
 		m_isMining = false;
 	}
+
+	bool isMining() const
+	{
+		return m_isMining;
+	}
+
+	/**
+	 * @brief Get information on the progress of mining this work package.
+	 * @return The progress with mining so far.
+	 */
+	WorkingProgress const& miningProgress() const
+	{
+		WorkingProgress p;
+		p.ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - m_lastStart).count();
+		{
+			ReadGuard l2(x_minerWork);
+			for (auto const& i: m_miners)
+				p.hashes += i->hashCount();
+		}
+		WriteGuard l(x_progress);
+		m_progress = p;
+		return m_progress;
+	}
 };
 
 }
