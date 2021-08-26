@@ -120,6 +120,17 @@ public:
 				i->resetHashCount();
 		resetTimer();
 	}
+
+	using SolutionFound = std::function<bool(Solution const&)>;
+
+	/**
+	 * @brief Provides a valid header based upon that received previously with setWork().
+	 * @param _bi The now-valid header.
+	 * @return true if the header was good and that the Farm should pause until more work is submitted.
+	 */
+	void onSolutionFound(SolutionFound const& _handler) { m_onSolutionFound = _handler; }
+
+	WorkPackage work() const { ReadGuard l(x_minerWork); return m_work; }
 };
 
 }
