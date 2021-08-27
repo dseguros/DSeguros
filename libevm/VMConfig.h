@@ -102,5 +102,19 @@ namespace eth
 	#endif
 #endif
 
+///////////////////////////////////////////////////////////////////////////////
+//
+// build a simple loop-and-switch interpreter
+//
+#if defined(EVM_SWITCH_DISPATCH)
+
+	#define INIT_CASES if (!m_caseInit) { m_PC = 0; m_caseInit = true; return; }
+	#define DO_CASES for(;;) { fetchInstruction(); switch(m_OP) {
+	#define CASE(name) case Instruction::name:
+	#define NEXT ++m_PC; break;
+	#define CONTINUE continue;
+	#define BREAK return;
+	#define DEFAULT default:
+	#define WHILE_CASES } }
 
 }}
