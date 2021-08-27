@@ -45,4 +45,62 @@ namespace eth
 
 #define EVM_JUMPS_AND_SUBS false
 
+///////////////////////////////////////////////////////////////////////////////
+//
+// set EVM_TRACE to 2, 1, or 0 for more, less, or no tracing to cerr
+//
+#ifndef EVM_TRACE
+	#define EVM_TRACE 0
+#endif
+#if EVM_TRACE > 0
+
+	#undef ON_OP
+	#if EVM_TRACE > 1
+		#define ON_OP() \
+			(cerr <<"### "<< ++m_nSteps <<" @"<< m_PC <<" "<< instructionInfo(m_OP).name <<endl)
+	#else
+		#define ON_OP() onOperation()
+	#endif
+	
+	#define TRACE_STR(level, str) \
+		if ((level) <= EVM_TRACE) \
+			cerr <<"$$$ "<< (str) <<endl;
+			
+	#define TRACE_VAL(level, name, val) \
+		if ((level) <= EVM_TRACE) \
+			cerr <<"=== "<< (name) <<" "<<hex<< (val) <<endl;
+	#define TRACE_OP(level, pc, op) \
+		if ((level) <= EVM_TRACE) \
+			cerr <<"*** "<< (pc) <<" "<< instructionInfo(op).name <<endl;
+			
+	#define TRACE_PRE_OPT(level, pc, op) \
+		if ((level) <= EVM_TRACE) \
+			cerr <<"@@@ "<< (pc) <<" "<< instructionInfo(op).name <<endl;
+			
+	#define TRACE_POST_OPT(level, pc, op) \
+		if ((level) <= EVM_TRACE) \
+			cerr <<"... "<< (pc) <<" "<< instructionInfo(op).name <<endl;
+#else
+	#define TRACE_STR(level, str)
+	#define TRACE_VAL(level, name, val)
+	#define TRACE_OP(level, pc, op)
+	#define TRACE_PRE_OPT(level, pc, op)
+	#define TRACE_POST_OPT(level, pc, op)
+	#define ON_OP() onOperation()
+#endif
+
+// Executive swallows exceptions in some circumstances
+#if 0
+	#define THROW_EXCEPTION(X) \
+		((cerr << "!!! EVM EXCEPTION " << (X).what() << endl), abort())
+#else
+	#if EVM_TRACE > 0
+		#define THROW_EXCEPTION(X) \
+			((cerr << "!!! EVM EXCEPTION " << (X).what() << endl), BOOST_THROW_EXCEPTION(X))
+	#else
+		#define THROW_EXCEPTION(X) BOOST_THROW_EXCEPTION(X)
+	#endif
+#endif
+
+
 }}
