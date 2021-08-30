@@ -18,6 +18,14 @@ public:
 	void removeBloom(AbridgedTopic const& _h) { removeRaw(bloom(_h)); }
 	bool containsBloom(AbridgedTopic const& _h) const { return this->contains(bloom(_h)); }
 
+
+	void addRaw(FixedHash<N> const& _h);
+	void removeRaw(FixedHash<N> const& _h);
+	bool containsRaw(FixedHash<N> const& _h) const { return this->contains(_h); }
+
+	static FixedHash<N> bloom(AbridgedTopic const& _h);
+	static void setBit(FixedHash<N>& _h, unsigned index);
+	static bool isBitSet(FixedHash<N> const& _h, unsigned _index);
 };
 
 }
