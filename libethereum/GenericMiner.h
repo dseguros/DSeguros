@@ -124,6 +124,14 @@ protected:
 
 	void accumulateHashes(unsigned _n) { m_hashCount += _n; }
 
+private:
+	FarmFace* m_farm = nullptr;
+	unsigned m_index;
+
+	uint64_t m_hashCount = 0;
+
+	WorkPackage m_work;
+	mutable Mutex x_work;
 };
 
 }
