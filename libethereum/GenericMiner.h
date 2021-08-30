@@ -85,8 +85,46 @@ public:
 	void resetHashCount() { m_hashCount = 0; }
 
 	unsigned index() const { return m_index; }
+protected:
 
-}
+	// REQUIRED TO BE REIMPLEMENTED BY A SUBCLASS:
+
+	/**
+	 * @brief Begin working on a given work package, discarding any previous work.
+	 * @param _work The package for which to find a solution.
+	 */
+	virtual void kickOff() = 0;
+
+	/**
+	 * @brief No work left to be done. Pause until told to kickOff().
+	 */
+	virtual void pause() = 0;
+
+	// AVAILABLE FOR A SUBCLASS TO CALL:
+
+	/**
+	 * @brief Notes that the Miner found a solution.
+	 * @param _s The solution.
+	 * @return true if the solution was correct and that the miner should pause.
+	 */
+	bool submitProof(Solution const& _s)
+	{
+		if (!m_farm)
+			return true;
+		if (m_farm->submitProof(_s, this))
+		{
+			Guard l(x_work);
+			m_work.reset();
+			return true;
+		}
+		return false;
+	}
+
+	WorkPackage const& work() const { Guard l(x_work); return m_work; }
+
+	void accumulateHashes(unsigned _n) { m_hashCount += _n; }
+
+};
 
 }
 }
