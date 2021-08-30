@@ -26,6 +26,11 @@ public:
 	static FixedHash<N> bloom(AbridgedTopic const& _h);
 	static void setBit(FixedHash<N>& _h, unsigned index);
 	static bool isBitSet(FixedHash<N> const& _h, unsigned _index);
+private:
+	void init() { for (unsigned i = 0; i < CounterSize; ++i) m_refCounter[i] = 0; }
+
+	static const unsigned CounterSize = N * 8;
+	std::array<uint16_t, CounterSize> m_refCounter;
 };
 
 }
