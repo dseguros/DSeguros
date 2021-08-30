@@ -45,5 +45,48 @@ public:
 	virtual bool submitProof(Solution const& _p, Miner* _finder) = 0;
 };
 
+template <class PoW> class GenericMiner
+{
+public:
+	using WorkPackage = typename PoW::WorkPackage;
+	using Solution = typename PoW::Solution;
+	using FarmFace = GenericFarmFace<PoW>;
+	using ConstructionInfo = std::pair<FarmFace*, unsigned>;
+
+	GenericMiner(ConstructionInfo const& _ci):
+		m_farm(_ci.first),
+		m_index(_ci.second)
+	{}
+	virtual ~GenericMiner() {}
+
+	// API FOR THE FARM TO CALL IN WITH
+
+	void setWork(WorkPackage const& _work = WorkPackage())
+	{
+		auto old = m_work;
+		{
+			Guard l(x_work);
+			m_work = _work;
+		}
+		if (!!_work)
+		{
+			DEV_TIMED_ABOVE("pause", 250)
+				pause();
+			DEV_TIMED_ABOVE("kickOff", 250)
+				kickOff();
+		}
+		else if (!_work && !!old)
+			pause();
+		m_hashCount = 0;
+	}
+
+	uint64_t hashCount() const { return m_hashCount; }
+
+	void resetHashCount() { m_hashCount = 0; }
+
+	unsigned index() const { return m_index; }
+
+}
+
 }
 }
