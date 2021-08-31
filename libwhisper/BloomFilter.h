@@ -49,6 +49,19 @@ void TopicBloomFilterBase<N>::addRaw(FixedHash<N> const& _h)
 		}
 }
 
+template <unsigned N>
+void TopicBloomFilterBase<N>::removeRaw(FixedHash<N> const& _h)
+{
+	for (unsigned i = 0; i < CounterSize; ++i)
+		if (isBitSet(_h, i))
+		{
+			if (m_refCounter[i])
+				m_refCounter[i]--;
+
+			if (!m_refCounter[i])
+				(*this)[i / 8] &= ~c_powerOfTwoBitMmask[i % 8];
+		}
+}
 }
 }
 
