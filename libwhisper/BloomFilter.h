@@ -33,6 +33,22 @@ private:
 	std::array<uint16_t, CounterSize> m_refCounter;
 };
 
+static unsigned const c_powerOfTwoBitMmask[8] = { 1, 2, 4, 8, 16, 32, 64, 128 };
+
+template <unsigned N>
+void TopicBloomFilterBase<N>::addRaw(FixedHash<N> const& _h)
+{
+	*this |= _h;
+	for (unsigned i = 0; i < CounterSize; ++i)
+		if (isBitSet(_h, i))
+		{
+			if (m_refCounter[i] != std::numeric_limits<uint16_t>::max())
+				m_refCounter[i]++;
+			else
+				BOOST_THROW_EXCEPTION(Overflow());
+		}
+}
+
 }
 }
 
