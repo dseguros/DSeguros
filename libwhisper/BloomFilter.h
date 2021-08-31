@@ -62,6 +62,15 @@ void TopicBloomFilterBase<N>::removeRaw(FixedHash<N> const& _h)
 				(*this)[i / 8] &= ~c_powerOfTwoBitMmask[i % 8];
 		}
 }
+
+template <unsigned N>
+bool TopicBloomFilterBase<N>::isBitSet(FixedHash<N> const& _h, unsigned _index)
+{
+	unsigned iByte = _index / 8;
+	unsigned iBit = _index % 8;
+	return (_h[iByte] & c_powerOfTwoBitMmask[iBit]) != 0;
+}
+
 }
 }
 
