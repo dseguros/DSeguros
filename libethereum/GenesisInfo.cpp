@@ -42,3 +42,21 @@ R"E(
 }
 )E";
 
+
+dev::Addresses dev::eth::childDaos()
+{
+	Addresses daos;
+	json_spirit::mValue val;
+	json_spirit::read_string(c_childDaos, val);
+	json_spirit::mObject obj = val.get_obj();
+	for(auto const& items: obj)
+	{
+		json_spirit::mArray array = items.second.get_array();
+		for (auto account: array)
+		{
+			daos.push_back(Address(account.get_obj()["address"].get_str()));
+			daos.push_back(Address(account.get_obj()["extraBalanceAccount"].get_str()));
+		}
+	}
+	return daos;
+}
