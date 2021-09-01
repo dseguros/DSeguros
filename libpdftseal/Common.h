@@ -13,5 +13,16 @@ namespace dev
 namespace eth
 {
 
+ const std::string backup_key_committed = "committed";
+
+enum PBFTPacketType : byte
+{
+	PrepareReqPacket = 0x00,
+	SignReqPacket = 0x01,
+	CommitReqPacket = 0x02,
+	ViewChangeReqPacket = 0x03,
+
+	PBFTPacketCount
+};
 }
 }
