@@ -24,5 +24,20 @@ enum PBFTPacketType : byte
 
 	PBFTPacketCount
 };
+
+// for pbft
+struct PBFTMsgPacket {
+	u256 node_idx;
+	h512 node_id;
+	unsigned packet_id;
+	bytes data; // rlp data
+	u256 timestamp;
+
+	PBFTMsgPacket(): node_idx(h256(0)), node_id(h512(0)), packet_id(0), timestamp(utcTime()) {}
+	PBFTMsgPacket(u256 _idx, h512 _id, unsigned _pid, bytesConstRef _data)
+		: node_idx(_idx), node_id(_id), packet_id(_pid), data(_data.toBytes()), timestamp(utcTime()) {}
+};
+using PBFTMsgQueue = dev::concurrent_queue<PBFTMsgPacket>;
+
 }
 }
