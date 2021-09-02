@@ -91,5 +91,23 @@ struct PBFTMsg {
 	}
 };
 
+struct PrepareReq : public PBFTMsg {
+	bytes block;
+	virtual void streamRLPFields(RLPStream& _s) const {	PBFTMsg::streamRLPFields(_s); _s << block; }
+	virtual void populate(RLP const& _rlp) {
+		PBFTMsg::populate(_rlp);
+		int field = 0;
+		try	{
+			block = _rlp[field = 7].toBytes();
+		} catch (Exception const& _e)	{
+			_e << errinfo_name("invalid msg format") << BadFieldError(field, toHex(_rlp[field].data().toBytes()));
+			throw;
+		}
+	}
+};
+struct SignReq : public PBFTMsg {};
+struct CommitReq : public PBFTMsg {};
+struct ViewChangeReq : public PBFTMsg {};
+
 }
 }
