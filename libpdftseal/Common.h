@@ -46,5 +46,50 @@ enum PBFTStatus
 	PBFT_COMMITTED
 };
 
+struct PBFTMsg {
+	u256 height = Invalid256;
+	u256 view = Invalid256;
+	u256 idx = Invalid256;
+	u256 timestamp = Invalid256;
+	h256 block_hash;
+	Signature sig; // signature of block_hash
+	Signature sig2; // other fileds' signature
+
+	virtual void streamRLPFields(RLPStream& _s) const {
+		_s << height << view << idx << timestamp << block_hash << sig.asBytes() << sig2.asBytes();
+	}
+	virtual void  populate(RLP const& _rlp) {
+		int field = 0;
+		try	{
+			height = _rlp[field = 0].toInt<u256>();
+			view = _rlp[field = 1].toInt<u256>();
+			idx = _rlp[field = 2].toInt<u256>();
+			timestamp = _rlp[field = 3].toInt<u256>();
+			block_hash = _rlp[field = 4].toHash<h256>(RLP::VeryStrict);
+			sig = dev::Signature(_rlp[field = 5].toBytesConstRef());
+			sig2 = dev::Signature(_rlp[field = 6].toBytesConstRef());
+		} catch (Exception const& _e)	{
+			_e << errinfo_name("invalid msg format") << BadFieldError(field, toHex(_rlp[field].data().toBytes()));
+			throw;
+		}
+	}
+
+	void clear() {
+		height = Invalid256;
+		view = Invalid256;
+		idx = Invalid256;
+		timestamp = Invalid256;
+		block_hash = h256();
+		sig = Signature();
+		sig2 = Signature();
+	}
+
+	h256 fieldsWithoutBlock() const {
+		RLPStream ts;
+		ts << height << view << idx << timestamp;
+		return dev::sha3(ts.out());
+	}
+};
+
 }
 }
