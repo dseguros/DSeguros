@@ -16,6 +16,22 @@ namespace dev
 namespace eth
 {
 
+struct SyncStatus;
+
+using TransactionHashes = h256s;
+using UncleHashes = h256s;
+
+enum class Reaping
+{
+	Automatic,
+	Manual
+};
+
+enum class FudgeFactor
+{
+	Strict,
+	Lenient
+};
 
 }
 }
