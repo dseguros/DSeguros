@@ -33,6 +33,15 @@ enum class FudgeFactor
 	Lenient
 };
 
+struct GasEstimationProgress
+{
+	u256 lowerBound;
+	u256 upperBound;
+};
+
+using GasEstimationCallback = std::function<void(GasEstimationProgress const&)>;
+
+
 }
 }
 
