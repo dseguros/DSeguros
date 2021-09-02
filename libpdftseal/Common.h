@@ -39,5 +39,12 @@ struct PBFTMsgPacket {
 };
 using PBFTMsgQueue = dev::concurrent_queue<PBFTMsgPacket>;
 
+enum PBFTStatus
+{
+	PBFT_INIT = 0,
+	PBFT_PREPARED,
+	PBFT_COMMITTED
+};
+
 }
 }
