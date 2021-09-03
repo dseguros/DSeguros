@@ -225,6 +225,38 @@ protected:
 }
 }
 
+class Watch;
+
+}
+}
+
+namespace std { void swap(dev::eth::Watch& _a, dev::eth::Watch& _b); }
+
+namespace dev
+{
+namespace eth
+{
+
+class Watch: public boost::noncopyable
+{
+	friend void std::swap(Watch& _a, Watch& _b);
+
+public:
+	Watch() {}
+	Watch(Interface& _c, h256 _f): m_c(&_c), m_id(_c.installWatch(_f)) {}
+	Watch(Interface& _c, LogFilter const& _tf): m_c(&_c), m_id(_c.installWatch(_tf)) {}
+	~Watch() { if (m_c) m_c->uninstallWatch(m_id); }
+
+	LocalisedLogEntries check() { return m_c ? m_c->checkWatch(m_id) : LocalisedLogEntries(); }
+	LocalisedLogEntries peek() { return m_c ? m_c->peekWatch(m_id) : LocalisedLogEntries(); }
+	LocalisedLogEntries logs() const { return m_c->logs(m_id); }
+
+private:
+	Interface* m_c = nullptr;
+	unsigned m_id = 0;
+};
+
+
 namespace std
 {
 
