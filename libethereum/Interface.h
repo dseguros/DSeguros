@@ -110,6 +110,51 @@ public:
 	virtual bytes codeAt(Address _a, BlockNumber _block) const = 0;
 	virtual h256 codeHashAt(Address _a, BlockNumber _block) const = 0;
 	virtual std::map<h256, std::pair<u256, u256>> storageAt(Address _a, BlockNumber _block) const = 0;
+
+	// [LOGS API]
+	
+	virtual LocalisedLogEntries logs(unsigned _watchId) const = 0;
+	virtual LocalisedLogEntries logs(LogFilter const& _filter) const = 0;
+
+	/// Install, uninstall and query watches.
+	virtual unsigned installWatch(LogFilter const& _filter, Reaping _r = Reaping::Automatic) = 0;
+	virtual unsigned installWatch(h256 _filterId, Reaping _r = Reaping::Automatic) = 0;
+	virtual bool uninstallWatch(unsigned _watchId) = 0;
+	LocalisedLogEntries peekWatchSafe(unsigned _watchId) const { try { return peekWatch(_watchId); } catch (...) { return LocalisedLogEntries(); } }
+	LocalisedLogEntries checkWatchSafe(unsigned _watchId) { try { return checkWatch(_watchId); } catch (...) { return LocalisedLogEntries(); } }
+	virtual LocalisedLogEntries peekWatch(unsigned _watchId) const = 0;
+	virtual LocalisedLogEntries checkWatch(unsigned _watchId) = 0;
+
+	// [BLOCK QUERY API]
+
+	virtual bool isKnownTransaction(h256 const& _transactionHash) const = 0;
+	virtual bool isKnownTransaction(h256 const& _blockHash, unsigned _i) const = 0;
+	virtual Transaction transaction(h256 _transactionHash) const = 0;
+	virtual LocalisedTransaction localisedTransaction(h256 const& _transactionHash) const = 0;
+	virtual TransactionReceipt transactionReceipt(h256 const& _transactionHash) const = 0;
+	virtual LocalisedTransactionReceipt localisedTransactionReceipt(h256 const& _transactionHash) const = 0;
+	virtual std::pair<h256, unsigned> transactionLocation(h256 const& _transactionHash) const = 0;
+	virtual h256 hashFromNumber(BlockNumber _number) const = 0;
+	virtual BlockNumber numberFromHash(h256 _blockHash) const = 0;
+	virtual int compareBlockHashes(h256 _h1, h256 _h2) const = 0;
+
+	virtual bool isKnown(BlockNumber _block) const = 0;
+	virtual bool isKnown(h256 const& _hash) const = 0;
+	virtual BlockHeader blockInfo(h256 _hash) const = 0;
+	virtual BlockDetails blockDetails(h256 _hash) const = 0;
+	virtual Transaction transaction(h256 _blockHash, unsigned _i) const = 0;
+	virtual LocalisedTransaction localisedTransaction(h256 const& _blockHash, unsigned _i) const = 0;
+	virtual BlockHeader uncle(h256 _blockHash, unsigned _i) const = 0;
+	virtual UncleHashes uncleHashes(h256 _blockHash) const = 0;
+	virtual unsigned transactionCount(h256 _blockHash) const = 0;
+	virtual unsigned uncleCount(h256 _blockHash) const = 0;
+	virtual Transactions transactions(h256 _blockHash) const = 0;
+	virtual TransactionHashes transactionHashes(h256 _blockHash) const = 0;
+
+	virtual BlockHeader pendingInfo() const { return BlockHeader(); }
+	virtual BlockDetails pendingDetails() const { return BlockDetails(); }
+	/// @returns the EVMSchedule in the context of the pending block.
+	virtual EVMSchedule evmSchedule() const { return EVMSchedule(); }
 };
 
 }
