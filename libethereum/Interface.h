@@ -80,6 +80,36 @@ public:
 	ExecutionResult create(Secret const& _secret, u256 _value, bytes const& _data, u256 _gas, u256 _gasPrice, FudgeFactor _ff = FudgeFactor::Strict) { return create(toAddress(_secret), _value, _data, _gas, _gasPrice, _ff); }
 
 
+	/// Injects the RLP-encoded transaction given by the _rlp into the transaction queue directly.
+	virtual ImportResult injectTransaction(bytes const& _rlp, IfDropped _id = IfDropped::Ignore) = 0;
+
+	/// Injects the RLP-encoded block given by the _rlp into the block queue directly.
+	virtual ImportResult injectBlock(bytes const& _block) = 0;
+
+	/// Estimate gas usage for call/create.
+	/// @param _maxGas An upper bound value for estimation, if not provided default value of c_maxGasEstimate will be used.
+	/// @param _callback Optional callback function for progress reporting
+	virtual std::pair<u256, ExecutionResult> estimateGas(Address const& _from, u256 _value, Address _dest, bytes const& _data, int64_t _maxGas, u256 _gasPrice, BlockNumber _blockNumber, GasEstimationCallback const& _callback = GasEstimationCallback()) = 0;
+
+	// [STATE-QUERY API]
+
+	int getDefault() const { return m_default; }
+	void setDefault(BlockNumber _block) { m_default = _block; }
+
+	u256 balanceAt(Address _a) const { return balanceAt(_a, m_default); }
+	u256 countAt(Address _a) const { return countAt(_a, m_default); }
+	u256 stateAt(Address _a, u256 _l) const { return stateAt(_a, _l, m_default); }
+	bytes codeAt(Address _a) const { return codeAt(_a, m_default); }
+	h256 codeHashAt(Address _a) const { return codeHashAt(_a, m_default); }
+	std::map<h256, std::pair<u256, u256>> storageAt(Address _a) const { return storageAt(_a, m_default); }
+
+	virtual u256 balanceAt(Address _a, BlockNumber _block) const = 0;
+	virtual u256 countAt(Address _a, BlockNumber _block) const = 0;
+	virtual u256 stateAt(Address _a, u256 _l, BlockNumber _block) const = 0;
+	virtual h256 stateRootAt(Address _a, BlockNumber _block) const = 0;
+	virtual bytes codeAt(Address _a, BlockNumber _block) const = 0;
+	virtual h256 codeHashAt(Address _a, BlockNumber _block) const = 0;
+	virtual std::map<h256, std::pair<u256, u256>> storageAt(Address _a, BlockNumber _block) const = 0;
 };
 
 }
