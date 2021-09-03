@@ -155,6 +155,71 @@ public:
 	virtual BlockDetails pendingDetails() const { return BlockDetails(); }
 	/// @returns the EVMSchedule in the context of the pending block.
 	virtual EVMSchedule evmSchedule() const { return EVMSchedule(); }
+
+	BlockHeader blockInfo(BlockNumber _block) const;
+	BlockDetails blockDetails(BlockNumber _block) const;
+	Transaction transaction(BlockNumber _block, unsigned _i) const { auto p = transactions(_block); return _i < p.size() ? p[_i] : Transaction(); }
+	unsigned transactionCount(BlockNumber _block) const { if (_block == PendingBlock) { auto p = pending(); return p.size(); } return transactionCount(hashFromNumber(_block)); }
+	Transactions transactions(BlockNumber _block) const { if (_block == PendingBlock) return pending(); return transactions(hashFromNumber(_block)); }
+	TransactionHashes transactionHashes(BlockNumber _block) const { if (_block == PendingBlock) return pendingHashes(); return transactionHashes(hashFromNumber(_block)); }
+	BlockHeader uncle(BlockNumber _block, unsigned _i) const { return uncle(hashFromNumber(_block), _i); }
+	UncleHashes uncleHashes(BlockNumber _block) const { return uncleHashes(hashFromNumber(_block)); }
+	unsigned uncleCount(BlockNumber _block) const { return uncleCount(hashFromNumber(_block)); }
+	virtual TransactionQueue& transactionQueue() = 0;
+	// [EXTRA API]:
+
+	/// @returns The height of the chain.
+	virtual unsigned number() const = 0;
+
+	/// Get a map containing each of the pending transactions.
+	/// @TODO: Remove in favour of transactions().
+	virtual Transactions pending() const = 0;
+	virtual h256s pendingHashes() const = 0;
+
+	/// Get a list of all active addresses.
+	/// NOTE: This only works when compiled with ETH_FATDB; otherwise will throw InterfaceNotSupported.
+	virtual Addresses addresses() const { return addresses(m_default); }
+	virtual Addresses addresses(BlockNumber _block) const = 0;
+
+	/// Get the remaining gas limit in this block.
+	virtual u256 gasLimitRemaining() const = 0;
+	// Get the gas bidding price
+	virtual u256 gasBidPrice() const = 0;
+
+	/// Get some information on the block queue.
+	virtual SyncStatus syncStatus() const = 0;
+
+	// [SEALING API]:
+
+	/// Set the block author address.
+	virtual void setAuthor(Address const& _us) = 0;
+	/// Get the block author address.
+	virtual Address author() const = 0;
+
+	/// Start sealing.
+	/// NOT thread-safe - call it & stopSealing only from a single thread
+	virtual void startSealing() = 0;
+	/// Stop sealing.
+	/// NOT thread-safe
+	virtual void stopSealing() = 0;
+	/// Would we like to be sealing now?
+	virtual bool wouldSeal() const = 0;
+
+	/// Are we updating the chain (syncing or importing a new block)?
+	virtual bool isSyncing() const { return false; }
+	/// Are we syncing the chain?
+	virtual bool isMajorSyncing() const { return false; }
+
+	/// Gets the network id.
+	virtual u256 networkId() const { return 0; }
+	/// Sets the network id.
+	virtual void setNetworkId(u256 const&) {}
+
+	/// Get the seal engine.
+	virtual SealEngineFace* sealEngine() const { return nullptr; }
+
+protected:
+	int m_default = PendingBlock;
 };
 
 }
