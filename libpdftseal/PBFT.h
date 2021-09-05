@@ -49,6 +49,17 @@ public:
 		return isLeader;
 	}
 
+
+	void startGeneration() { setName("PBFT"); m_last_consensus_time = utcTime(); resetConfig(); startWorking(); }
+	void cancelGeneration() override { stopWorking(); }
+
+	void generateSeal(BlockHeader const& , bytes const& ) {}
+	bool generateSeal(BlockHeader const& _bi, bytes const& _block_data, u256 &_view);
+	bool generateCommit(BlockHeader const& _bi, bytes const& _block_data, u256 const& _view);
+	void onSealGenerated(std::function<void(bytes const&)> const&) override {}
+	void onSealGenerated(std::function<void(bytes const&, bool)> const& _f)  { m_onSealGenerated = _f;}
+	void onViewChange(std::function<void()> const& _f) { m_onViewChange = _f; }
+	bool shouldSeal(Interface* _i) override;
 };
 
 }
