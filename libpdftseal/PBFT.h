@@ -137,6 +137,83 @@ public:
 	void checkAndChangeView();
 	void checkAndCommit();
 	void checkAndSave();
+
+void handleFutureBlock();
+	void recvFutureBlock(u256 const& _from, PrepareReq const& _req);
+
+	bool checkBlockSign(BlockHeader const& _header, std::vector<std::pair<u256, Signature>> _sign_list);
+
+	void backupMsg(std::string const& _key, PBFTMsg const& _msg);
+	void reloadMsg(std::string const& _key, PBFTMsg * _msg);
+
+private:
+	mutable Mutex m_mutex;
+
+	unsigned m_account_type;
+	KeyPair m_key_pair;
+	std::string m_sealer = "pbft";
+
+	std::function<void(bytes const& _block, bool _isOurs)> m_onSealGenerated;
+	std::function<void()> m_onViewChange;
+
+	std::weak_ptr<PBFTHost> m_host;
+	std::shared_ptr<BlockChain> m_bc;
+	std::shared_ptr<OverlayDB> m_stateDB;
+	std::shared_ptr<BlockQueue> m_bq;
+
+	u256 m_node_idx = 0;
+	u256 m_view = 0;
+	u256 m_node_num = 0;
+	u256 m_f = 0;
+
+	unsigned m_view_timeout;
+	uint64_t m_last_consensus_time;
+	unsigned m_change_cycle = 0;
+	u256 m_to_view = 0;
+	bool m_leader_failed;
+	uint64_t m_last_sign_time;
+
+	PrepareReq m_raw_prepare_cache;
+	PrepareReq m_prepare_cache;
+	std::pair<u256, PrepareReq> m_future_prepare_cache;
+	std::unordered_map<h256, std::unordered_map<std::string, SignReq>> m_sign_cache;
+	std::unordered_map<h256, std::unordered_map<std::string, CommitReq>> m_commit_cache;
+	std::unordered_map<u256, std::unordered_map<u256, ViewChangeReq>> m_recv_view_change_req;
+
+	ldb::DB *m_backup_db;  // backup msg
+	ldb::WriteOptions m_writeOptions;
+	ldb::ReadOptions m_readOptions;
+	PrepareReq m_committed_prepare_cache;
+
+	std::chrono::system_clock::time_point m_last_collect_time;
+
+	BlockHeader m_highest_block;
+	u256 m_consensus_block_number; // the block which is waiting consensus 
+
+	h512s m_miner_list;
+
+	bool m_cfg_err = false;
+
+	uint64_t m_last_exec_finish_time;
+
+	bool m_empty_block_flag;
+	bool m_omit_empty_block;
+
+	std::condition_variable m_signalled;
+	Mutex x_signalled;
+
+	// msg queue 
+	PBFTMsgQueue m_msg_queue;
+
+	static const unsigned kCollectInterval = 60; // second
+	static const size_t kKnownPrepare = 1024;
+	static const size_t kKnownSign = 1024;
+	static const size_t kKnownCommit = 1024;
+	static const size_t kKnownViewChange = 1024;
+
+	static const unsigned kMaxChangeCycle = 20;
+	// log whether the commit is called before, use to trigger commit phase under consensus control
+	std::unordered_map<h256, bool> m_commitMap;
 };
 
 }
