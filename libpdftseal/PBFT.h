@@ -109,6 +109,34 @@ public:
 	bool broadcastFilter(std::string const& _key, unsigned _id, std::shared_ptr<PBFTPeer> _p);
 	void broadcastMark(std::string const& _key, unsigned _id, std::shared_ptr<PBFTPeer> _p);
 	void clearMask();
+
+	// 
+	// handle msg
+	void handleMsg(unsigned _id, u256 const& _from, h512 const& _node, RLP const& _r);
+	void handlePrepareMsg(u256 const& _from, PrepareReq const& _req, bool _self = false);
+	void handleSignMsg(u256 const& _from, SignReq const& _req);
+	void handleCommitMsg(u256 const& _from, CommitReq const& _req);
+	void handleViewChangeMsg(u256 const& _from, ViewChangeReq const& _req);
+
+	void reHandlePrepareReq(PrepareReq const& _req);
+
+	// cache（，）
+	// access cache (no thread safe )
+	bool addRawPrepare(PrepareReq const& _req);
+	bool addPrepareReq(PrepareReq const& _req);
+	void addSignReq(SignReq const& _req);
+	void addCommitReq(CommitReq const& _req);
+	void delCache(h256 const& _hash);
+	void delViewChange();
+
+	bool isExistPrepare(PrepareReq const& _req);
+	bool isExistSign(SignReq const& _req);
+	bool isExistCommit(CommitReq const& _req);
+	bool isExistViewChange(ViewChangeReq const& _req);
+
+	void checkAndChangeView();
+	void checkAndCommit();
+	void checkAndSave();
 };
 
 }
