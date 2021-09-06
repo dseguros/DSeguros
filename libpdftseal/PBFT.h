@@ -60,6 +60,22 @@ public:
 	void onSealGenerated(std::function<void(bytes const&, bool)> const& _f)  { m_onSealGenerated = _f;}
 	void onViewChange(std::function<void()> const& _f) { m_onViewChange = _f; }
 	bool shouldSeal(Interface* _i) override;
+
+	// should be called before start
+	void initEnv(std::weak_ptr<PBFTHost> _host, BlockChain* _bc, OverlayDB* _db, BlockQueue *bq, KeyPair const& _key_pair, unsigned _view_timeout);
+	void setOmitEmptyBlock(bool _flag) {m_omit_empty_block = _flag;}
+
+	// report newest block 
+	void reportBlock(BlockHeader const& _b, u256 const& td);
+
+	void onPBFTMsg(unsigned _id, std::shared_ptr<p2p::Capability> _peer, RLP const& _r);
+
+	h512s getMinerNodeList() const {  /*Guard l(m_mutex);*/ return m_miner_list; }
+
+	void changeViewForEmptyBlockWithoutLock(u256 const& _from);
+	void changeViewForEmptyBlockWithLock();
+
+	uint64_t lastExecFinishTime() const { return m_last_exec_finish_time; }
 };
 
 }
