@@ -76,6 +76,39 @@ public:
 	void changeViewForEmptyBlockWithLock();
 
 	uint64_t lastExecFinishTime() const { return m_last_exec_finish_time; }
+
+	private:
+	void initBackupDB();
+	void resetConfig();
+	// ：，viewchange
+	// thread: handle msg response, broadcast viewchange when timeout
+	void workLoop() override;
+
+	//，
+	// check timeout, if timeout, change view
+	void checkTimeout();
+
+	void collectGarbage();
+
+
+	bool getMinerList(int _blk_no, h512s & _miner_list) const;
+
+	std::pair<bool, u256> getLeader() const;
+
+	Signature signHash(h256 const& _hash) const;
+	bool checkSign(u256 const& _idx, h256 const& _hash, Signature const& _sign) const;
+	bool checkSign(PBFTMsg const& _req) const;
+
+	// 
+	// broadcast msg
+	bool broadcastPrepareReq(BlockHeader const& _bi, bytes const& _block_data);
+	bool broadcastSignReq(PrepareReq const& _req);
+	bool broadcastCommitReq(PrepareReq const & _req);
+	bool broadcastViewChangeReq();
+	bool broadcastMsg(std::string const& _key, unsigned _id, bytes const& _data, std::unordered_set<h512> const& _filter = std::unordered_set<h512>());
+	bool broadcastFilter(std::string const& _key, unsigned _id, std::shared_ptr<PBFTPeer> _p);
+	void broadcastMark(std::string const& _key, unsigned _id, std::shared_ptr<PBFTPeer> _p);
+	void clearMask();
 };
 
 }
