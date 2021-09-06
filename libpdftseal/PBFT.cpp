@@ -16,3 +16,13 @@
 using namespace std;
 using namespace dev;
 using namespace eth;
+
+void PBFT::init()
+{
+	ETH_REGISTER_SEAL_ENGINE(PBFT);
+}
+
+PBFT::PBFT()
+{
+}
+
