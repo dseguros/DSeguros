@@ -69,3 +69,32 @@ void PBFT::initEnv(std::weak_ptr<PBFTHost> _host, BlockChain* _bc, OverlayDB* _d
 
 	cdebug << "PBFT initEnv success";
 }
+
+
+void PBFT::initBackupDB() {
+	ldb::Options o;
+	o.max_open_files = 256;
+	o.create_if_missing = true;
+	std::string path = m_bc->chainParams().dataDir + "/pbftMsgBackup";
+	ldb::Status status = ldb::DB::Open(o, path, &m_backup_db);
+	if (!status.ok() || !m_backup_db)
+	{
+		if (boost::filesystem::space(path).available < 1024)
+		{
+			cwarn << "Not enough available space found on hard drive. Please free some up and then re-run. Bailing.";
+			cwarn << "Not enough available space found on hard drive. Please free some up and then re-run. Bailing.";
+			BOOST_THROW_EXCEPTION(NotEnoughAvailableSpace());
+		}
+		else
+		{
+			cwarn << status.ToString();
+			cwarn << "Database " << path << "already open. You appear to have another instance of ethereum running. Bailing.";
+			cwarn << status.ToString();
+			cwarn << "Database " << path << "already open. You appear to have another instance of ethereum running. Bailing.";
+			BOOST_THROW_EXCEPTION(DatabaseAlreadyOpen());
+		}
+	}
+
+	// reload msg from db
+	reloadMsg(backup_key_committed, &m_committed_prepare_cache);
+}
