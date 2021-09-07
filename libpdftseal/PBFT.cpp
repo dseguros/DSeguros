@@ -182,3 +182,28 @@ bool PBFT::generateSeal(BlockHeader const& _bi, bytes const& _block_data, u256 &
 	return true;
 }
 
+bool PBFT::generateCommit(BlockHeader const& _bi, bytes const& _block_data, u256 const& _view)
+{
+	Guard l(m_mutex);
+
+	if (_view != m_view) {
+		cdebug << "view has changed, generateCommit failed, _view=" << _view << ", m_view=" << m_view;
+		return false;
+	}
+
+	PrepareReq req;
+	req.height = _bi.number();
+	req.view = _view;
+	req.idx = m_node_idx;
+	req.timestamp = u256(utcTime());
+	req.block_hash = _bi.hash(WithoutSeal);
+	req.sig = signHash(req.block_hash);
+	req.sig2 = signHash(req.fieldsWithoutBlock());
+	req.block = _block_data;
+
+	if (addPrepareReq(req) && broadcastSignReq(req)) {
+		checkAndCommit(); // support for issuing block in single node mode ()
+	}
+
+	return true;
+}
