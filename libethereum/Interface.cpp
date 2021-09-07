@@ -35,3 +35,10 @@ BlockHeader Interface::blockInfo(BlockNumber _block) const
 		return pendingInfo();
 	return blockInfo(hashFromNumber(_block));
 }
+
+BlockDetails Interface::blockDetails(BlockNumber _block) const
+{
+	if (_block == PendingBlock)
+		return pendingDetails();
+	return blockDetails(hashFromNumber(_block));
+}
