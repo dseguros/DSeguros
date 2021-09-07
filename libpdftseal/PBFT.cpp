@@ -98,3 +98,66 @@ void PBFT::initBackupDB() {
 	// reload msg from db
 	reloadMsg(backup_key_committed, &m_committed_prepare_cache);
 }
+
+void PBFT::resetConfig() {
+	m_account_type = 1;
+	m_node_num = 1;
+	m_node_idx = 0;
+	m_f = (m_node_num - 1 ) / 3;
+
+	m_prepare_cache.clear();
+	m_sign_cache.clear();
+	m_recv_view_change_req.clear();
+	m_commitMap.clear();
+/*
+	if (!NodeConnManagerSingleton::GetInstance().getAccountType(m_key_pair.pub(), m_account_type)) {
+		cwarn << "resetConfig: can't find myself id, stop sealing";
+		m_cfg_err = true;
+		return;
+	}
+
+	auto node_num = NodeConnManagerSingleton::GetInstance().getMinerNum();
+	if (node_num == 0) {
+		cwarn << "resetConfig: miner_num = 0, stop sealing";
+		m_cfg_err = true;
+		return;
+	}
+
+	u256 node_idx;
+	if (!NodeConnManagerSingleton::GetInstance().getIdx(m_key_pair.pub(), node_idx)) {
+		//BOOST_THROW_EXCEPTION(PbftInitFailed() << errinfo_comment("NodeID not in cfg"));
+		cwarn << "resetConfig: can't find myself id, stop sealing";
+		m_cfg_err = true;
+		return;
+	}
+
+	if (node_num != m_node_num || node_idx != m_node_idx) {
+		m_node_num = node_num;
+		m_node_idx = node_idx;
+		m_f = (m_node_num - 1 ) / 3;
+
+		m_prepare_cache.clear();
+		m_sign_cache.clear();
+		m_recv_view_change_req.clear();
+		
+		ConsensusControl::instance().clearAllCache();
+		m_commitMap.clear();
+
+		if (!getMinerList(-1, m_miner_list)) {
+			cwarn << "resetConfig: getMinerList return false";
+			m_cfg_err = true;
+			return;
+		}
+
+		if (m_miner_list.size() != m_node_num) {
+			cwarn << "resetConfig: m_miner_list.size=" << m_miner_list.size() << ",m_node_num=" << m_node_num;
+			m_cfg_err = true;
+			return;
+		}
+		cdebug << "resetConfig: m_node_idx=" << m_node_idx << ", m_node_num=" << m_node_num;
+	}
+	// consensuscontrol init cache
+	ConsensusControl::instance().resetNodeCache();
+	m_cfg_err = false;
+*/
+}
