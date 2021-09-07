@@ -161,3 +161,24 @@ void PBFT::resetConfig() {
 	m_cfg_err = false;
 */
 }
+
+StringHashMap PBFT::jsInfo(BlockHeader const& _bi) const
+{
+	return { { "number", toJS(_bi.number()) }, { "timestamp", toJS(_bi.timestamp()) } };
+}
+
+bool PBFT::generateSeal(BlockHeader const& _bi, bytes const& _block_data, u256 &_view)
+{
+	Timer t;
+	Guard l(m_mutex);
+	_view = m_view;
+	if (!broadcastPrepareReq(_bi, _block_data)) {
+		cwarn << "broadcastPrepareReq failed, " << _bi.number() << _bi.hash(WithoutSeal);
+		return false;
+	}
+
+	cdebug << "generateSeal, blk=" << _bi.number() << ", timecost=" << 1000 * t.elapsed();
+
+	return true;
+}
+
