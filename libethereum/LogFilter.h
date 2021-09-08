@@ -12,5 +12,9 @@
 namespace dev
 {
 
+namespace eth
+{
+class LogFilter;
+}
 
 }
