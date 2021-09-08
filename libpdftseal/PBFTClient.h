@@ -18,5 +18,21 @@ enum AccountType {
 	EN_ACCOUNT_TYPE_MINER = 1
 };
 
+class PBFTClient: public Client
+{
+public:
+	/// Trivial forwarding constructor.
+	PBFTClient(
+	    ChainParams const& _params,
+	    int _networkID,
+	    p2p::Host* _host,
+	    std::shared_ptr<GasPricer> _gpForAdoption,
+	    std::string const& _dbPath = std::string(),
+	    WithExisting _forceAction = WithExisting::Trust,
+	    TransactionQueue::Limits const& _l = TransactionQueue::Limits {102400, 102400}
+	);
+
+};
+
 }
 }
