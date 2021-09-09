@@ -51,6 +51,14 @@ protected:
 	void onTransactionQueueReady();
 
 	bool submitSealed(bytes const & _block, bool _isOurs);
+
+private:
+	bool  m_empty_block_flag;
+	float m_exec_time_per_tx;
+	uint64_t m_last_exec_finish_time;
+	uint64_t m_left_time;
+
+	ChainParams m_params;
 };
 
 }
