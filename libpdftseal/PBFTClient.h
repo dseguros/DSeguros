@@ -61,5 +61,7 @@ private:
 	ChainParams m_params;
 };
 
+PBFTClient& asPBFTClient(Interface& _c);
+PBFTClient* asPBFTClient(Interface* _c);
 }
 }
