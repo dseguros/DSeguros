@@ -49,6 +49,12 @@ public:
 
 	/// @returns bloom possibilities for all addresses and topics
 	std::vector<LogBloom> bloomPossibilities() const;
+
+	bool matches(LogBloom _bloom) const;
+	bool matches(Block const& _b, unsigned _i) const;
+	LogEntries matches(TransactionReceipt const& _r) const;
+
+	LogFilter address(Address _a) { m_addresses.insert(_a); return *this; }
 };
 
 }
