@@ -40,6 +40,17 @@ public:
 	//bool isMining() const override { return isWorking(); }
 
 	PBFT* pbft() const;
+
+protected:
+	void init(ChainParams const& _params, p2p::Host *_host);
+	void doWork(bool _doWait);
+	void rejigSealing();
+	void syncBlockQueue();
+	void syncTransactionQueue(u256 const& _max_block_txs);
+	void executeTransaction();
+	void onTransactionQueueReady();
+
+	bool submitSealed(bytes const & _block, bool _isOurs);
 };
 
 }
