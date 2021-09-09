@@ -32,6 +32,14 @@ public:
 	    TransactionQueue::Limits const& _l = TransactionQueue::Limits {102400, 102400}
 	);
 
+
+		virtual ~PBFTClient();
+
+	void startSealing() override;
+	void stopSealing() override;
+	//bool isMining() const override { return isWorking(); }
+
+	PBFT* pbft() const;
 };
 
 }
