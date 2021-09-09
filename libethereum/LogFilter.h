@@ -61,6 +61,11 @@ public:
 	LogFilter withLatest(h256 _e) { m_latest = _e; return *this; }
 
 	friend std::ostream& dev::eth::operator<<(std::ostream& _out, dev::eth::LogFilter const& _s);
+private:
+	AddressHash m_addresses;
+	std::array<h256Hash, 4> m_topics;
+	h256 m_earliest = EarliestBlockHash;
+	h256 m_latest = PendingBlockHash;
 };
 
 }
