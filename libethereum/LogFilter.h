@@ -55,6 +55,12 @@ public:
 	LogEntries matches(TransactionReceipt const& _r) const;
 
 	LogFilter address(Address _a) { m_addresses.insert(_a); return *this; }
+
+	LogFilter topic(unsigned _index, h256 const& _t) { if (_index < 4) m_topics[_index].insert(_t); return *this; }
+	LogFilter withEarliest(h256 _e) { m_earliest = _e; return *this; }
+	LogFilter withLatest(h256 _e) { m_latest = _e; return *this; }
+
+	friend std::ostream& dev::eth::operator<<(std::ostream& _out, dev::eth::LogFilter const& _s);
 };
 
 }
