@@ -18,3 +18,10 @@ void LogFilter::streamRLP(RLPStream& _s) const
 {
 	_s.appendList(4) << m_addresses << m_topics << m_earliest << m_latest;
 }
+
+h256 LogFilter::sha3() const
+{
+	RLPStream s;
+	streamRLP(s);
+	return dev::sha3(s.out());
+}
