@@ -14,3 +14,7 @@ std::ostream& dev::eth::operator<<(std::ostream& _out, LogFilter const& _s)
 	return _out;
 }
 
+void LogFilter::streamRLP(RLPStream& _s) const
+{
+	_s.appendList(4) << m_addresses << m_topics << m_earliest << m_latest;
+}
