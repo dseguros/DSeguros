@@ -24,5 +24,30 @@ PBFTClient* dev::eth::asPBFTClient(Interface* _c)
 	if (dynamic_cast<PBFT*>(_c->sealEngine()))
 		return &dynamic_cast<PBFTClient&>(*_c);
 	throw NotPBFTSealEngine();
+lient::PBFTClient(
+    ChainParams const& _params,
+    int _networkID,
+    p2p::Host* _host,
+    std::shared_ptr<GasPricer> _gpForAdoption,
+    std::string const& _dbPath,
+    WithExisting _forceAction,
+    TransactionQueue::Limits const& _limits
+):
+	Client(_params, _networkID, _host, _gpForAdoption, _dbPath, _forceAction, _limits)
+{
+	// will throw if we're not an PBFT seal engine.
+	asPBFTClient(*this);
+
+	init(_params, _host);
+
+	m_empty_block_flag = false;
+	m_exec_time_per_tx = 0;
+	m_last_exec_finish_time = utcTime();
 }
+
+PBFTClient::~PBFTClient() {
+	pbft()->cancelGeneration();
+	stopWorking();
+}
+
 
