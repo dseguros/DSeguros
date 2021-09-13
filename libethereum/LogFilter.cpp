@@ -123,3 +123,25 @@ vector<LogBloom> LogFilter::bloomPossibilities() const
 
 	return ret;
 }
+
+LogEntries LogFilter::matches(TransactionReceipt const& _m) const
+{
+	// there are no addresses or topics to filter
+	if (isRangeFilter())
+		return _m.log();
+
+	LogEntries ret;
+	if (matches(_m.bloom()))
+		for (LogEntry const& e: _m.log())
+		{
+			if (!m_addresses.empty() && !m_addresses.count(e.address))
+				goto continue2;
+			for (unsigned i = 0; i < 4; ++i)
+				if (!m_topics[i].empty() && (e.topics.size() < i || !m_topics[i].count(e.topics[i])))
+					goto continue2;
+			ret.push_back(e);
+			continue2:;
+		}
+	return ret;
+}
+
