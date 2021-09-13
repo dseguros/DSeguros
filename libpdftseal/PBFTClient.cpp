@@ -87,3 +87,25 @@ PBFT* PBFTClient::pbft() const
 {
 	return dynamic_cast<PBFT*>(Client::sealEngine());
 }
+
+void PBFTClient::startSealing() {
+	setName("Client");
+	pbft()->reportBlock(bc().info(), bc().details().totalDifficulty);
+	pbft()->startGeneration();
+	//Client::startSealing();
+	if (m_wouldSeal == true)
+		return;
+	cdebug << "Mining Beneficiary: " << author();
+	if (author())
+	{
+		m_wouldSeal = true;
+		m_signalled.notify_all();
+	}
+	else
+		cdebug << "You need to set an author in order to seal!";
+}
+
+void PBFTClient::stopSealing() {
+	Client::stopSealing();
+	pbft()->cancelGeneration();
+}
