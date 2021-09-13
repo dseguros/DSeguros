@@ -109,3 +109,22 @@ void PBFTClient::stopSealing() {
 	Client::stopSealing();
 	pbft()->cancelGeneration();
 }
+
+void PBFTClient::syncBlockQueue() {
+	Client::syncBlockQueue();
+
+	pbft()->reportBlock(bc().info(), bc().details().totalDifficulty);
+
+	m_empty_block_flag = false;
+	pbft()->setOmitEmptyBlock(m_omit_empty_block);
+
+	DEV_WRITE_GUARDED(x_working)
+	{
+		if (m_working.isSealed() && m_working.info().number() <= bc().info().number()) {
+			m_working.resetCurrent();
+		}
+	}
+	// start new block log
+	//PBFTFlowLog(pbft()->getHighestBlock().number() + pbft()->view(), 
+	//	"new block", (int)pbft()->isLeader(), true);
+}
