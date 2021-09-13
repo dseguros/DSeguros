@@ -37,3 +37,25 @@ bool LogFilter::isRangeFilter() const
 
 	return true;
 }
+
+bool LogFilter::matches(LogBloom _bloom) const
+{
+	if (m_addresses.size())
+	{
+		for (auto const& i: m_addresses)
+			if (_bloom.containsBloom<3>(dev::sha3(i)))
+				goto OK1;
+		return false;
+	}
+	OK1:
+	for (auto const& t: m_topics)
+		if (t.size())
+		{
+			for (auto const& i: t)
+				if (_bloom.containsBloom<3>(dev::sha3(i)))
+					goto OK2;
+			return false;
+			OK2:;
+		}
+	return true;
+}
