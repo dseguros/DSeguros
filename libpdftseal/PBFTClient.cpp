@@ -50,4 +50,40 @@ PBFTClient::~PBFTClient() {
 	stopWorking();
 }
 
+void PBFTClient::init(ChainParams const& _params, p2p::Host *_host) {
+	m_params = _params;
+	//m_working.setEvmCoverLog(m_params.evmCoverLog);
+	//m_working.setEvmEventLog(m_params.evmEventLog);
 
+
+	// register PBFTHost
+	auto pbft_host = _host->registerCapability(make_shared<PBFTHost>([this](unsigned _id, std::shared_ptr<Capability> _peer, RLP const & _r) {
+		pbft()->onPBFTMsg(_id, _peer, _r);
+	}));
+
+	pbft()->initEnv(pbft_host, &m_bc, &m_stateDB, &m_bq, _host->keyPair(), static_cast<unsigned>(sealEngine()->getIntervalBlockTime()) * 3);
+	pbft()->setOmitEmptyBlock(m_omit_empty_block);
+
+	pbft()->reportBlock(bc().info(), bc().details().totalDifficulty);
+
+	pbft()->onSealGenerated([ this ](bytes const & _block, bool _isOurs) {
+		if (!submitSealed(_block, _isOurs))
+			cwarn << "Submitting block failed...";
+	});
+
+	pbft()->onViewChange([this]() {
+		DEV_WRITE_GUARDED(x_working)
+		{
+			if (m_working.isSealed()) {
+				m_working.resetCurrent();
+			}
+		}
+	});
+
+	cdebug << "Init PBFTClient success";
+}
+
+PBFT* PBFTClient::pbft() const
+{
+	return dynamic_cast<PBFT*>(Client::sealEngine());
+}
