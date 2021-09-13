@@ -25,3 +25,15 @@ h256 LogFilter::sha3() const
 	streamRLP(s);
 	return dev::sha3(s.out());
 }
+
+bool LogFilter::isRangeFilter() const
+{
+	if (m_addresses.size())
+		return false;
+
+	for (auto const& t: m_topics)
+		if (t.size())
+			return false;
+
+	return true;
+}
