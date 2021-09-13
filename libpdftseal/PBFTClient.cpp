@@ -11,3 +11,18 @@ using namespace std;
 using namespace dev;
 using namespace dev::eth;
 using namespace p2p;
+
+PBFTClient& dev::eth::asPBFTClient(Interface& _c)
+{
+	if (dynamic_cast<PBFT*>(_c.sealEngine()))
+		return dynamic_cast<PBFTClient&>(_c);
+	throw NotPBFTSealEngine();
+}
+
+PBFTClient* dev::eth::asPBFTClient(Interface* _c)
+{
+	if (dynamic_cast<PBFT*>(_c->sealEngine()))
+		return &dynamic_cast<PBFTClient&>(*_c);
+	throw NotPBFTSealEngine();
+}
+
