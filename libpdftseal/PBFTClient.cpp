@@ -164,3 +164,43 @@ void PBFTClient::syncTransactionQueue(u256 const& _max_block_txs)
 		m_postSeal = m_working; //add this to let RPC interface "eth_pendingTransactions" to get value RPCeth_pendingTransactions	
 	}
 }
+
+void PBFTClient::executeTransaction()
+{
+	Timer timer;
+
+	h256Hash changeds;
+	TransactionReceipts newPendingReceipts;
+
+	//DEV_WRITE_GUARDED(x_working)
+	{
+		newPendingReceipts = m_working.exec(bc(), m_tq);
+	}
+
+	if (newPendingReceipts.empty())
+	{
+		auto s = m_tq.status();
+		cdebug << "No transactions to process. " << m_working.pending().size() << " pending, " << s.current << " queued, " << s.future << " future, " << s.unverified << " unverified";
+		return;
+	}
+
+	//DEV_READ_GUARDED(x_working)
+	DEV_WRITE_GUARDED(x_postSeal)
+	m_postSeal = m_working;
+
+	DEV_READ_GUARDED(x_postSeal)
+	for (size_t i = 0; i < newPendingReceipts.size(); i++)
+		appendFromNewPending(newPendingReceipts[i], changeds, m_postSeal.pending()[i].sha3());
+
+	// Tell farm about new transaction (i.e. restart mining).
+	onPostStateChanged();
+
+	// Tell watches about the new transactions.
+	noteChanged(changeds);
+
+	// Tell network about the new transactions.
+	//if (auto h = m_host.lock())
+	//	h->noteNewTransactions();
+
+	cdebug << "Processed " << newPendingReceipts.size() << " transactions in" << (timer.elapsed() * 1000) << "(" << (bool)m_syncTransactionQueue << ")";
+}
