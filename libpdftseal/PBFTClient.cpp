@@ -128,3 +128,39 @@ void PBFTClient::syncBlockQueue() {
 	//PBFTFlowLog(pbft()->getHighestBlock().number() + pbft()->view(), 
 	//	"new block", (int)pbft()->isLeader(), true);
 }
+
+void PBFTClient::onTransactionQueueReady() {
+	m_syncTransactionQueue = true;
+	m_signalled.notify_all();
+	// info EhtereumHost to broadcast txs EthereumHost
+	if (auto h = m_host.lock()) {
+		h->noteNewTransactions();
+	}
+}
+
+void PBFTClient::syncTransactionQueue(u256 const& _max_block_txs)
+{
+	(void)_max_block_txs;
+	TransactionReceipts newPendingReceipts;
+	//DEV_WRITE_GUARDED(x_working)
+	{
+		if (m_working.isSealed())
+		{
+			cdebug << "Skipping txq sync for a sealed block.";
+			return;
+		}
+		if ( m_working.pending().size() >= m_maxBlockTranscations )
+		{
+			cdebug << "Skipping txq sync for Full block .";
+			return;
+		}
+
+		tie(newPendingReceipts, m_syncTransactionQueue) = m_working.sync(bc(), m_tq, *m_gp);
+	}
+	
+	if (!newPendingReceipts.empty())
+	{
+		DEV_WRITE_GUARDED(x_postSeal)
+		m_postSeal = m_working; //add this to let RPC interface "eth_pendingTransactions" to get value RPCeth_pendingTransactions	
+	}
+}
