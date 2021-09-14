@@ -421,3 +421,9 @@ void PBFTClient::rejigSealing() {
 		}
 	}
 }
+
+bool PBFTClient::submitSealed(bytes const & _block, bool _isOurs) {
+	auto ret = m_bq.import(&_block, _isOurs);
+	cdebug << "PBFTClient::submitSealed m_bq.import return " << (unsigned)ret;
+	return ret == ImportResult::Success;
+}
