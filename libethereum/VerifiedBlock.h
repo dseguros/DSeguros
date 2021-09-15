@@ -33,6 +33,14 @@ struct VerifiedBlock
 	{
 	}
 
+  	VerifiedBlock& operator=(VerifiedBlock&& _other)
+	{
+		assert(&_other != this);
+
+		verified = (std::move(_other.verified));
+		blockData = (std::move(_other.blockData));
+		return *this;
+	}
 }
 }
 }
