@@ -41,6 +41,13 @@ struct VerifiedBlock
 		blockData = (std::move(_other.blockData));
 		return *this;
 	}
-}
+
+	VerifiedBlockRef verified;				///< Verified block structures
+	bytes blockData;						///< Block data
+
+private:
+	VerifiedBlock(VerifiedBlock const&) = delete;
+	VerifiedBlock operator=(VerifiedBlock const&) = delete;
+};
 }
 }
