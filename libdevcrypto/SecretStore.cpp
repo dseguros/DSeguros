@@ -96,3 +96,26 @@ bytesSec SecretStore::secret(h128 const& _uuid, function<string()> const& _pass,
 	}
 	return key;
 }
+
+bytesSec SecretStore::secret(Address const& _address, function<string()> const& _pass) const
+{
+	bytesSec ret;
+	if (auto k = key(_address))
+		ret = bytesSec(decrypt(k->second.encryptedKey, _pass()));
+	return ret;
+}
+
+bytesSec SecretStore::secret(string const& _content, string const& _pass)
+{
+	try
+	{
+		js::mValue u = upgraded(_content);
+		if (u.type() != js::obj_type)
+			return bytesSec();
+		return decrypt(js::write_string(u.get_obj()["crypto"], false), _pass);
+	}
+	catch (...)
+	{
+		return bytesSec();
+	}
+}
