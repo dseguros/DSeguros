@@ -13,6 +13,13 @@ namespace dev
 namespace eth
 {
 
+class PBFTPeer : public p2p::Capability
+{
+	friend class PBFT;
+public:
+	PBFTPeer(std::shared_ptr<p2p::SessionFace> _s, p2p::HostCapabilityFace* _h, unsigned _i, p2p::CapDesc const& _cap, uint16_t _capID);
+
+};
 
 }
 }
