@@ -69,3 +69,14 @@ static js::mValue upgraded(string const& _s)
 		return ret;
 	return js::mValue();
 }
+
+SecretStore::SecretStore(string const& _path): m_path(_path)
+{
+	load();
+}
+
+void SecretStore::setPath(string const& _path)
+{
+	m_path = _path;
+	load();
+}
