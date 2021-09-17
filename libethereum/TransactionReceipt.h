@@ -26,6 +26,12 @@ public:
 	void streamRLP(RLPStream& _s) const;
 
 	bytes rlp() const { RLPStream s; streamRLP(s); return s.out(); }
+
+private:
+	h256 m_stateRoot;
+	u256 m_gasUsed;
+	LogBloom m_bloom;
+	LogEntries m_log;
 };
 
 }
