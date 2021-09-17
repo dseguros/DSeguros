@@ -17,6 +17,16 @@ namespace dev
 namespace shh
 {
 
+class Watch;
+
+struct InstalledFilter
+{
+	InstalledFilter(Topics const& _t): full(_t), filter(_t) {}
+
+	Topics full;
+	TopicFilter filter;
+	unsigned refCount = 1;
+};
 
 }
 
