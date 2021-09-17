@@ -9,3 +9,16 @@
 #include "json_spirit_error_position.h"
 #include <iostream>
 
+namespace json_spirit
+{
+    // functions to reads a JSON values
+
+    bool read( const std::string& s, Value& value );
+    bool read( std::istream& is,     Value& value );
+    bool read( std::string::const_iterator& begin, std::string::const_iterator end, Value& value );
+
+    void read_or_throw( const std::string& s, Value& value );  
+    void read_or_throw( std::istream& is,     Value& value );
+    void read_or_throw( std::string::const_iterator& begin, std::string::const_iterator end, Value& value );
+
+}
