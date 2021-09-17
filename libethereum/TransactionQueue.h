@@ -47,6 +47,37 @@ public:
 	/// @returns Import result code.
 	ImportResult import(Transaction const& _tx, IfDropped _ik = IfDropped::Ignore);
 
+	/// Remove transaction from the queue
+	/// @param _txHash Trasnaction hash
+	void drop(h256 const& _txHash);
+
+	/// Get number of pending transactions for account.
+	/// @returns Pending transaction count.
+	unsigned waiting(Address const& _a) const;
+
+	/// Get top transactions from the queue. Returned transactions are not removed from the queue automatically.
+	/// @param _limit Max number of transactions to return.
+	/// @param _avoid Transactions to avoid returning.
+	/// @returns up to _limit transactions ordered by nonce and gas price.
+	Transactions topTransactions(unsigned _limit, h256Hash const& _avoid = h256Hash()) const;
+
+	Transactions allTransactions() const;
+
+	/// Get a hash set of transactions in the queue
+	/// @returns A hash set of all transactions in the queue
+	h256Hash knownTransactions() const;
+
+	/// Get max nonce for an account
+	/// @returns Max transaction nonce for account in the queue
+	u256 maxNonce(Address const& _a) const;
+
+	/// Mark transaction as future. It wont be retured in topTransactions list until a transaction with a preceeding nonce is imported or marked with dropGood
+	/// @param _t Transaction hash
+	void setFuture(h256 const& _t);
+
+	/// Drop a trasnaction from the list if exists and move following future trasnactions to current (if any)
+	/// @param _t Transaction hash
+	void dropGood(Transaction const& _t);
 };
 }
 }
