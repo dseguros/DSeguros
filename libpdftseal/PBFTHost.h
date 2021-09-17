@@ -19,6 +19,12 @@ public:
 	PBFTHost(MsgHandler h): m_msg_handler(h) {}
 	virtual ~PBFTHost() {}
 
+
+	void onMsg(unsigned _id, std::shared_ptr<p2p::Capability> _peer, RLP const& _r) {
+		m_msg_handler(_id, _peer, _r);
+	}
+
+	void foreachPeer(std::function<bool(std::shared_ptr<PBFTPeer>)> const& _f) const;
 };
 
 }
