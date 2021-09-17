@@ -28,6 +28,15 @@ struct InstalledFilter
 	unsigned refCount = 1;
 };
 
+struct ClientWatch
+{
+	ClientWatch() {}
+	explicit ClientWatch(h256 _id): id(_id) {}
+
+	h256 id;
+	h256s changes;
+};
+
 }
 
 }
