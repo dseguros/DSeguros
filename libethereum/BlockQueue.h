@@ -35,5 +35,16 @@ struct BlockQueueStatus
 	size_t bad;
 };
 
+enum class QueueStatus
+{
+	Ready,
+	Importing,
+	UnknownParent,
+	Bad,
+	Unknown
+};
+
+std::ostream& operator<< (std::ostream& os, QueueStatus const& obj);
+
 }
 }
