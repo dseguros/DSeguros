@@ -32,5 +32,14 @@ enum class TransactionException
 	InvalidZeroSignatureFormat
 };
 
+enum class CodeDeposit
+{
+	None = 0,
+	Failed,
+	Success
+};
+
+struct VMException;
+
 }
 }
