@@ -25,6 +25,9 @@ public:
 	}
 
 	void foreachPeer(std::function<bool(std::shared_ptr<PBFTPeer>)> const& _f) const;
+
+private:
+	MsgHandler m_msg_handler;
 };
 
 }
