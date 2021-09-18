@@ -51,6 +51,13 @@ public:
 	virtual h256s checkWatch(unsigned _watchId) = 0;
 	virtual h256s watchMessages(unsigned _watchId) = 0;
 
+
+	virtual Envelope envelope(h256 _m) const = 0;
+
+	void post(bytes const& _payload, Topics _topics, unsigned _ttl = 50, unsigned _workToProve = 50) { inject(Message(_payload).seal(_topics, _ttl, _workToProve)); }
+	void post(Public _to, bytes const& _payload, Topics _topics, unsigned _ttl = 50, unsigned _workToProve = 50) { inject(Message(_payload).sealTo(_to, _topics, _ttl, _workToProve)); }
+	void post(Secret const& _from, bytes const& _payload, Topics _topics, unsigned _ttl = 50, unsigned _workToProve = 50) { inject(Message(_payload).seal(_from, _topics, _ttl, _workToProve)); }
+	void post(Secret const& _from, Public _to, bytes const& _payload, Topics _topics, unsigned _ttl = 50, unsigned _workToProve = 50) { inject(Message(_payload).sealTo(_from, _to, _topics, _ttl, _workToProve)); }
 };
 }
 
