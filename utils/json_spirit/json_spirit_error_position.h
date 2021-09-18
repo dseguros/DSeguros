@@ -41,5 +41,14 @@ namespace json_spirit
     {
     }
 
+    inline bool Error_position::operator==( const Error_position& lhs ) const
+    {
+        if( this == &lhs ) return true;
+
+        return ( reason_ == lhs.reason_ ) &&
+               ( line_   == lhs.line_ ) &&
+               ( column_ == lhs.column_ ); 
+}
+
 }
 
