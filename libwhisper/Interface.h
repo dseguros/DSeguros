@@ -59,6 +59,10 @@ public:
 	void post(Secret const& _from, bytes const& _payload, Topics _topics, unsigned _ttl = 50, unsigned _workToProve = 50) { inject(Message(_payload).seal(_from, _topics, _ttl, _workToProve)); }
 	void post(Secret const& _from, Public _to, bytes const& _payload, Topics _topics, unsigned _ttl = 50, unsigned _workToProve = 50) { inject(Message(_payload).sealTo(_from, _to, _topics, _ttl, _workToProve)); }
 };
+
+struct WatshhChannel: public dev::LogChannel { static const char* name() { return "shh"; } static const int verbosity = 1; };
+#define cwatshh dev::LogOutputStream<shh::WatshhChannel, true>()
+
 }
 
 }
