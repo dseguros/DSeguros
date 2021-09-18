@@ -205,3 +205,230 @@ h128 SecretStore::readKey(string const& _file, bool _takeFileOwnership)
 	ctrace << "Reading" << _file;
 	return readKeyContent(contentsString(_file), _takeFileOwnership ? _file : string());
 }
+
+h128 SecretStore::readKeyContent(string const& _content, string const& _file)
+{
+	try
+	{
+		js::mValue u = upgraded(_content);
+		if (u.type() == js::obj_type)
+		{
+			js::mObject& o = u.get_obj();
+			auto uuid = fromUUID(o["id"].get_str());
+			Address address = ZeroAddress;
+			if (o.find("address") != o.end() && isHex(o["address"].get_str()))
+				address = Address(o["address"].get_str());
+			else
+				cwarn << "Account address is either not defined or not in hex format" << _file;
+			m_keys[uuid] = EncryptedKey{js::write_string(o["crypto"], false), _file, address};
+			return uuid;
+		}
+		else
+			cwarn << "Invalid JSON in key file" << _file;
+		return h128();
+	}
+	catch (...)
+	{
+		return h128();
+	}
+}
+
+bool SecretStore::recode(Address const& _address, string const& _newPass, function<string()> const& _pass, KDF _kdf)
+{
+	if (auto k = key(_address))
+	{
+		bytesSec s = secret(_address, _pass);
+		if (s.empty())
+			return false;
+		else
+		{
+			k->second.encryptedKey = encrypt(s.ref(), _newPass, _kdf);
+			save();
+			return true;
+		}
+	}
+	return false;
+}
+
+pair<h128 const, SecretStore::EncryptedKey> const* SecretStore::key(Address const& _address) const
+{
+	for (auto const& k: m_keys)
+		if (k.second.address == _address)
+			return &k;
+	return nullptr;
+}
+
+pair<h128 const, SecretStore::EncryptedKey>* SecretStore::key(Address const& _address)
+{
+	for (auto& k: m_keys)
+		if (k.second.address == _address)
+			return &k;
+	return nullptr;
+}
+
+bool SecretStore::recode(h128 const& _uuid, string const& _newPass, function<string()> const& _pass, KDF _kdf)
+{
+	bytesSec s = secret(_uuid, _pass, true);
+	if (s.empty())
+		return false;
+	m_cached.erase(_uuid);
+	m_keys[_uuid].encryptedKey = encrypt(s.ref(), _newPass, _kdf);
+	save();
+	return true;
+}
+
+static bytesSec deriveNewKey(string const& _pass, KDF _kdf, js::mObject& o_ret)
+{
+	unsigned dklen = 32;
+	unsigned iterations = 1 << 18;
+	bytes salt = h256::random().asBytes();
+	if (_kdf == KDF::Scrypt)
+	{
+		unsigned p = 1;
+		unsigned r = 8;
+		o_ret["kdf"] = "scrypt";
+		{
+			js::mObject params;
+			params["n"] = int64_t(iterations);
+			params["r"] = int(r);
+			params["p"] = int(p);
+			params["dklen"] = int(dklen);
+			params["salt"] = toHex(salt);
+			o_ret["kdfparams"] = params;
+		}
+		return scrypt(_pass, salt, iterations, r, p, dklen);
+	}
+	else
+	{
+		o_ret["kdf"] = "pbkdf2";
+		{
+			js::mObject params;
+			params["prf"] = "hmac-sha256";
+			params["c"] = int(iterations);
+			params["salt"] = toHex(salt);
+			params["dklen"] = int(dklen);
+			o_ret["kdfparams"] = params;
+		}
+		return pbkdf2(_pass, salt, iterations, dklen);
+	}
+}
+
+string SecretStore::encrypt(bytesConstRef _v, string const& _pass, KDF _kdf)
+{
+	js::mObject ret;
+
+	bytesSec derivedKey = deriveNewKey(_pass, _kdf, ret);
+	if (derivedKey.empty())
+		BOOST_THROW_EXCEPTION(crypto::CryptoException() << errinfo_comment("Key derivation failed."));
+
+	ret["cipher"] = "aes-128-ctr";
+	SecureFixedHash<16> key(derivedKey, h128::AlignLeft);
+	h128 iv = h128::random();
+	{
+		js::mObject params;
+		params["iv"] = toHex(iv.ref());
+		ret["cipherparams"] = params;
+	}
+
+	// cipher text
+	bytes cipherText = encryptSymNoAuth(key, iv, _v);
+	if (cipherText.empty())
+		BOOST_THROW_EXCEPTION(crypto::CryptoException() << errinfo_comment("Key encryption failed."));
+	ret["ciphertext"] = toHex(cipherText);
+
+	// and mac.
+	h256 mac = sha3(derivedKey.ref().cropped(16, 16).toBytes() + cipherText);
+	ret["mac"] = toHex(mac.ref());
+
+	return js::write_string(js::mValue(ret), true);
+}
+
+bytesSec SecretStore::decrypt(string const& _v, string const& _pass)
+{
+	js::mObject o;
+	{
+		js::mValue ov;
+		js::read_string(_v, ov);
+		o = ov.get_obj();
+	}
+
+	// derive key
+	bytesSec derivedKey;
+	if (o["kdf"].get_str() == "pbkdf2")
+	{
+		auto params = o["kdfparams"].get_obj();
+		if (params["prf"].get_str() != "hmac-sha256")
+		{
+			cwarn << "Unknown PRF for PBKDF2" << params["prf"].get_str() << "not supported.";
+			return bytesSec();
+		}
+		unsigned iterations = params["c"].get_int();
+		bytes salt = fromHex(params["salt"].get_str());
+		derivedKey = pbkdf2(_pass, salt, iterations, params["dklen"].get_int());
+	}
+	else if (o["kdf"].get_str() == "scrypt")
+	{
+		auto p = o["kdfparams"].get_obj();
+		derivedKey = scrypt(_pass, fromHex(p["salt"].get_str()), p["n"].get_int(), p["r"].get_int(), p["p"].get_int(), p["dklen"].get_int());
+	}
+	else
+	{
+		cwarn << "Unknown KDF" << o["kdf"].get_str() << "not supported.";
+		return bytesSec();
+	}
+
+	if (derivedKey.size() < 32 && !(o.count("compat") && o["compat"].get_str() == "2"))
+	{
+		cwarn << "Derived key's length too short (<32 bytes)";
+		return bytesSec();
+	}
+
+	bytes cipherText = fromHex(o["ciphertext"].get_str());
+
+	// check MAC
+	if (o.count("mac"))
+	{
+		h256 mac(o["mac"].get_str());
+		h256 macExp;
+		if (o.count("compat") && o["compat"].get_str() == "2")
+			macExp = sha3(derivedKey.ref().cropped(derivedKey.size() - 16).toBytes() + cipherText);
+		else
+			macExp = sha3(derivedKey.ref().cropped(16, 16).toBytes() + cipherText);
+		if (mac != macExp)
+		{
+			cwarn << "Invalid key - MAC mismatch; expected" << toString(macExp) << ", got" << toString(mac);
+			return bytesSec();
+		}
+	}
+	else if (o.count("sillymac"))
+	{
+		h256 mac(o["sillymac"].get_str());
+		h256 macExp = sha3(asBytes(o["sillymacjson"].get_str()) + derivedKey.ref().cropped(derivedKey.size() - 16).toBytes() + cipherText);
+		if (mac != macExp)
+		{
+			cwarn << "Invalid key - MAC mismatch; expected" << toString(macExp) << ", got" << toString(mac);
+			return bytesSec();
+		}
+	}
+	else
+		cwarn << "No MAC. Proceeding anyway.";
+
+	// decrypt
+	if (o["cipher"].get_str() == "aes-128-ctr")
+	{
+		auto params = o["cipherparams"].get_obj();
+		h128 iv(params["iv"].get_str());
+		if (o.count("compat") && o["compat"].get_str() == "2")
+		{
+			SecureFixedHash<16> key(sha3Secure(derivedKey.ref().cropped(derivedKey.size() - 16)), h128::AlignRight);
+			return decryptSymNoAuth(key, iv, &cipherText);
+		}
+		else
+			return decryptSymNoAuth(SecureFixedHash<16>(derivedKey, h128::AlignLeft), iv, &cipherText);
+	}
+	else
+	{
+		cwarn << "Unknown cipher" << o["cipher"].get_str() << "not supported.";
+		return bytesSec();
+	}
+}
