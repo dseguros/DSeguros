@@ -75,6 +75,14 @@ h256 const& hash() const { return m_hash; }
 	unsigned transactionIndex() const { return m_transactionIndex; }
 	Address const& contractAddress() const { return m_contractAddress; }
 	LocalisedLogEntries const& localisedLogs() const { return m_localisedLogs; };
+
+private:
+	h256 m_hash;
+	h256 m_blockHash;
+	BlockNumber m_blockNumber;
+	unsigned m_transactionIndex = 0;
+	Address m_contractAddress;
+	LocalisedLogEntries m_localisedLogs;
 };
 
 
