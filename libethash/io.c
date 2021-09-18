@@ -29,5 +29,39 @@ enum ethash_io_rc ethash_io_prepare(
 		goto end;
 	}
 
+	FILE *f;
+	if (!force_create) {
+		// try to open the file
+		f = ethash_fopen(tmpfile, "rb+");
+		if (f) {
+			size_t found_size;
+			if (!ethash_file_size(f, &found_size)) {
+				fclose(f);
+				ETHASH_CRITICAL("Could not query size of DAG file: \"%s\"", tmpfile);
+				goto free_memo;
+			}
+			if (file_size != found_size - ETHASH_DAG_MAGIC_NUM_SIZE) {
+				fclose(f);
+				ret = ETHASH_IO_MEMO_SIZE_MISMATCH;
+				goto free_memo;
+			}
+			// compare the magic number, no need to care about endianess since it's local
+			uint64_t magic_num;
+			if (fread(&magic_num, ETHASH_DAG_MAGIC_NUM_SIZE, 1, f) != 1) {
+				// I/O error
+				fclose(f);
+				ETHASH_CRITICAL("Could not read from DAG file: \"%s\"", tmpfile);
+				ret = ETHASH_IO_MEMO_SIZE_MISMATCH;
+				goto free_memo;
+			}
+			if (magic_num != ETHASH_DAG_MAGIC_NUM) {
+				fclose(f);
+				ret = ETHASH_IO_MEMO_SIZE_MISMATCH;
+				goto free_memo;
+			}
+			ret = ETHASH_IO_MEMO_MATCH;
+			goto set_file;
+		}
+	}
 }
 
