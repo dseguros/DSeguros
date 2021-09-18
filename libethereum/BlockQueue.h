@@ -173,6 +173,27 @@ public:
 		return removeRange(m_map.begin(), m_map.upper_bound(_key));
 	}
 
+private:
+	using BlockMultimap = std::multimap<KeyType, std::pair<h256, bytes>>;
+
+	std::vector<std::pair<h256, bytes>> removeRange(typename BlockMultimap::iterator _begin, typename BlockMultimap::iterator _end)
+	{
+		std::vector<std::pair<h256, bytes>> removed;
+		std::size_t removedSize = 0;
+		for (auto it = _begin; it != _end; ++it)
+		{
+			removed.push_back(std::move(it->second));
+			removedSize += removed.back().second.size();
+		}
+
+		m_size -= removedSize;
+		m_map.erase(_begin, _end);
+
+		return removed;
+	}
+		
+	BlockMultimap m_map;
+	std::atomic<size_t> m_size = {0};	///< Tracks total size in bytes
 };
 
 }
