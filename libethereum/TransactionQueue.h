@@ -94,6 +94,15 @@ public:
 
 	/// Clear the queue
 	void clear();
+
+	/// Register a handler that will be called once there is a new transaction imported
+	template <class T> Handler<> onReady(T const& _t) { return m_onReady.add(_t); }
+
+	/// Register a handler that will be called once asynchronous verification is comeplte an transaction has been imported
+	template <class T> Handler<ImportResult, h256 const&, h512 const&> onImport(T const& _t) { return m_onImport.add(_t); }
+
+	/// Register a handler that will be called once asynchronous verification is comeplte an transaction has been imported
+	template <class T> Handler<h256 const&> onReplaced(T const& _t) { return m_onReplaced.add(_t); }
 };
 }
 }
