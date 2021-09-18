@@ -7,3 +7,9 @@ using namespace dev;
 using namespace eth;
 using namespace p2p;
 
+PBFTPeer::PBFTPeer(std::shared_ptr<SessionFace> _s, HostCapabilityFace* _h, unsigned _i, CapDesc const& _cap, uint16_t _capID):
+	Capability(_s, _h, _i, _capID),
+	m_peerCapabilityVersion(_cap.second)
+{
+	//session()->addNote("manners", isRude() ? "RUDE" : "nice");
+}
