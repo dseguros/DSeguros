@@ -76,5 +76,15 @@ enum ethash_io_rc ethash_io_prepare(
 		ETHASH_CRITICAL("Could not seek to the end of DAG file: \"%s\". Insufficient space?", tmpfile);
 		goto free_memo;
 	}
+	if (fputc('\n', f) == EOF) {
+		fclose(f);
+		ETHASH_CRITICAL("Could not write in the end of DAG file: \"%s\". Insufficient space?", tmpfile);
+		goto free_memo;
+	}
+	if (fflush(f) != 0) {
+		fclose(f);
+		ETHASH_CRITICAL("Could not flush at end of DAG file: \"%s\". Insufficient space?", tmpfile);
+		goto free_memo;
+	}
 }
 
