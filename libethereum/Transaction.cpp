@@ -73,3 +73,8 @@ std::ostream& dev::eth::operator<<(std::ostream& _out, TransactionException cons
 	}
 	return _out;
 }
+
+Transaction::Transaction(bytesConstRef _rlpData, CheckTransaction _checkSig):
+	TransactionBase(_rlpData, _checkSig)
+{
+}
