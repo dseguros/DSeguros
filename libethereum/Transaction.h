@@ -41,5 +41,20 @@ enum class CodeDeposit
 
 struct VMException;
 
+TransactionException toTransactionException(Exception const& _e);
+std::ostream& operator<<(std::ostream& _out, TransactionException const& _er);
+
+/// Description of the result of executing a transaction.
+struct ExecutionResult
+{
+	u256 gasUsed = 0;
+	TransactionException excepted = TransactionException::Unknown;
+	Address newAddress;
+	bytes output;
+	CodeDeposit codeDeposit = CodeDeposit::None;					///< Failed if an attempted deposit failed due to lack of gas.
+	u256 gasRefunded = 0;
+	unsigned depositSize = 0; 										///< Amount of code of the creation's attempted deposit.
+	u256 gasForDeposit; 											///< Amount of gas remaining for the code deposit phase.
+};
 }
 }
