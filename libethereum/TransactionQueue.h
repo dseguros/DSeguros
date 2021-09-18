@@ -78,6 +78,22 @@ public:
 	/// Drop a trasnaction from the list if exists and move following future trasnactions to current (if any)
 	/// @param _t Transaction hash
 	void dropGood(Transaction const& _t);
+
+	struct Status
+	{
+		size_t current;
+		size_t future;
+		size_t unverified;
+		size_t dropped;
+	};
+	/// @returns the status of the transaction queue.
+	Status status() const { Status ret; DEV_GUARDED(x_queue) { ret.unverified = m_unverified.size(); } ReadGuard l(m_lock); ret.dropped = m_dropped.size(); ret.current = m_currentByHash.size(); ret.future = m_future.size(); return ret; }
+
+	/// @returns the transacrtion limits on current/future.
+	Limits limits() const { return Limits{m_limit, m_futureLimit}; }
+
+	/// Clear the queue
+	void clear();
 };
 }
 }
