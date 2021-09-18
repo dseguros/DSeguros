@@ -33,4 +33,26 @@ void json_spirit::read_or_throw( std::string::const_iterator& begin, std::string
     begin = read_range_or_throw( begin, end, value );
 }
 
+#ifndef BOOST_NO_STD_WSTRING
+
+bool json_spirit::read( const std::wstring& s, wValue& value )
+{
+    return read_string( s, value );
+}
+
+void json_spirit::read_or_throw( const std::wstring& s, wValue& value )
+{
+    read_string_or_throw( s, value );
+}
+
+bool json_spirit::read( std::wistream& is, wValue& value )
+{
+    return read_stream( is, value );
+}
+
+void json_spirit::read_or_throw( std::wistream& is, wValue& value )
+{
+    read_stream_or_throw( is, value );
+}
+
 #endif
