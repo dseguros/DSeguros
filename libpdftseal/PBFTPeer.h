@@ -31,6 +31,20 @@ public:
 
 	p2p::NodeID id() const { return session()->id(); }
 
+protected:
+	virtual bool interpret(unsigned _id, RLP const& _r);
+
+private:
+	u256 const m_peerCapabilityVersion;
+
+	Mutex x_knownPrepare;
+	QueueSet<std::string> m_knownPrepare;
+	Mutex x_knownSign;
+	QueueSet<std::string> m_knownSign;
+	Mutex x_knownCommit;
+	QueueSet<std::string> m_knownCommit;
+	Mutex x_knownViewChange;
+	QueueSet<std::string> m_knownViewChange;
 };
 
 }
