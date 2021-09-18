@@ -13,3 +13,13 @@ PBFTPeer::PBFTPeer(std::shared_ptr<SessionFace> _s, HostCapabilityFace* _h, unsi
 {
 	//session()->addNote("manners", isRude() ? "RUDE" : "nice");
 }
+
+PBFTPeer::~PBFTPeer()
+{
+}
+
+bool PBFTPeer::interpret(unsigned _id, RLP const& _r)
+{
+	dynamic_cast<PBFTHost&>(*hostCapability()).onMsg(_id, dynamic_pointer_cast<PBFTPeer>(shared_from_this()), _r);
+	return true;
+}
