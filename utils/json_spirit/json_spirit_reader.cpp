@@ -23,4 +23,14 @@ void json_spirit::read_or_throw( std::istream& is, Value& value )
     read_stream_or_throw( is, value );
 }
 
+bool json_spirit::read( std::string::const_iterator& begin, std::string::const_iterator end, Value& value )
+{
+    return read_range( begin, end, value );
+}
+
+void json_spirit::read_or_throw( std::string::const_iterator& begin, std::string::const_iterator end, Value& value )
+{
+    begin = read_range_or_throw( begin, end, value );
+}
+
 #endif
