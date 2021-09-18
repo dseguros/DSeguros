@@ -187,3 +187,21 @@ bool SecretStore::noteAddress(h128 const& _uuid, Address const& _address)
 	}
 	return false;
 }
+
+void SecretStore::load(string const& _keysPath)
+{
+	fs::path p(_keysPath);
+	try
+	{
+		for (fs::directory_iterator it(p); it != fs::directory_iterator(); ++it)
+			if (fs::is_regular_file(it->path()))
+				readKey(it->path().string(), true);
+	}
+	catch (...) {}
+}
+
+h128 SecretStore::readKey(string const& _file, bool _takeFileOwnership)
+{
+	ctrace << "Reading" << _file;
+	return readKeyContent(contentsString(_file), _takeFileOwnership ? _file : string());
+}
