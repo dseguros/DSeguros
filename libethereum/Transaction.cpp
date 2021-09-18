@@ -11,3 +11,10 @@ using namespace std;
 using namespace dev;
 using namespace dev::eth;
 
+#define ETH_ADDRESS_DEBUG 0
+
+std::ostream& dev::eth::operator<<(std::ostream& _out, ExecutionResult const& _er)
+{
+	_out << "{" << _er.gasUsed << ", " << _er.newAddress << ", " << toHex(_er.output) << "}";
+	return _out;
+}
