@@ -139,3 +139,51 @@ h128 SecretStore::importSecret(bytesConstRef _s, string const& _pass)
 	save();
 	return r;
 }
+
+void SecretStore::kill(h128 const& _uuid)
+{
+	m_cached.erase(_uuid);
+	if (m_keys.count(_uuid))
+	{
+		fs::remove(m_keys[_uuid].filename);
+		m_keys.erase(_uuid);
+	}
+}
+
+void SecretStore::clearCache() const
+{
+	m_cached.clear();
+}
+
+void SecretStore::save(string const& _keysPath)
+{
+	fs::path p(_keysPath);
+	fs::create_directories(p);
+	DEV_IGNORE_EXCEPTIONS(fs::permissions(p, fs::owner_all));
+	for (auto& k: m_keys)
+	{
+		string uuid = toUUID(k.first);
+		string filename = (p / uuid).string() + ".json";
+		js::mObject v;
+		js::mValue crypto;
+		js::read_string(k.second.encryptedKey, crypto);
+		v["address"] = k.second.address.hex();
+		v["crypto"] = crypto;
+		v["id"] = uuid;
+		v["version"] = c_keyFileVersion;
+		writeFile(filename, js::write_string(js::mValue(v), true));
+		swap(k.second.filename, filename);
+		if (!filename.empty() && !fs::equivalent(filename, k.second.filename))
+			fs::remove(filename);
+	}
+}
+
+bool SecretStore::noteAddress(h128 const& _uuid, Address const& _address)
+{
+	if (m_keys.find(_uuid) != m_keys.end() && m_keys[_uuid].address == ZeroAddress)
+	{
+		m_keys[_uuid].address =	_address;
+		return true;
+	}
+	return false;
+}
