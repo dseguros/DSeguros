@@ -33,5 +33,13 @@ namespace json_spirit
     ,   column_( 0 )
     {
     }
+
+    inline Error_position::Error_position( unsigned int line, unsigned int column, const std::string& reason )
+    :   line_( line )
+    ,   column_( column )
+    ,   reason_( reason )
+    {
+    }
+
 }
 
