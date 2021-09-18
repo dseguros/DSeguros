@@ -28,5 +28,10 @@ namespace json_spirit
         std::string reason_;
     };
 
-|
+    inline Error_position::Error_position()
+    :   line_( 0 )
+    ,   column_( 0 )
+    {
+    }
+}
 
