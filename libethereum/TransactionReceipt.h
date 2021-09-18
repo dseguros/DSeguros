@@ -68,6 +68,13 @@ public:
 			));
 	}
 
+
+h256 const& hash() const { return m_hash; }
+	h256 const& blockHash() const { return m_blockHash; }
+	BlockNumber blockNumber() const { return m_blockNumber; }
+	unsigned transactionIndex() const { return m_transactionIndex; }
+	Address const& contractAddress() const { return m_contractAddress; }
+	LocalisedLogEntries const& localisedLogs() const { return m_localisedLogs; };
 };
 
 
