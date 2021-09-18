@@ -86,5 +86,15 @@ enum ethash_io_rc ethash_io_prepare(
 		ETHASH_CRITICAL("Could not flush at end of DAG file: \"%s\". Insufficient space?", tmpfile);
 		goto free_memo;
 	}
+		ret = ETHASH_IO_MEMO_MISMATCH;
+	goto set_file;
+
+	ret = ETHASH_IO_MEMO_MATCH;
+set_file:
+	*output_file = f;
+free_memo:
+	free(tmpfile);
+end:
+	return ret;
 }
 
