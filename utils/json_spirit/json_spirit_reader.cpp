@@ -13,4 +13,14 @@ void json_spirit::read_or_throw( const std::string& s, Value& value )
     read_string_or_throw( s, value );
 }
 
+bool json_spirit::read( std::istream& is, Value& value )
+{
+    return read_stream( is, value );
+}
+
+void json_spirit::read_or_throw( std::istream& is, Value& value )
+{
+    read_stream_or_throw( is, value );
+}
+
 #endif
