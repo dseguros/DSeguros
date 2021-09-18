@@ -93,3 +93,14 @@ private:
 
 }
 }
+
+namespace std
+{
+
+inline void swap(dev::shh::Watch& _a, dev::shh::Watch& _b)
+{
+	swap(_a.m_c, _b.m_c);
+	swap(_a.m_id, _b.m_id);
+}
+
+}
