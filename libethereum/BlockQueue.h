@@ -115,6 +115,25 @@ public:
 		return true;
 	}
 
+private:
+	static std::function<bool(T const&)> sha3UnclesEquals(h256 const& _hash)
+	{
+		return [&_hash](T const& _t) { return _t.verified.info.sha3Uncles() == _hash; };
+	}
+
+	std::vector<T> removeRange(typename std::deque<T>::iterator _begin, typename std::deque<T>::iterator _end)
+	{
+		std::vector<T> ret(std::make_move_iterator(_begin), std::make_move_iterator(_end));
+
+		for (auto it = ret.begin(); it != ret.end(); ++it)
+			m_size -= it->blockData.size();
+
+		m_queue.erase(_begin, _end);
+		return ret;
+	}
+
+	std::deque<T> m_queue;
+	std::atomic<size_t> m_size = {0};	///< Tracks total size in bytes
 };
 
 }
