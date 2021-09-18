@@ -30,4 +30,14 @@ namespace json_spirit
     void read_or_throw( const std::wstring& s, wValue& value );
     void read_or_throw( std::wistream& is,     wValue& value );
     void read_or_throw( std::wstring::const_iterator& begin, std::wstring::const_iterator end, wValue& value );
+
+    #endif
+
+    bool read( const std::string& s, mValue& value );
+    bool read( std::istream& is,     mValue& value );
+    bool read( std::string::const_iterator& begin, std::string::const_iterator end, mValue& value );
+
+    void read_or_throw( const std::string& s, mValue& value );  
+    void read_or_throw( std::istream& is,     mValue& value );
+    void read_or_throw( std::string::const_iterator& begin, std::string::const_iterator end, mValue& value );
 }
