@@ -67,3 +67,29 @@ struct WatshhChannel: public dev::LogChannel { static const char* name() { retur
 
 }
 
+namespace std { void swap(dev::shh::Watch& _a, dev::shh::Watch& _b); }
+
+namespace dev
+{
+namespace shh
+{
+
+class Watch: public boost::noncopyable
+{
+	friend void std::swap(Watch& _a, Watch& _b);
+
+public:
+	Watch() {}
+	Watch(Interface& _c, Topics const& _t): m_c(&_c), m_id(_c.installWatch(_t)) {}
+	~Watch() { if (m_c) m_c->uninstallWatch(m_id); }
+
+	h256s check() { return m_c ? m_c->checkWatch(m_id) : h256s(); }
+	h256s peek() { return m_c ? m_c->peekWatch(m_id) : h256s(); }
+
+private:
+	Interface* m_c;
+	unsigned m_id;
+};
+
+}
+}
