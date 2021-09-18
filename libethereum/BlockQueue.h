@@ -136,5 +136,44 @@ private:
 	std::atomic<size_t> m_size = {0};	///< Tracks total size in bytes
 };
 
+template<class KeyType>
+class SizedBlockMap
+{
+public:
+	std::size_t count() const { return m_map.size(); }
+
+	std::size_t size() const { return m_size; }
+
+	bool isEmpty() const { return m_map.empty(); }
+
+	KeyType firstKey() const { return m_map.begin()->first; }
+
+	void clear()
+	{
+		m_map.clear();
+		m_size = 0;
+	}
+
+	void insert(KeyType const& _key, h256 const& _hash, bytes&& _blockData)
+	{
+		auto hashAndBlock = std::make_pair(_hash, std::move(_blockData));
+		auto keyAndValue = std::make_pair(_key, std::move(hashAndBlock));
+		m_map.insert(std::move(keyAndValue));
+		m_size += _blockData.size();
+	}
+
+	std::vector<std::pair<h256, bytes>> removeByKeyEqual(KeyType const& _key)
+	{
+		auto const equalRange = m_map.equal_range(_key);
+		return removeRange(equalRange.first, equalRange.second);
+	}
+
+	std::vector<std::pair<h256, bytes>> removeByKeyNotGreater(KeyType const& _key)
+	{
+		return removeRange(m_map.begin(), m_map.upper_bound(_key));
+	}
+
+};
+
 }
 }
