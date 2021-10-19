@@ -13,3 +13,8 @@ FILE* ethash_fopen(char const* file_name, char const* mode)
 	return fopen_s(&f, file_name, mode) == 0 ? f : NULL;
 }
 
+int ethash_fseek(FILE* f, size_t offset, int origin)
+{
+	return _fseeki64(f, offset, origin);
+}
+
