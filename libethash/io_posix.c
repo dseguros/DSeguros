@@ -33,3 +33,29 @@ int ethash_fileno(FILE *f)
 {
 	return fileno(f);
 }
+
+char* ethash_io_create_filename(
+	char const* dirname,
+	char const* filename,
+	size_t filename_length
+)
+{
+	size_t dirlen = strlen(dirname);
+	size_t dest_size = dirlen + filename_length + 1;
+	if (dirname[dirlen] != '/') {
+		dest_size += 1;
+	}
+	char* name = malloc(dest_size);
+	if (!name) {
+		return NULL;
+	}
+
+	name[0] = '\0';
+	ethash_strncat(name, dest_size, dirname, dirlen);
+	if (dirname[dirlen] != '/') {
+		ethash_strncat(name, dest_size, "/", 1);
+	}
+	ethash_strncat(name, dest_size, filename, filename_length);
+	return name;
+}
+
