@@ -18,3 +18,8 @@ int ethash_fseek(FILE* f, size_t offset, int origin)
 	return _fseeki64(f, offset, origin);
 }
 
+char* ethash_strncat(char* dest, size_t dest_size, char const* src, size_t count)
+{
+	return strncat_s(dest, dest_size, src, count) == 0 ? dest : NULL;
+}
+
