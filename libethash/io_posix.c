@@ -22,3 +22,14 @@ char* ethash_strncat(char* dest, size_t dest_size, char const* src, size_t count
 {
 	return strlen(dest) + count + 1 <= dest_size ? strncat(dest, src, count) : NULL;
 }
+
+bool ethash_mkdir(char const* dirname)
+{
+	int rc = mkdir(dirname, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+	return rc != -1 || errno == EEXIST;
+}
+
+int ethash_fileno(FILE *f)
+{
+	return fileno(f);
+}
