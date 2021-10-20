@@ -28,3 +28,8 @@ bool ethash_mkdir(char const* dirname)
 	int rc = _mkdir(dirname);
 	return rc != -1 || errno == EEXIST;
 }
+
+int ethash_fileno(FILE* f)
+{
+	return _fileno(f);
+}
