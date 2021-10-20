@@ -23,3 +23,8 @@ char* ethash_strncat(char* dest, size_t dest_size, char const* src, size_t count
 	return strncat_s(dest, dest_size, src, count) == 0 ? dest : NULL;
 }
 
+bool ethash_mkdir(char const* dirname)
+{
+	int rc = _mkdir(dirname);
+	return rc != -1 || errno == EEXIST;
+}
