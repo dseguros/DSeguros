@@ -34,3 +34,46 @@ static const uint64_t RC[24] = \
 	 0x8000000000008002ULL, 0x8000000000000080ULL, 0x800aULL, 0x800000008000000aULL,
 	 0x8000000080008081ULL, 0x8000000000008080ULL, 0x80000001ULL, 0x8000000080008008ULL};
 
+/*** Helper macros to unroll the permutation. ***/
+#define rol(x, s) (((x) << s) | ((x) >> (64 - s)))
+#define REPEAT6(e) e e e e e e
+#define REPEAT24(e) REPEAT6(e e e e)
+#define REPEAT5(e) e e e e e
+#define FOR5(v, s, e)							\
+	v = 0;										\
+	REPEAT5(e; v += s;)
+
+/*** Keccak-f[1600] ***/
+static inline void keccakf(void* state) {
+	uint64_t* a = (uint64_t*)state;
+	uint64_t b[5] = {0};
+	uint64_t t = 0;
+	uint8_t x, y;
+
+	for (int i = 0; i < 24; i++) {
+		// Theta
+		FOR5(x, 1,
+				b[x] = 0;
+				FOR5(y, 5,
+						b[x] ^= a[x + y]; ))
+		FOR5(x, 1,
+				FOR5(y, 5,
+						a[y + x] ^= b[(x + 4) % 5] ^ rol(b[(x + 1) % 5], 1); ))
+		// Rho and pi
+		t = a[1];
+		x = 0;
+		REPEAT24(b[0] = a[pi[x]];
+				a[pi[x]] = rol(t, rho[x]);
+				t = b[0];
+				x++; )
+		// Chi
+		FOR5(y,
+				5,
+				FOR5(x, 1,
+						b[x] = a[y + x];)
+				FOR5(x, 1,
+				a[y + x] = b[x] ^ ((~b[(x + 1) % 5]) & b[(x + 2) % 5]); ))
+		// Iota
+		a[0] ^= RC[i];
+	}
+}
