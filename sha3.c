@@ -77,3 +77,29 @@ static inline void keccakf(void* state) {
 		a[0] ^= RC[i];
 	}
 }
+
+/******** The FIPS202-defined functions. ********/
+
+/*** Some helper macros. ***/
+
+#define _(S) do { S } while (0)
+#define FOR(i, ST, L, S)							\
+	_(for (size_t i = 0; i < L; i += ST) { S; })
+#define mkapply_ds(NAME, S)						\
+	static inline void NAME(uint8_t* dst,			\
+		const uint8_t* src,						\
+		size_t len) {								\
+		FOR(i, 1, len, S);							\
+	}
+#define mkapply_sd(NAME, S)						\
+	static inline void NAME(const uint8_t* src,	\
+		uint8_t* dst,								\
+		size_t len) {								\
+		FOR(i, 1, len, S);							\
+	}
+
+mkapply_ds(xorin, dst[i] ^= src[i])  // xorin
+mkapply_sd(setout, dst[i] = src[i])  // setout
+
+#define P keccakf
+#define Plen 200
