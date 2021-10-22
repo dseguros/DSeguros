@@ -103,3 +103,36 @@ mkapply_sd(setout, dst[i] = src[i])  // setout
 
 #define P keccakf
 #define Plen 200
+
+// Fold P*F over the full blocks of an input.
+#define foldP(I, L, F)								\
+	while (L >= rate) {							\
+		F(a, I, rate);								\
+		P(a);										\
+		I += rate;									\
+		L -= rate;									\
+	}
+
+/** The sponge-based hash construction. **/
+static inline int hash(uint8_t* out, size_t outlen,
+		const uint8_t* in, size_t inlen,
+		size_t rate, uint8_t delim) {
+	if ((out == NULL) || ((in == NULL) && inlen != 0) || (rate >= Plen)) {
+		return -1;
+	}
+	uint8_t a[Plen] = {0};
+	// Absorb input.
+	foldP(in, inlen, xorin);
+	// Xor in the DS and pad frame.
+	a[inlen] ^= delim;
+	a[rate - 1] ^= 0x80;
+	// Xor in the last block.
+	xorin(a, in, inlen);
+	// Apply P
+	P(a);
+	// Squeeze output.
+	foldP(out, outlen, setout);
+	setout(a, out, outlen);
+	memset(a, 0, 200);
+	return 0;
+}
