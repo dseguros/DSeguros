@@ -63,6 +63,30 @@ public:
 	static FullType full(h256 const& _seedHash, bool _createIfMissing = false, std::function<int(unsigned)> const& _f = std::function<int(unsigned)>());
 
 	static EthashProofOfWork::Result eval(h256 const& _seedHash, h256 const& _headerHash, Nonce const& _nonce);
+
+	private:
+	EthashAux() {}
+
+	/// Kicks off generation of DAG for @a _blocknumber and blocks until ready; @returns result.
+
+	void killCache(h256 const& _s);
+
+	static EthashAux* s_this;
+
+	SharedMutex x_lights;
+	std::unordered_map<h256, std::shared_ptr<LightAllocation>> m_lights;
+
+	Mutex x_fulls;
+	std::condition_variable m_fullsChanged;
+	std::unordered_map<h256, std::weak_ptr<FullAllocation>> m_fulls;
+	FullType m_lastUsedFull;
+	std::unique_ptr<std::thread> m_fullGenerator;
+	uint64_t m_generatingFullNumber = NotGenerating;
+	unsigned m_fullProgress;
+
+	Mutex x_epochs;
+	std::unordered_map<h256, unsigned> m_epochs;
+	h256s m_seedHashes;
 };
 
 
