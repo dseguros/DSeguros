@@ -42,6 +42,17 @@ public:
 		uint64_t size() const { return ethash_full_dag_size(full); }
 		ethash_full_t full;
 	};
+
+	using LightType = std::shared_ptr<LightAllocation>;
+	using FullType = std::shared_ptr<FullAllocation>;
+
+	static h256 seedHash(unsigned _number);
+	static uint64_t number(h256 const& _seedHash);
+	static uint64_t cacheSize(BlockHeader const& _header);
+	static uint64_t dataSize(uint64_t _blockNumber);
+
+	static LightType light(h256 const& _seedHash);
+
 };
 
 
