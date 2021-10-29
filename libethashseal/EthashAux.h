@@ -53,6 +53,16 @@ public:
 
 	static LightType light(h256 const& _seedHash);
 
+
+	static const uint64_t NotGenerating = (uint64_t)-1;
+	/// Kicks off generation of DAG for @a _seedHash and @returns false or @returns true if ready.
+	static unsigned computeFull(h256 const& _seedHash, bool _createIfMissing = true);
+	/// Information on the generation progress.
+	static std::pair<uint64_t, unsigned> fullGeneratingProgress() { return std::make_pair(get()->m_generatingFullNumber, get()->m_fullProgress); }
+	/// Kicks off generation of DAG for @a _blocknumber and blocks until ready; @returns result or empty pointer if not existing and _createIfMissing is false.
+	static FullType full(h256 const& _seedHash, bool _createIfMissing = false, std::function<int(unsigned)> const& _f = std::function<int(unsigned)>());
+
+	static EthashProofOfWork::Result eval(h256 const& _seedHash, h256 const& _headerHash, Nonce const& _nonce);
 };
 
 
